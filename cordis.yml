@@ -1,6 +1,8 @@
-# dsh-team bundle patch：多 Agent 团队接力技能包。
-# 叠加在 dsh-base（已含 skills 服务）之上，只声明本插件入口。
-# 本插件在 apply 阶段把 skills/ 下的团队角色 SKILL.md 注册进 skill registry，
-# 使 agent 获得「团队接力」的工作流与角色规范。
-- id: dsh-team
-  name: 'dsh-team'
+# dsh-team bundle patch：多 Agent 团队编排技能包（顺序接力 loop + 图编排 graph）。
+# 叠加在 dsh-base（已含 skills / subagent / workflow 服务）之上。
+# 用 insert 新增 dsh-team 插件条目——插件在 apply 阶段把 skills/ 下的团队角色
+# SKILL.md 与 graphs/ 下的图模板（渲染成 Mermaid）注册进 skill registry，
+# 使 agent 获得「团队接力 + 图编排」能力。
+- insert:
+    - id: dsh-team
+      name: 'dsh-team'

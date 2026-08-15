@@ -70,12 +70,17 @@ graph TD
 ## 安装
 
 ```sh
+# 从 npm 安装（发布后）
 dsh plugin --profile web add dsh-team
-# 或终端 profile
 dsh plugin --profile cc-tui add dsh-team
+
+# 本地开发/测试（link 安装，改动即时生效）
+dsh plugin --profile headless add /path/to/dsh-team
 ```
 
-安装后，`dsh-team` 的 7 个技能 + 3 个图模板会注册进 skill registry。
+安装后，`dsh-team` 的 7 个技能 + 3 个图模板会注册进 skill registry。可用 `dsh --profile <name> --dump-config | grep dsh-team` 确认条目已加载。
+
+> 已验证：在 headless profile 下，插件通过 `- insert:` 语法把 `dsh-team` 条目叠加进 `dsh-base` 之上；加载后 agent 能列出全部技能与图模板，并能按 `team-graph` 方法论实际编排多模块任务（fan-out 并行 + 条件路由 + join 汇聚）。
 
 ## 使用
 
@@ -95,7 +100,7 @@ dsh plugin --profile cc-tui add dsh-team
 
 ```
 dsh-team/
-├── cordis.yml          # bundle patch（声明插件入口）
+├── cordis.yml          # bundle patch（用 - insert: 新增 dsh-team 插件条目）
 ├── package.json        # dsh.bundle manifest
 ├── src/index.ts        # 插件入口（注册 skills + 图模板 + Mermaid 渲染）
 ├── skills/             # 7 个团队角色 SKILL.md
