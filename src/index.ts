@@ -18,6 +18,9 @@ import type { Context } from '@deepseek-ai/cordis'
 /** 稳定的 cordis 插件名。 */
 export const name = 'dsh-team'
 
+/** 依赖 skills 服务，确保 apply 时 skill registry 已就绪。 */
+export const inject = ['skills']
+
 /** skill registry 的最小结构视图。 */
 interface SkillRegistryLike {
   register(skill: {
