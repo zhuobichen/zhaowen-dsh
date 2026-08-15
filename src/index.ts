@@ -65,6 +65,30 @@ function parseSkillMarkdown(raw: string, fallbackName: string): { name: string; 
   return { name: skillName, description, content }
 }
 
+/** 校验图模板是否为合法 DAG（节点引用一致、无孤立节点）。返回问题列表，空数组 = 合法。 */
+function validateGraph(g: GraphTemplate): string[] {
+  const problems: string[] = []
+  const ids = new Set(g.nodes.map((n) => n.id))
+  if (ids.size !== g.nodes.length) problems.push('存在重复节点 id')
+  for (const e of g.edges) {
+    if (!ids.has(e.from)) problems.push(`边 "${e.from} -> ${e.to}" 的 from 节点不存在`)
+    if (!ids.has(e.to)) problems.push(`边 "${e.from} -> ${e.to}" 的 to 节点不存在`)
+  }
+  const referenced = new Set<string>()
+  for (const e of g.edges) {
+    referenced.add(e.from)
+    referenced.add(e.to)
+  }
+  for (const n of g.nodes) {
+    if (!referenced.has(n.id)) problems.push(`节点 "${n.id}" 是孤立节点（无边引用）`)
+  }
+  for (const group of g.fanOut ?? []) {
+    for (const id of group) if (!ids.has(id)) problems.push(`fanOut 引用了不存在的节点 "${id}"`)
+  }
+  for (const id of g.join ?? []) if (!ids.has(id)) problems.push(`join 引用了不存在的节点 "${id}"`)
+  return problems
+}
+
 /** 把图模板渲染成 Mermaid DAG（`graph TD`）。 */
 function graphToMermaid(g: GraphTemplate): string {
   const lines: string[] = ['```mermaid', 'graph TD']
@@ -123,6 +147,11 @@ function registerGraphTemplates(ctx: Context): void {
       continue
     }
     if (!graph.id || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) continue
+    const problems = validateGraph(graph)
+    if (problems.length > 0) {
+      ctx.logger.warn(`dsh-team graph "${graph.id}" skipped: ${problems.join('；')}`)
+      continue
+    }
     try {
       registry.register({
         name: `graph-${graph.id}`,
