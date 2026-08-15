@@ -8,7 +8,14 @@
 import io
 import os
 
-P = r"C:\Users\Administrator\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\node_modules\@deepseek-ai\dsh-headless\lib\index.js"
+# 全局 npm 模块路径：按当前用户的 APPDATA 动态解析，不写死用户名（换机/换用户也能跑）
+_PKG_REL = r"npm\node_modules\@deepseek-ai\dsh\node_modules\@deepseek-ai\dsh-headless\lib\index.js"
+P = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~/AppData/Roaming")), _PKG_REL)
+
+if not os.path.exists(P):
+    print(f"NOT_FOUND: {P}")
+    print("请先全局安装 DeepSeek Harness：npm install -g @deepseek-ai/dsh")
+    raise SystemExit(1)
 
 with io.open(P, "r", encoding="utf-8") as f:
     c = f.read()
