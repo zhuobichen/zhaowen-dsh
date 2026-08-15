@@ -1,0 +1,24 @@
+{
+  "id": "research-team",
+  "name": "研究团队",
+  "description": "并行多 analyst 调研 + 汇总综述的调研 DAG",
+  "nodes": [
+    { "id": "lead", "role": "team-lead", "label": "🎯 协调者" },
+    { "id": "analyst-a", "role": "analyst", "label": "🔍 调研 A" },
+    { "id": "analyst-b", "role": "analyst", "label": "🔍 调研 B" },
+    { "id": "analyst-c", "role": "analyst", "label": "🔍 调研 C" },
+    { "id": "reviewer", "role": "reviewer", "label": "🔎 评审者" }
+  ],
+  "edges": [
+    { "from": "lead", "to": "analyst-a" },
+    { "from": "lead", "to": "analyst-b" },
+    { "from": "lead", "to": "analyst-c" },
+    { "from": "analyst-a", "to": "reviewer" },
+    { "from": "analyst-b", "to": "reviewer" },
+    { "from": "analyst-c", "to": "reviewer" },
+    { "from": "reviewer", "to": "lead", "condition": "综述通过" },
+    { "from": "reviewer", "to": "analyst-a", "condition": "A 缺证据补调研" }
+  ],
+  "fanOut": [["analyst-a", "analyst-b", "analyst-c"]],
+  "join": ["reviewer", "lead"]
+}

@@ -1,12 +1,13 @@
 {
   "name": "dsh-team",
-  "version": "0.1.0",
-  "description": "多 Agent 团队接力框架 —— 把复杂任务交给角色化的 agent 团队接力完成",
+  "version": "0.2.0",
+  "description": "多 Agent 团队编排框架 —— 顺序接力（loop）+ 图编排（graph），把复杂任务交给角色化 agent 团队并行协作完成",
   "type": "module",
   "main": "lib/index.js",
   "files": [
     "lib",
     "skills",
+    "graphs",
     "cordis.yml"
   ],
   "dsh": {
@@ -32,6 +33,11 @@
     "agent",
     "team",
     "multi-agent",
-    "subagent"
+    "subagent",
+    "graph",
+    "dag",
+    "orchestration",
+    "workflow",
+    "mermaid"
   ]
 }

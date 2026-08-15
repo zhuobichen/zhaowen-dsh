@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>dsh-team · 多 Agent 团队接力框架</title>
+<title>dsh-team · 多 Agent 团队编排框架</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -120,7 +120,20 @@
     border-top: 1px solid var(--border);
   }
   a { color: var(--blue-bright); }
+  .mermaid {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+    overflow-x: auto;
+    text-align: center;
+  }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { background: '#0d1117', primaryColor: '#161b22', primaryTextColor: '#e6edf3', primaryBorderColor: '#30363d', lineColor: '#4d6bfe', fontSize: '14px' } });
+</script>
 </head>
 <body>
 <div class="container">
@@ -128,9 +141,10 @@
   <div class="hero">
     <div class="whale">🐋</div>
     <h1>dsh-team</h1>
-    <p class="tagline">多 Agent 团队接力框架 —— 把复杂任务交给角色化的 agent 团队接力完成</p>
+    <p class="tagline">多 Agent 团队编排框架 —— 顺序接力（loop）+ 图编排（graph），把复杂任务交给角色化的 agent 团队协作完成</p>
     <div style="margin-top: 16px;">
       <span class="badge">DeepSeek Harness 插件</span>
+      <span class="badge">图编排 Graph</span>
       <span class="badge">TypeScript</span>
       <span class="badge">MIT License</span>
       <span class="badge"><a href="https://github.com/zhuobichen/dsh-team">GitHub →</a></span>
@@ -140,8 +154,9 @@
   <div class="section">
     <h2>这是什么</h2>
     <div class="card">
-      <p><strong>dsh-team</strong> 是一个 DeepSeek Harness（<code>dsh</code>）插件：注册一套「协调 → 分析 → 编码 → 评审 → 测试」的团队角色 skill，让 agent 遇到复杂任务时自动按角色接力完成，而不是单枪匹马硬扛。</p>
-      <p style="margin-top: 12px;">它解决一个普遍痛点：<strong>单个 agent 面对多模块、多步骤的复杂任务时，容易顾此失彼、上下文膨胀、质量不可控</strong>。团队接力把任务拆解、分工、层层把关，每个环节都有专门的 agent 负责。</p>
+      <p><strong>dsh-team</strong> 是一个 DeepSeek Harness（<code>dsh</code>）插件：注册一套「协调 → 分析 → 编码 → 评审 → 测试」的团队角色 skill，让 agent 遇到复杂任务时自动按角色协作，而不是单枪匹马硬扛。</p>
+      <p style="margin-top: 12px;">它解决一个普遍痛点：<strong>单个 agent 面对多模块、多步骤的复杂任务时，容易顾此失彼、上下文膨胀、质量不可控</strong>。团队协作把任务拆解、分工、层层把关，每个环节都有专门的 agent 负责。</p>
+      <p style="margin-top: 12px;">提供两套编排范式：<strong>顺序接力</strong>（一条链 + 回滚闭环）适合有清晰依赖的流水线任务；<strong>图编排</strong>（节点 + 边的 DAG，支持并行 fan-out、条件边路由、join 汇聚）适合多路并行的复杂任务。</p>
     </div>
   </div>
 
@@ -220,6 +235,32 @@
   </div>
 
   <div class="section">
+    <h2>图编排（graph）</h2>
+    <div class="card">
+      <p>顺序接力是一条链，图编排是<strong>节点 + 边</strong>的有向无环图（DAG）。当任务有多个<strong>无依赖、可并行</strong>的子任务时，agent 会自动升级到图编排：</p>
+      <ul style="margin-top: 8px;">
+        <li><strong>扇出 fan-out</strong>：一个节点拆成多个并行节点（如 3 个 coder 同时写不同模块）</li>
+        <li><strong>条件边 conditional edge</strong>：按结果路由（评审失败 → 精确回炉对应节点，而非重跑全流程）</li>
+        <li><strong>汇聚 join</strong>：合并并行分支（reviewer 汇总所有 coder 的代码统一把关）</li>
+      </ul>
+      <p style="margin-top: 12px;">内置 3 个声明式图模板：<code>graph-dev-team</code>（开发）、<code>graph-research-team</code>（调研）、<code>graph-audit-team</code>（审计）。agent 从模板出发，按任务规模<strong>动态改拓扑</strong>，执行前用 Mermaid 把 DAG 画出来——编排逻辑对用户<strong>可见、可审计</strong>。</p>
+      <div class="mermaid">
+graph TD
+  lead[🎯 协调者] --> analyst[🔍 分析者]
+  analyst --> coder-a[⌨️ 编码 A]
+  analyst --> coder-b[⌨️ 编码 B]
+  analyst --> coder-c[⌨️ 编码 C]
+  coder-a --> reviewer[🔎 评审者]
+  coder-b --> reviewer
+  coder-c --> reviewer
+  reviewer -->|评审通过| tester[🧪 测试者]
+  reviewer -->|A 有问题回炉| coder-a
+  tester -->|测试通过| lead
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
     <h2>安装使用</h2>
     <div class="card">
       <p>安装：</p>
@@ -242,7 +283,7 @@
   </div>
 
   <div class="footer">
-    <p>dsh-team · 多 Agent 团队接力框架</p>
+    <p>dsh-team · 多 Agent 团队编排框架（loop + graph）</p>
     <p><a href="https://github.com/zhuobichen/dsh-team">github.com/zhuobichen/dsh-team</a> · MIT License</p>
   </div>
 

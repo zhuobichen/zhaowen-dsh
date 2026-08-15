@@ -1,0 +1,31 @@
+{
+  "id": "dev-team",
+  "name": "开发团队",
+  "description": "并行多 coder 开发 + 统一评审测试的软件开发 DAG",
+  "nodes": [
+    { "id": "lead", "role": "team-lead", "label": "🎯 协调者" },
+    { "id": "analyst", "role": "analyst", "label": "🔍 分析者" },
+    { "id": "coder-a", "role": "coder", "label": "⌨️ 编码 A" },
+    { "id": "coder-b", "role": "coder", "label": "⌨️ 编码 B" },
+    { "id": "coder-c", "role": "coder", "label": "⌨️ 编码 C" },
+    { "id": "reviewer", "role": "reviewer", "label": "🔎 评审者" },
+    { "id": "tester", "role": "tester", "label": "🧪 测试者" }
+  ],
+  "edges": [
+    { "from": "lead", "to": "analyst" },
+    { "from": "analyst", "to": "coder-a" },
+    { "from": "analyst", "to": "coder-b" },
+    { "from": "analyst", "to": "coder-c" },
+    { "from": "coder-a", "to": "reviewer" },
+    { "from": "coder-b", "to": "reviewer" },
+    { "from": "coder-c", "to": "reviewer" },
+    { "from": "reviewer", "to": "tester", "condition": "评审通过" },
+    { "from": "reviewer", "to": "coder-a", "condition": "A 有问题回炉" },
+    { "from": "reviewer", "to": "coder-b", "condition": "B 有问题回炉" },
+    { "from": "reviewer", "to": "coder-c", "condition": "C 有问题回炉" },
+    { "from": "tester", "to": "lead", "condition": "测试通过" },
+    { "from": "tester", "to": "reviewer", "condition": "回归失败重审" }
+  ],
+  "fanOut": [["coder-a", "coder-b", "coder-c"]],
+  "join": ["reviewer", "tester", "lead"]
+}

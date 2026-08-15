@@ -1,19 +1,14 @@
 /**
- * dsh-team —— 多 Agent 团队接力框架。
+ * dsh-team —— 多 Agent 团队编排框架（loop → graph 升级）。
  *
- * 把 MathModeling-Agent（5 角色多 Agent 编排：建模/编码/解析/评审/写作）
- * 的多 Agent 协作经验，通用化成 DeepSeek Harness 的团队接力技能包。
+ * 把 MathModeling-Agent（5 角色多 Agent 编排）的协作经验通用化成 DSH 技能包。
+ * 本版在「顺序接力（loop）」之上，新增「图编排（graph）」：
+ *   - skills/ 下的团队角色 SKILL.md 注册进 skill registry
+ *   - graphs/ 下的声明式 DAG 模板加载后渲染成 Mermaid，注册为可发现/可改编的 skill
+ *     （agent 可据此 fan-out 并行、条件边路由、join 汇聚，动态改拓扑）
  *
- * 本插件在启动时把 `skills/` 下的团队角色 SKILL.md 注册进 skill registry：
- *   - team-lead   协调者：分解任务、分配、汇总
- *   - analyst     分析者：需求分析、方案设计
- *   - coder       编码者：实现
- *   - reviewer    评审者：质量把关、代码评审
- *   - tester      测试者：验证
- *   - team-workflow 团队接力工作流（核心：如何按角色接力完成复杂任务）
- *
- * 注册后，agent 遇到复杂任务时可依据这些角色规范，用 subagent 能力
- * 把任务分解、委派、接力，最终由 team-lead 汇总交付。
+ * 角色：team-lead / analyst / coder / reviewer / tester / team-workflow / team-graph
+ * 图模板：dev-team（开发）/ research-team（调研）/ audit-team（审计）
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -35,6 +30,31 @@ interface SkillRegistryLike {
   }): () => void
 }
 
+/** 声明式图模板的节点。 */
+interface GraphNode {
+  id: string
+  role: string
+  label: string
+}
+
+/** 声明式图模板的边（缺省 condition = 无条件流转）。 */
+interface GraphEdge {
+  from: string
+  to: string
+  condition?: string
+}
+
+/** 声明式图模板（graphs/*.json）。 */
+interface GraphTemplate {
+  id: string
+  name: string
+  description: string
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  fanOut?: string[][]
+  join?: string[]
+}
+
 /** 解析 SKILL.md 的 frontmatter（name / description）与正文。 */
 function parseSkillMarkdown(raw: string, fallbackName: string): { name: string; description: string; content: string } {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
@@ -45,11 +65,83 @@ function parseSkillMarkdown(raw: string, fallbackName: string): { name: string; 
   return { name: skillName, description, content }
 }
 
+/** 把图模板渲染成 Mermaid DAG（`graph TD`）。 */
+function graphToMermaid(g: GraphTemplate): string {
+  const lines: string[] = ['```mermaid', 'graph TD']
+  for (const n of g.nodes) {
+    lines.push(`  ${n.id}[${n.label}]`)
+  }
+  for (const e of g.edges) {
+    lines.push(e.condition ? `  ${e.from} -->|${e.condition}| ${e.to}` : `  ${e.from} --> ${e.to}`)
+  }
+  lines.push('```')
+  return lines.join('\n')
+}
+
+/** 把图模板整理成可注册的 skill 内容：说明 + Mermaid 图 + 可改编的原始 JSON。 */
+function graphToSkillContent(g: GraphTemplate): string {
+  const fanOut = g.fanOut?.map((g) => g.join(' ⨯ ')).join('；') ?? '无'
+  const join_ = g.join?.join(' → ') ?? '无'
+  return [
+    `# 图模板：${g.name}（${g.id}）`,
+    '',
+    g.description,
+    '',
+    '## DAG 拓扑（Mermaid）',
+    '',
+    graphToMermaid(g),
+    '',
+    '## 并行与汇聚',
+    '',
+    `- fan-out 并行组：${fanOut}`,
+    `- join 汇聚节点：${join_}`,
+    '',
+    '## 可改编的模板 JSON',
+    '',
+    '```json',
+    JSON.stringify(g, null, 2),
+    '```',
+    '',
+    '按任务规模动态改图：模块多就 fan-out 更多并行节点、有质量门就加条件边。',
+  ].join('\n')
+}
+
+/** 加载 graphs/*.json 图模板，渲染后注册为 skill（`graph-<id>`）。 */
+function registerGraphTemplates(ctx: Context): void {
+  const registry = ctx.get('skills') as SkillRegistryLike | undefined
+  if (!registry) return
+  const graphsRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'graphs')
+  if (!existsSync(graphsRoot)) return
+  for (const entry of readdirSync(graphsRoot, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue
+    const file = join(graphsRoot, entry.name)
+    let graph: GraphTemplate
+    try {
+      graph = JSON.parse(readFileSync(file, 'utf8')) as GraphTemplate
+    } catch (error) {
+      ctx.logger.warn(`dsh-team graph "${entry.name}" skipped: ${(error as Error).message}`)
+      continue
+    }
+    if (!graph.id || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) continue
+    try {
+      registry.register({
+        name: `graph-${graph.id}`,
+        description: `图编排模板：${graph.name} —— ${graph.description}`,
+        content: graphToSkillContent(graph),
+        path: file,
+        provider: 'dsh-team',
+        source: 'bundled',
+      })
+    } catch (error) {
+      ctx.logger.warn(`dsh-team graph "${graph.id}" skipped: ${(error as Error).message}`)
+    }
+  }
+}
+
 /** 注册 skills/ 下所有团队角色 SKILL.md。 */
 function registerTeamSkills(ctx: Context): void {
   const registry = ctx.get('skills') as SkillRegistryLike | undefined
   if (!registry) return
-  // import.meta.url 是 lib/index.js —— 上一级是包根，skills/ 与它同级。
   const skillsRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'skills')
   if (!existsSync(skillsRoot)) return
   for (const entry of readdirSync(skillsRoot, { withFileTypes: true })) {
@@ -66,7 +158,8 @@ function registerTeamSkills(ctx: Context): void {
   }
 }
 
-/** 插件入口：把团队角色 skills 注册进 skill registry。 */
+/** 插件入口：注册团队角色 skills + 图模板。 */
 export function apply(ctx: Context): void {
   registerTeamSkills(ctx)
+  registerGraphTemplates(ctx)
 }

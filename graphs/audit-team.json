@@ -1,0 +1,25 @@
+{
+  "id": "audit-team",
+  "name": "审计团队",
+  "description": "并行多 reviewer 交叉审查 + 汇总报告的审计 DAG",
+  "nodes": [
+    { "id": "lead", "role": "team-lead", "label": "🎯 协调者" },
+    { "id": "analyst", "role": "analyst", "label": "🔍 分析者" },
+    { "id": "reviewer-a", "role": "reviewer", "label": "🔎 审查·正确性" },
+    { "id": "reviewer-b", "role": "reviewer", "label": "🔎 审查·安全" },
+    { "id": "reviewer-c", "role": "reviewer", "label": "🔎 审查·性能" },
+    { "id": "tester", "role": "tester", "label": "🧪 测试者" }
+  ],
+  "edges": [
+    { "from": "lead", "to": "analyst" },
+    { "from": "analyst", "to": "reviewer-a" },
+    { "from": "analyst", "to": "reviewer-b" },
+    { "from": "analyst", "to": "reviewer-c" },
+    { "from": "reviewer-a", "to": "tester" },
+    { "from": "reviewer-b", "to": "tester" },
+    { "from": "reviewer-c", "to": "tester" },
+    { "from": "tester", "to": "lead", "condition": "审查通过" }
+  ],
+  "fanOut": [["reviewer-a", "reviewer-b", "reviewer-c"]],
+  "join": ["tester", "lead"]
+}

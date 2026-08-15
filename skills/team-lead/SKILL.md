@@ -22,6 +22,10 @@ description: 团队协调者 —— 把复杂任务分解成子任务、委派�
 
 用 `subagent` 工具委派子任务，指定对应角色的 persona（角色名即 skill 名）。
 
+**顺序接力**：有清晰先后依赖时，按 `analyst → coder → reviewer → tester` 接力。
+
+**图编排**：有多个无依赖的并行子任务时，用 `team-graph` 建模成 DAG——fan-out 并行委派、条件边路由（评审失败回炉对应节点）、join 汇聚。从 `graphs/` 的模板（`graph-dev-team` 等）出发动态改拓扑，执行前用 Mermaid 画出来。
+
 ## 输出要求
 
 最终交付要包含：
