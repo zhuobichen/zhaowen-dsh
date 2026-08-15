@@ -53,6 +53,8 @@ team-lead ──► analyst ──► coder ──► reviewer ──► tester 
 
 agent 会从模板出发，按任务规模**动态改拓扑**，执行前用 Mermaid 把 DAG 画出来，让编排逻辑可见。示例（开发团队）：
 
+> 说明：图编排的执行是 **LLM 驱动的**——插件负责注册 skill、提供图模板与 Mermaid 可视化；实际拓扑选择与逐节点执行由 agent 读取模板后自行决定。这是一种「模板/提示词驱动的编排」，而非内置的硬编码 DAG 调度器。
+
 ```mermaid
 graph TD
   lead[🎯 协调者] --> analyst[🔍 分析者]
