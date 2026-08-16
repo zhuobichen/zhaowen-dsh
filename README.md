@@ -80,6 +80,8 @@ dsh plugin --profile cc-tui add dsh-team
 dsh plugin --profile headless add /path/to/dsh-team
 ```
 
+> 从源码安装（含本地 link）前需先构建：`package.json` 的 `main` 指向 `lib/index.js`，仓库未提交编译产物，需先执行 `npm install && npm run build` 生成 `lib/`，否则插件无法加载。
+
 安装后，`dsh-team` 的 7 个技能 + 3 个图模板会注册进 skill registry。可用 `dsh --profile <name> --dump-config | grep dsh-team` 确认条目已加载。
 
 > 已验证：在 headless profile 下，插件通过 `- insert:` 语法把 `dsh-team` 条目叠加进 `dsh-base` 之上；加载后 agent 能列出全部技能与图模板，并能按 `team-graph` 方法论实际编排多模块任务（fan-out 并行 + 条件路由 + join 汇聚）。
