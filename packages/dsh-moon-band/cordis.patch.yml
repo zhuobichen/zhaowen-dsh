@@ -1,0 +1,9 @@
+# dsh-moon-band 的 bundle patch：把「月相 + 古诗」插件条目插进 profile。
+#
+# 这一行挂上之后，插件会注册：
+#   - `GET /dsh-moon-band/line`（月相、月龄、这一分钟的那句诗）
+#   - `/moon` 斜杠命令（收起／放回）
+# 画那一行的是配套的客户端插件 @zhuobichen/dsh-client-ui-moon-band。
+- insert:
+    - id: moon-band
+      name: '@zhuobichen/dsh-moon-band'

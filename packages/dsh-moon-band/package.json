@@ -1,0 +1,41 @@
+{
+  "name": "@zhuobichen/dsh-moon-band",
+  "version": "0.1.0",
+  "description": "输入框上方一行月光：月相 + 月龄 + 一句古诗（DSH 插件；移植自 Claude Code 的 moon-band mod）",
+  "type": "module",
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "data",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node test/moon.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "moon",
+    "poetry"
+  ],
+  "license": "MIT",
+  "engines": {
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  }
+}
