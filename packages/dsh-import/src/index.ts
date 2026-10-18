@@ -33,6 +33,9 @@ const outputSchema = (properties: Record<string, unknown>) => ({
 
 export function apply(ctx: any, config: Config = {}): void {
   const root = config.root;
+  // 宿主桥：有 sessions 服务时走 create+flush+attach，导入立刻生效。
+  const sessions = ctx.get ? ctx.get("sessions") : ctx.sessions;
+  const workspaceRegistry = ctx.get ? ctx.get("workspaceRegistry") : undefined;
 
   ctx.tools.register({
     name: "agent_sessions_scan",
@@ -159,6 +162,7 @@ export function apply(ctx: any, config: Config = {}): void {
         apply: args?.apply === true,
         overwrite: args?.overwrite === true,
         out: args?.out ? String(args.out) : root,
+        host: sessions ? { sessions, workspaceRegistry } : undefined,
       });
       return {
         applied: args?.apply === true,

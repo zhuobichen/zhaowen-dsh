@@ -31,9 +31,9 @@
  *
  * 写完后会用 DSH 自己的 format catalog 还原每个文件：还原不过 = DSH 也读不动。
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   SessionBuilder,
   loadDshCatalog,
@@ -766,6 +766,23 @@ export interface ExportOptions {
   maxTextChars?: number;
   /** 单个 DSH 会话的 token 预算（缺省 0 = 不分片）；超过就按轮切段，每段单独成会、标题带 (1/N)。 */
   maxSessionTokens?: number;
+  /**
+   * 宿主桥。插件跑在 DSH 进程内时传入：走 `sessions.create + flush` 再
+   * `workspace.attachSession`，导入立刻生效（不用重启、不用补缓存）。
+   */
+  host?: {
+    sessions: {
+      get(id: string): any;
+      create(id: string, options: any): any;
+      flush(session: any): Promise<boolean>;
+    };
+    workspaceRegistry?: {
+      resolveByPath(path: string): Promise<any>;
+      create(path: string, title?: string): Promise<any>;
+    };
+  };
+  /** 传 false 可强制走文件写入（调试用）。 */
+  viaHost?: boolean;
 }
 
 export interface ExportReport {
@@ -783,6 +800,12 @@ export interface ExportReport {
   closedUnresolved: number;
   /** 重放成请求时的粗略 token 估计（字符数 / 3），用来判断会不会撑爆上下文。 */
   estimatedTokens?: number;
+  /** 落地方式：live（走 DSH API，立刻生效）/ file（直接写日志，需重启）。 */
+  runtime?: "live" | "file";
+  /** 归属到的工作区标题。 */
+  workspace?: string;
+  workspaceError?: string;
+  hostError?: string;
   skipped?: string;
 }
 
@@ -965,7 +988,7 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
     const chunks = planShards(ir, { ...opts, keepTools }, opts);
     const parts = chunks.length;
 
-    const emitOne = (turns: IrTurn[], part: number): ExportReport => {
+    const emitOne = async (turns: IrTurn[], part: number): Promise<ExportReport> => {
       const builder = toBuilder(ir, {
         keepTools,
         titlePrefix: options.titlePrefix,
@@ -991,10 +1014,51 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
         estimatedTokens: estimateTokens(builder.events),
       };
       if (apply) {
+        // 首选：走 DSH 自己的会话 API（create + flush + 工作区 attach）。
+        // 这样导入立刻生效——不用重启、不用补投影缓存、不用手改 workspace.json。
+        const host = options.host;
+        if (host && options.viaHost !== false) {
+          try {
+            if (host.sessions.get(String(builder.meta.id))) {
+              report.skipped = "同名会话已经是活动会话，跳过";
+              return report;
+            }
+            const target = logPath(root, ir.cwd, String(builder.meta.id));
+            if (options.overwrite === true && existsSync(target)) {
+              rmSync(dirname(target), { recursive: true, force: true });
+            }
+            const live = host.sessions.create(String(builder.meta.id), {
+              seed: builder.events,
+              meta: { cwd: ir.cwd, createdAt: builder.meta.createdAt },
+            });
+            await host.sessions.flush(live);
+            report.file = target;
+            report.verified = true;
+            report.runtime = "live";
+            if (host.workspaceRegistry && ir.cwd) {
+              try {
+                const ws =
+                  (await host.workspaceRegistry.resolveByPath(ir.cwd)) ??
+                  (await host.workspaceRegistry.create(ir.cwd));
+                if (ws) {
+                  await ws.attachSession(String(builder.meta.id));
+                  report.workspace = ws.title ?? ws.path;
+                }
+              } catch (wsError: any) {
+                report.workspaceError = `工作区归属失败（会话已导入）: ${wsError?.message ?? wsError}`;
+              }
+            }
+            return report;
+          } catch (error: any) {
+            // 回退到直接写文件，至少保证会话落盘
+            report.hostError = `host 路径失败，回退文件写入: ${error?.message ?? error}`;
+          }
+        }
         try {
           const written = writeSession(builder, { root, overwrite: options.overwrite === true });
           report.file = written.file;
           report.bytes = written.bytes;
+          report.runtime = "file";
           if (catalog) {
             const verified = verifyWithCatalog(written.file, catalog);
             report.verified = verified.events === builder.events.length;
@@ -1006,7 +1070,7 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
       return report;
     };
 
-    for (let i = 0; i < parts; i++) reports.push(emitOne(chunks[i], i));
+    for (let i = 0; i < parts; i++) reports.push(await emitOne(chunks[i], i));
   }
 
   return reports;
