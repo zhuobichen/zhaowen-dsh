@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dsh-team · 多 Agent 团队编排框架</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c2430;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --blue: #4d6bfe;
+    --blue-bright: #6e8bff;
+    --cyan: #7ee7e7;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --red: #f85149;
+    --purple: #a371f7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+  .container { max-width: 880px; margin: 0 auto; }
+  .hero { text-align: center; margin-bottom: 48px; }
+  .whale { font-size: 64px; line-height: 1; margin-bottom: 16px; }
+  h1 {
+    font-size: 40px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  .tagline { color: var(--text-dim); font-size: 18px; }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin: 8px 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+  }
+  .badge a { color: var(--blue-bright); text-decoration: none; }
+  .section { margin-bottom: 40px; }
+  .section h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 4px solid var(--blue);
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+  }
+  .card:hover { background: var(--bg-card-hover); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .role { position: relative; }
+  .role .emoji { font-size: 28px; margin-bottom: 8px; }
+  .role h3 { font-size: 18px; margin-bottom: 6px; color: var(--blue-bright); }
+  .role .desc { color: var(--text-dim); font-size: 14px; }
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+  }
+  .flow .node {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .flow .arrow { color: var(--blue); font-weight: 800; }
+  code {
+    background: #1f2733;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", "Consolas", "Menlo", monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: #161b22;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: "SF Mono", "Consolas", "Menlo", monospace;
+    font-size: 14px;
+    margin: 12px 0;
+  }
+  .origin { border-left: 4px solid var(--purple); }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  .footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  a { color: var(--blue-bright); }
+  .mermaid {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+    overflow-x: auto;
+    text-align: center;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', themeVariables: { background: '#0d1117', primaryColor: '#161b22', primaryTextColor: '#e6edf3', primaryBorderColor: '#30363d', lineColor: '#4d6bfe', fontSize: '14px' } });
+</script>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="whale">🐋</div>
+    <h1>dsh-team</h1>
+    <p class="tagline">多 Agent 团队编排框架 —— 顺序接力（loop）+ 图编排（graph），把复杂任务交给角色化的 agent 团队协作完成</p>
+    <div style="margin-top: 16px;">
+      <span class="badge">DeepSeek Harness 插件</span>
+      <span class="badge">图编排 Graph</span>
+      <span class="badge">TypeScript</span>
+      <span class="badge">MIT License</span>
+      <span class="badge"><a href="https://github.com/zhuobichen/dsh-team">GitHub →</a></span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>这是什么</h2>
+    <div class="card">
+      <p><strong>dsh-team</strong> 是一个 DeepSeek Harness（<code>dsh</code>）插件：注册一套「协调 → 分析 → 编码 → 评审 → 测试」的团队角色 skill，让 agent 遇到复杂任务时自动按角色协作，而不是单枪匹马硬扛。</p>
+      <p style="margin-top: 12px;">它解决一个普遍痛点：<strong>单个 agent 面对多模块、多步骤的复杂任务时，容易顾此失彼、上下文膨胀、质量不可控</strong>。团队协作把任务拆解、分工、层层把关，每个环节都有专门的 agent 负责。</p>
+      <p style="margin-top: 12px;">提供两套编排范式：<strong>顺序接力</strong>（一条链 + 回滚闭环）适合有清晰依赖的流水线任务；<strong>图编排</strong>（节点 + 边的 DAG，支持并行 fan-out、条件边路由、join 汇聚）适合多路并行的复杂任务。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>起源 · 结合已有项目</h2>
+    <div class="card origin">
+      <p>这个插件的设计源于我的 <a href="https://github.com/zhuobichen/MathModeling-Agent"><strong>MathModeling-Agent</strong></a> 项目——一个 5 角色（建模 / 编码 / 解析 / 评审 / 写作）协作的数学建模多 Agent 系统。</p>
+      <p style="margin-top: 8px;">我把其中的<strong>多 Agent 编排经验</strong>抽离、通用化，做成了任何复杂任务都能用的 DSH 技能包：</p>
+      <ul style="margin-top: 8px;">
+        <li>MathModeling-Agent 的「Parser + Modeler」→ 通用化为 <code>analyst</code></li>
+        <li>「Coder」→ <code>coder</code></li>
+        <li>「Reviewer」→ <code>reviewer</code></li>
+        <li>「验证/评估」→ <code>tester</code></li>
+        <li>「Workflow 编排」→ <code>team-lead</code> + <code>team-workflow</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>团队角色</h2>
+    <div class="grid">
+      <div class="card role">
+        <div class="emoji">🎯</div>
+        <h3>team-lead</h3>
+        <div class="desc">协调者：分解任务、委派角色、汇总最终交付。团队接力的起点和终点。</div>
+      </div>
+      <div class="card role">
+        <div class="emoji">🔍</div>
+        <h3>analyst</h3>
+        <div class="desc">分析者：理解需求、调研现状、设计可执行的实现方案。</div>
+      </div>
+      <div class="card role">
+        <div class="emoji">⌨️</div>
+        <h3>coder</h3>
+        <div class="desc">编码者：按方案实现代码，自测通过后交给评审。</div>
+      </div>
+      <div class="card role">
+        <div class="emoji">🔎</div>
+        <h3>reviewer</h3>
+        <div class="desc">评审者：正确性、完整性、可维护性、安全性四维把关。</div>
+      </div>
+      <div class="card role">
+        <div class="emoji">🧪</div>
+        <h3>tester</h3>
+        <div class="desc">测试者：真实场景验证、边界测试、回归确认。</div>
+      </div>
+      <div class="card role">
+        <div class="emoji">🔗</div>
+        <h3>team-workflow</h3>
+        <div class="desc">接力工作流：角色分工、委派方式、评审/测试闭环规范。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>接力流程</h2>
+    <div class="flow">
+      <span class="node">🎯 team-lead</span>
+      <span class="arrow">→</span>
+      <span class="node">🔍 analyst</span>
+      <span class="arrow">→</span>
+      <span class="node">⌨️ coder</span>
+      <span class="arrow">→</span>
+      <span class="node">🔎 reviewer</span>
+      <span class="arrow">→</span>
+      <span class="node">🧪 tester</span>
+      <span class="arrow">→</span>
+      <span class="node">🎯 team-lead 汇总</span>
+    </div>
+    <ul style="margin-top: 16px;">
+      <li>上一个角色的<strong>输出</strong>是下一个角色的<strong>输入</strong></li>
+      <li><span style="color:var(--orange)">reviewer 发现问题</span> → 回给 coder → 再评审</li>
+      <li><span style="color:var(--orange)">tester 验证不通过</span> → 回给 coder → 再测试</li>
+      <li>team-lead 汇总所有产出，形成最终交付</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>图编排（graph）</h2>
+    <div class="card">
+      <p>顺序接力是一条链，图编排是<strong>节点 + 边</strong>的有向无环图（DAG）。当任务有多个<strong>无依赖、可并行</strong>的子任务时，agent 会自动升级到图编排：</p>
+      <ul style="margin-top: 8px;">
+        <li><strong>扇出 fan-out</strong>：一个节点拆成多个并行节点（如 3 个 coder 同时写不同模块）</li>
+        <li><strong>条件边 conditional edge</strong>：按结果路由（评审失败 → 精确回炉对应节点，而非重跑全流程）</li>
+        <li><strong>汇聚 join</strong>：合并并行分支（reviewer 汇总所有 coder 的代码统一把关）</li>
+      </ul>
+      <p style="margin-top: 12px;">内置 3 个声明式图模板：<code>graph-dev-team</code>（开发）、<code>graph-research-team</code>（调研）、<code>graph-audit-team</code>（审计）。agent 从模板出发，按任务规模<strong>动态改拓扑</strong>，执行前用 Mermaid 把 DAG 画出来——编排逻辑对用户<strong>可见、可审计</strong>。</p>
+      <div class="mermaid">
+graph TD
+  lead[🎯 协调者] --> analyst[🔍 分析者]
+  analyst --> coder-a[⌨️ 编码 A]
+  analyst --> coder-b[⌨️ 编码 B]
+  analyst --> coder-c[⌨️ 编码 C]
+  coder-a --> reviewer[🔎 评审者]
+  coder-b --> reviewer
+  coder-c --> reviewer
+  reviewer -->|评审通过| tester[🧪 测试者]
+  reviewer -->|A 有问题回炉| coder-a
+  tester -->|测试通过| lead
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>安装使用</h2>
+    <div class="card">
+      <p>安装：</p>
+      <pre>dsh plugin --profile web add dsh-team</pre>
+      <p>使用（无需手动调用，agent 遇到复杂任务时自动按规范接力）：</p>
+      <pre>用团队接力完成：重构这个项目的 auth 模块</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>技术栈</h2>
+    <div class="card">
+      <ul>
+        <li><strong>DeepSeek Harness</strong>（dsh）—— 插件运行时，基于「一切皆插件」的 cordis 框架</li>
+        <li><strong>Skill 机制</strong> —— 通过 skill registry 注册角色规范（SKILL.md）</li>
+        <li><strong>Subagent 能力</strong> —— 角色接力基于 DSH 的 subagent 委派</li>
+        <li><strong>TypeScript</strong> —— 插件实现语言</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>dsh-team · 多 Agent 团队编排框架（loop + graph）</p>
+    <p><a href="https://github.com/zhuobichen/dsh-team">github.com/zhuobichen/dsh-team</a> · MIT License</p>
+  </div>
+
+</div>
+</body>
+</html>

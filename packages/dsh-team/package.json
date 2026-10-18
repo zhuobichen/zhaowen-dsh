@@ -1,0 +1,43 @@
+{
+  "name": "dsh-team",
+  "version": "0.2.0",
+  "description": "多 Agent 团队编排框架 —— 顺序接力（loop）+ 图编排（graph），把复杂任务交给角色化 agent 团队并行协作完成",
+  "type": "module",
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "skills",
+    "graphs",
+    "cordis.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "agent",
+    "team",
+    "multi-agent",
+    "subagent",
+    "graph",
+    "dag",
+    "orchestration",
+    "workflow",
+    "mermaid"
+  ]
+}
