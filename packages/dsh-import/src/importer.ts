@@ -575,7 +575,9 @@ export function toBuilder(
   const builder = new SessionBuilder({
     id: `session-${String(ir.id).replace(/^session-/, "")}${options.idSuffix ?? ""}`,
     cwd: ir.cwd,
-    createdAt: options.turns?.[0]?.time ?? ir.createdAt,
+    // createdAt 必须稳定：它是投影缓存 identity 的一部分，跟着切片/分片变
+    // 会让已有缓存的标题全部失效（侧栏显示「未命名」）。
+    createdAt: ir.createdAt,
   });
 
   let lastTime = ir.createdAt;
