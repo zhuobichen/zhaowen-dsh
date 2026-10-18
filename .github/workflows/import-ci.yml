@@ -1,0 +1,26 @@
+name: CI · dsh-import
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/dsh-import/**', '.github/workflows/import-ci.yml']
+  pull_request:
+    paths: ['packages/dsh-import/**', '.github/workflows/import-ci.yml']
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: packages/dsh-import
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      - name: 冒烟（注册两个工具 + 形状校验，不碰真实会话）
+        run: node scripts/smoke.mjs

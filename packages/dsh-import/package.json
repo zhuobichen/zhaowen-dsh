@@ -1,0 +1,33 @@
+{
+  "name": "@zhuobichen/dsh-import",
+  "version": "0.1.0",
+  "description": "把 Claude Code / Codex 的本地会话导入 DeepSeek Harness（DSH 插件：扫描 + 导入 + 用 DSH 自己的还原器校验）",
+  "type": "module",
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "claude-code",
+    "codex",
+    "session-import"
+  ],
+  "license": "MIT"
+}

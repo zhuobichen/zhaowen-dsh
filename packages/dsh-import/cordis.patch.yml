@@ -1,0 +1,4 @@
+# dsh-import 的 bundle patch：把「会话导入」插件条目插进 profile。
+- insert:
+    - id: dsh-import
+      name: '@zhuobichen/dsh-import'

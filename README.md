@@ -1,15 +1,16 @@
 # zhaowen-dsh
 
-赵文自己的 **DeepSeek Harness（DSH）** 工具集：一个团队编排插件、一个 TUI 前端插件、一个终端客户端。
+赵文自己的 **DeepSeek Harness（DSH）** 工具集：团队编排插件、会话导入插件、TUI 前端插件、终端客户端。
 
 | 目录 | 包名 | 是什么 |
 |---|---|---|
 | [`packages/dsh-team`](packages/dsh-team) | `@zhuobichen/dsh-team` | **DSH 插件**：多 Agent 团队编排（顺序接力 loop + DAG 图编排），角色化 agent 协作 |
 | [`packages/dsh-cc-tui`](packages/dsh-cc-tui) | `dsh-cc-tui` | **DSH 插件**：Claude Code 风格的交互式 TUI 入口（基于移植的 Ink core） |
 | [`packages/dsh-term`](packages/dsh-term) | `dsh-term` | **独立的终端客户端**（不是插件）：像 Claude Code 一样住在终端的 DSH 前端 |
+| [`packages/dsh-import`](packages/dsh-import) | `@zhuobichen/dsh-import` | **DSH 插件**：把 Claude Code / Codex 的本地会话导入 DSH（扫描 + 导入 + 用 DSH 自己的还原器校验） |
 
-三个包各自独立：**各有自己的 package.json / lockfile / 构建脚本**，可以单独 `npm install`、单独发版。
-本仓库只做“放在一起”，不引入 workspace 依赖提升（三个包的包管理器还不一样：`dsh-cc-tui` 用 pnpm，另两个用 npm）。
+四个包各自独立：**各有自己的 package.json / lockfile / 构建脚本**，可以单独 `npm install`、单独发版。
+本仓库只做“放在一起”，不引入 workspace 依赖提升（四个包的包管理器还不一样：`dsh-cc-tui` 用 pnpm，另两个用 npm）。
 
 ## 安装
 
