@@ -532,6 +532,16 @@ export function toBuilder(
       }
     }
 
+    // Claude 会把一轮 assistant 拆成多条记录（thinking / text / tool_use），结果还可能
+    // 乱序、甚至更晚才到。DeepSeek 要求「带 tool_calls 的 assistant 消息后面必须紧跟
+    // 每个 call 对应的 tool 消息」，否则整轮报 `tool calls need immediate results`。
+    // 所以按轮做一次「先收集、再按 call 顺序重排发出」。
+    type Assist = { id: string; time: number; content: any[]; calls: any[] };
+    const assists: Assist[] = [];
+    const resultMap = new Map<string, { time: number; text: string; isError?: boolean }>();
+    const extraResultText = new Map<string, string[]>();
+    const standaloneCalls: any[] = [];
+
     for (const item of turn.items) {
       const time = item.time || start;
       lastTime = time;
@@ -540,72 +550,87 @@ export function toBuilder(
           ? item.content!
           : item.content!.filter((b: any) => b.type !== "tool-call");
         if (content.length === 0) continue;
-        builder.assistantMessage(time, {
+        assists.push({
           id: item.id!,
-          content,
-          provider: ir.provider,
-          model: ir.model,
+          time,
+          content: [...content],
+          calls: content.filter((b: any) => b.type === "tool-call"),
         });
-        if (options.keepTools) {
-          for (const block of content as any[]) {
-            if (block.type !== "tool-call") continue;
-            advertised.add(block.id);
-            builder.toolCall(time, {
-              callId: block.id,
-              name: block.name,
-              arguments: block.arguments,
-            });
-          }
-        }
         continue;
       }
       if (!options.keepTools) continue;
       if (item.kind === "tool_call") {
-        if (!advertised.has(item.callId!)) {
-          builder.synthesizeToolCall(time, {
-            callId: item.callId!,
-            name: item.name ?? "tool",
-            arguments: item.arguments,
-            provider: ir.provider,
-            model: ir.model,
-          });
-          advertised.add(item.callId!);
-        } else {
-          builder.toolCall(time, {
-            callId: item.callId!,
-            name: item.name ?? "tool",
-            arguments: item.arguments ?? "{}",
-          });
-        }
+        standaloneCalls.push(item);
         continue;
       }
       if (item.kind === "tool_result") {
-        if (!builder.hasPending(item.callId!)) {
-          // 已经有结果的同一 call id：交给 toolResult 并入上一条（重复结果）。
-          if (!builder.hasResolved(item.callId!)) {
-            if (!advertised.has(item.callId!)) {
-              builder.synthesizeToolCall(time, {
-                callId: item.callId!,
-                name: item.name ?? "tool",
-                provider: ir.provider,
-                model: ir.model,
-              });
-              advertised.add(item.callId!);
-            } else {
-              builder.toolCall(time, {
-                callId: item.callId!,
-                name: item.name ?? "tool",
-                arguments: "{}",
-              });
-            }
-          }
+        const id = item.callId!;
+        if (!resultMap.has(id)) {
+          resultMap.set(id, { time, text: item.text ?? "", isError: item.isError });
+        } else {
+          extraResultText.set(id, [...(extraResultText.get(id) ?? []), item.text ?? ""]);
         }
-        builder.toolResult(time, {
-          callId: item.callId!,
-          text: item.text ?? "",
-          isError: item.isError,
+      }
+    }
+
+    const emitResult = (callId: string) => {
+      const r = resultMap.get(callId);
+      if (!r) return false;
+      const extra = extraResultText.get(callId) ?? [];
+      builder.toolResult(r.time || start, {
+        callId,
+        text: [r.text, ...extra.filter(Boolean)].join("\n--- duplicate result ---\n"),
+        isError: r.isError,
+      });
+      return true;
+    };
+
+    for (const a of assists) {
+      builder.assistantMessage(a.time, {
+        id: a.id,
+        content: a.content,
+        provider: ir.provider,
+        model: ir.model,
+      });
+      if (!options.keepTools) continue;
+      for (const block of a.calls) {
+        advertised.add(block.id);
+        builder.toolCall(a.time, { callId: block.id, name: block.name, arguments: block.arguments });
+      }
+      // 同一轮里这个 assistant 的所有结果紧跟其后、按 call 顺序发出
+      for (const block of a.calls) emitResult(block.id);
+    }
+
+    for (const call of standaloneCalls) {
+      if (!advertised.has(call.callId)) {
+        builder.synthesizeToolCall(call.time || start, {
+          callId: call.callId,
+          name: call.name ?? "tool",
+          arguments: call.arguments,
+          provider: ir.provider,
+          model: ir.model,
+        });
+        advertised.add(call.callId);
+      } else {
+        builder.toolCall(call.time || start, {
+          callId: call.callId,
+          name: call.name ?? "tool",
+          arguments: call.arguments ?? "{}",
         });
       }
+      emitResult(call.callId);
+    }
+
+    // 没有对应调用的孤儿结果：合成一次调用再发，内容不丢
+    for (const [callId, r] of resultMap) {
+      if (advertised.has(callId)) continue;
+      builder.synthesizeToolCall(r.time || start, {
+        callId,
+        name: "tool",
+        provider: ir.provider,
+        model: ir.model,
+      });
+      builder.toolResult(r.time || start, { callId, text: r.text, isError: r.isError });
     }
 
     builder.endTurn(lastTime);

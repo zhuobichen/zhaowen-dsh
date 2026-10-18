@@ -1,6 +1,6 @@
 {
   "name": "@zhuobichen/dsh-import",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "把 Claude Code / Codex 的本地会话导入 DeepSeek Harness（DSH 插件：扫描 + 导入 + 用 DSH 自己的还原器校验）",
   "type": "module",
   "main": "lib/index.js",
