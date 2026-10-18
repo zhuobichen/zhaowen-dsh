@@ -73,8 +73,8 @@ graph TD
 
 ```sh
 # 从 npm 安装（发布后）
-dsh plugin --profile web add dsh-team
-dsh plugin --profile cc-tui add dsh-team
+dsh plugin --profile web add @zhuobichen/dsh-team
+dsh plugin --profile cc-tui add @zhuobichen/dsh-team
 
 # 本地开发/测试（link 安装，改动即时生效）
 dsh plugin --profile headless add /path/to/dsh-team

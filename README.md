@@ -1,28 +1,32 @@
-# dsh-kit
+# zhaowen-dsh
 
-赵文自己的 **DeepSeek Harness（DSH）** 工具集：一个插件、一个 TUI 前端、一个终端客户端。
+赵文自己的 **DeepSeek Harness（DSH）** 工具集：一个团队编排插件、一个 TUI 前端插件、一个终端客户端。
 
 | 目录 | 包名 | 是什么 |
 |---|---|---|
-| [`packages/dsh-team`](packages/dsh-team) | `dsh-team` | DSH 插件：多 Agent 团队编排（顺序接力 loop + DAG 图编排），角色化 agent 协作 |
-| [`packages/dsh-cc-tui`](packages/dsh-cc-tui) | `dsh-cc-tui` | DSH 插件：Claude Code 风格的交互式 TUI 入口（基于移植的 Ink core） |
-| [`packages/dsh-term`](packages/dsh-term) | `dsh-term` | 独立的终端客户端（不是插件）：像 Claude Code 一样住在终端的 DSH 前端 |
+| [`packages/dsh-team`](packages/dsh-team) | `@zhuobichen/dsh-team` | **DSH 插件**：多 Agent 团队编排（顺序接力 loop + DAG 图编排），角色化 agent 协作 |
+| [`packages/dsh-cc-tui`](packages/dsh-cc-tui) | `dsh-cc-tui` | **DSH 插件**：Claude Code 风格的交互式 TUI 入口（基于移植的 Ink core） |
+| [`packages/dsh-term`](packages/dsh-term) | `dsh-term` | **独立的终端客户端**（不是插件）：像 Claude Code 一样住在终端的 DSH 前端 |
 
 三个包各自独立：**各有自己的 package.json / lockfile / 构建脚本**，可以单独 `npm install`、单独发版。
-本仓库只做"放在一起"，不引入 workspace 提升（三个包的包管理器还不一样：dsh-cc-tui 用 pnpm，另两个用 npm）。
+本仓库只做“放在一起”，不引入 workspace 依赖提升（三个包的包管理器还不一样：`dsh-cc-tui` 用 pnpm，另两个用 npm）。
 
-## 常用
+## 安装
 
 ```sh
 # 插件装到本地 DSH profile（link 安装，改动即时生效）
 dsh plugin --profile web add ./packages/dsh-team
 dsh plugin --profile web add ./packages/dsh-cc-tui
 
+# 或从 npm 装（发布后）
+dsh plugin --profile web add @zhuobichen/dsh-team
+dsh plugin --profile web add dsh-cc-tui
+
 # 终端客户端
 cd packages/dsh-term && npm install && npm run build && npm start
 ```
 
-每个包的细节看各自的 README。
+三个包各自的细节看包内 README。
 
 ## 发版
 
@@ -33,4 +37,17 @@ git tag dsh-cc-tui-v0.4.3 && git push origin dsh-cc-tui-v0.4.3
 git tag dsh-team-v0.2.1   && git push origin dsh-team-v0.2.1
 ```
 
-CI 与发版流水线在 `.github/workflows/`，都按 `paths` 过滤，改哪个包跑哪个。
+| 流水线 | 触发 | 说明 |
+|---|---|---|
+| `cc-tui-ci.yml` | 改 `packages/dsh-cc-tui/**` | pnpm 构建 + 12 条回归脚本 |
+| `cc-tui-publish.yml` | 推 `dsh-cc-tui-v*` 标签 | 校验标签=package.json 版本后发 npm，**需要 `NPM_TOKEN` secret** |
+| `team-ci.yml` | 改 `packages/dsh-team/**` | npm 构建（`tsc` 出 `lib/`） |
+| `term-ci.yml` | 改 `packages/dsh-term/**` | npm 安装 + `tsc --noEmit` |
+
+## 历史
+
+由三个仓库合并而来，各自完整提交历史保留（`git subtree`）：
+
+- `zhuobichen/dsh-team` → `packages/dsh-team`
+- `zhuobichen/dsh-tui` → `packages/dsh-cc-tui`
+- `zhuobichen/dsh-term` → `packages/dsh-term`

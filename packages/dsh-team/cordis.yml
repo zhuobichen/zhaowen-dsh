@@ -5,4 +5,4 @@
 # 使 agent 获得「团队接力 + 图编排」能力。
 - insert:
     - id: dsh-team
-      name: 'dsh-team'
+      name: '@zhuobichen/dsh-team'
