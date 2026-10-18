@@ -823,6 +823,14 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
   const keepTools = options.keepTools !== false;
   const root = options.out ?? defaultRoot();
   const apply = options.apply === true;
+  // 默认策略对齐豆包：过滤 + 分片。单个 DSH 会话留 400k token 预算，
+  // 加上 completion 预留 256k 仍远低于 1M 窗口，同时保留完整历史（不靠截轮数）。
+  const DEFAULT_MAX_SESSION_TOKENS = 400_000;
+  const opts: ExportOptions = {
+    ...options,
+    maxSessionTokens:
+      options.maxSessionTokens === undefined ? DEFAULT_MAX_SESSION_TOKENS : options.maxSessionTokens,
+  };
 
   let sessions: AgentSession[] = listAgentSessions(agent);
   if (options.id) {
@@ -954,7 +962,7 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
     // 豆包在导出侧用 JsonlShardWriter + SessionFilterState 把大会话「过滤 + 分片」；
     // 这里等价实现：超过 token 预算就按轮切段，每段单独成会（标题带 1/N），
     // 整段历史都在，但每一段都能真的打开继续聊。
-    const chunks = planShards(ir, { ...options, keepTools }, options);
+    const chunks = planShards(ir, { ...opts, keepTools }, opts);
     const parts = chunks.length;
 
     const emitOne = (turns: IrTurn[], part: number): ExportReport => {

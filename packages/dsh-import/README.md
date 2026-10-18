@@ -50,7 +50,7 @@ dsh plugin --profile web add ./zhuobichen-dsh-import-0.1.0.tgz
 | `maxTurns` | 只导最后 N 轮（缺省 0 = 全留）；**长会话必须裁** |
 | `keepReasoning` | 是否保留 thinking；缺省 false（通常是体积大头） |
 | `maxToolResultChars` | 工具结果截断长度，缺省 800 字符 |
-| `maxSessionTokens` | 单个会话的 token 预算；超过就按轮**分片**成多个会话（标题带 (1/N)） |
+| `maxSessionTokens` | 单个会话的 token 预算，**默认 400k**；超过就按轮**分片**成多个会话（标题带 (1/N)、id 带 -pN） |
 | `apply` / `overwrite` | 真写 / 覆盖同名 |
 | `out` | 覆盖目标 sessions 根目录 |
 
