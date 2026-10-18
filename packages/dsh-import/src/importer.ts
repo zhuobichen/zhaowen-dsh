@@ -561,20 +561,31 @@ function trimContent(content: any[], trim: TrimOptions, kind: "assistant" | "use
 
 export function toBuilder(
   ir: IrSession,
-  options: { keepTools: boolean; titlePrefix?: string } & TrimOptions,
+  options: {
+    keepTools: boolean;
+    titlePrefix?: string;
+    /** 显式指定要导的轮次（分片时用）；缺省按 maxTurns 截尾。 */
+    turns?: IrTurn[];
+    /** 会话 id 后缀（分片时用，例如 `-p2`）。 */
+    idSuffix?: string;
+    /** 标题后缀（分片时用，例如 ` (2/3)`）。 */
+    titleSuffix?: string;
+  } & TrimOptions,
 ): SessionBuilder {
   const builder = new SessionBuilder({
-    id: `session-${String(ir.id).replace(/^session-/, "")}`,
+    id: `session-${String(ir.id).replace(/^session-/, "")}${options.idSuffix ?? ""}`,
     cwd: ir.cwd,
-    createdAt: ir.createdAt,
+    createdAt: options.turns?.[0]?.time ?? ir.createdAt,
   });
 
   let lastTime = ir.createdAt;
   let titled = false;
   const titlePrefix = options.titlePrefix ?? "";
+  const titleSuffix = options.titleSuffix ?? "";
   const trim: TrimOptions = options;
   const turns =
-    options.maxTurns && options.maxTurns > 0 ? ir.turns.slice(-options.maxTurns) : ir.turns;
+    options.turns ??
+    (options.maxTurns && options.maxTurns > 0 ? ir.turns.slice(-options.maxTurns) : ir.turns);
 
   for (const turn of turns) {
     const start = turn.time ?? ir.createdAt;
@@ -591,7 +602,8 @@ export function toBuilder(
       if (!titled) {
         const text = turn.user.content.find((b: any) => b.type === "text")?.text ?? "";
         // 源头有自带标题（Claude custom-title / ai-title）就用它，别拿首句硬凑。
-        if (builder.title(start, titlePrefix + (ir.title || text), [builder.seq - 1])) titled = true;
+        if (builder.title(start, titlePrefix + (ir.title || text) + titleSuffix, [builder.seq - 1]))
+          titled = true;
       }
     }
 
@@ -752,6 +764,8 @@ export interface ExportOptions {
   maxToolArgChars?: number;
   /** 普通文本块截断长度（字符）；0 = 不截；缺省 12000。 */
   maxTextChars?: number;
+  /** 单个 DSH 会话的 token 预算（缺省 0 = 不分片）；超过就按轮切段，每段单独成会、标题带 (1/N)。 */
+  maxSessionTokens?: number;
 }
 
 export interface ExportReport {
@@ -937,43 +951,114 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
       }
     }
 
-    const builder = toBuilder(ir, {
-      keepTools,
-      titlePrefix: options.titlePrefix,
-      maxTurns: options.maxTurns,
-      dropReasoning: options.dropReasoning,
-      maxToolResultChars: options.maxToolResultChars,
-      maxToolArgChars: options.maxToolArgChars,
-      maxTextChars: options.maxTextChars,
-    });
-    const report: ExportReport = {
-      index,
-      agent: session.agent,
-      sourceId: session.id,
-      sessionId: String(builder.meta.id),
-      cwd: ir.cwd,
-      turns: builder.turn,
-      events: builder.events.length,
-      verified: false,
-      closedUnresolved: builder.closedUnresolved,
-      estimatedTokens: estimateTokens(builder.events),
+    // 豆包在导出侧用 JsonlShardWriter + SessionFilterState 把大会话「过滤 + 分片」；
+    // 这里等价实现：超过 token 预算就按轮切段，每段单独成会（标题带 1/N），
+    // 整段历史都在，但每一段都能真的打开继续聊。
+    const chunks = planShards(ir, { ...options, keepTools }, options);
+    const parts = chunks.length;
+
+    const emitOne = (turns: IrTurn[], part: number): ExportReport => {
+      const builder = toBuilder(ir, {
+        keepTools,
+        titlePrefix: options.titlePrefix,
+        maxTurns: 0,
+        dropReasoning: options.dropReasoning,
+        maxToolResultChars: options.maxToolResultChars,
+        maxToolArgChars: options.maxToolArgChars,
+        maxTextChars: options.maxTextChars,
+        turns,
+        idSuffix: parts > 1 ? `-p${part + 1}` : "",
+        titleSuffix: parts > 1 ? ` (${part + 1}/${parts})` : "",
+      });
+      const report: ExportReport = {
+        index,
+        agent: session.agent,
+        sourceId: session.id,
+        sessionId: String(builder.meta.id),
+        cwd: ir.cwd,
+        turns: builder.turn,
+        events: builder.events.length,
+        verified: false,
+        closedUnresolved: builder.closedUnresolved,
+        estimatedTokens: estimateTokens(builder.events),
+      };
+      if (apply) {
+        try {
+          const written = writeSession(builder, { root, overwrite: options.overwrite === true });
+          report.file = written.file;
+          report.bytes = written.bytes;
+          if (catalog) {
+            const verified = verifyWithCatalog(written.file, catalog);
+            report.verified = verified.events === builder.events.length;
+          }
+        } catch (error: any) {
+          report.skipped = `write failed: ${error?.message ?? error}`;
+        }
+      }
+      return report;
     };
 
-    if (apply) {
-      try {
-        const written = writeSession(builder, { root, overwrite: options.overwrite === true });
-        report.file = written.file;
-        report.bytes = written.bytes;
-        if (catalog) {
-          const verified = verifyWithCatalog(written.file, catalog);
-          report.verified = verified.events === builder.events.length;
-        }
-      } catch (error: any) {
-        report.skipped = `write failed: ${error?.message ?? error}`;
-      }
-    }
-    reports.push(report);
+    for (let i = 0; i < parts; i++) reports.push(emitOne(chunks[i], i));
   }
 
   return reports;
+}
+
+/** 一轮在裁剪之后大约占多少 token（用于分片预算）。 */
+function turnTokens(turn: IrTurn, keepTools: boolean, trim: TrimOptions): number {
+  let chars = 0;
+  const cap = (s: string | undefined, limit: number) => Math.min((s ?? "").length, limit);
+  if (turn.user) {
+    for (const b of turn.user.content ?? []) if (b.type === "text") chars += cap(b.text, trim.maxTextChars ?? 12000);
+  }
+  for (const item of turn.items) {
+    if (item.kind === "assistant") {
+      for (const b of item.content ?? []) {
+        if (b.type === "reasoning") {
+          if (trim.dropReasoning === false) chars += cap(b.text, trim.maxTextChars ?? 12000);
+        } else if (b.type === "text") {
+          chars += cap(b.text, trim.maxTextChars ?? 12000);
+        } else if (b.type === "tool-call" && keepTools) {
+          chars += cap(b.arguments, trim.maxToolArgChars ?? 2000) + (b.name ?? "").length;
+        }
+      }
+    } else if (item.kind === "tool_call" && keepTools) {
+      chars += cap(item.arguments, trim.maxToolArgChars ?? 2000);
+    } else if (item.kind === "tool_result" && keepTools) {
+      chars += cap(item.text, trim.maxToolResultChars ?? 2000);
+    }
+  }
+  return Math.ceil(chars / 3);
+}
+
+/**
+ * 按 token 预算把会话切成若干段（豆包 JsonlShardWriter 的等价物）：
+ * 每段单独成一个 DSH 会话，整段历史都在，但每一段都放得进上下文。
+ */
+export function planShards(
+  ir: IrSession,
+  options: { maxTurns?: number; maxSessionTokens?: number; keepTools?: boolean } & TrimOptions,
+  trim: TrimOptions,
+): IrTurn[][] {
+  const base =
+    options.maxTurns && options.maxTurns > 0 ? ir.turns.slice(-options.maxTurns) : ir.turns;
+  const budget = options.maxSessionTokens && options.maxSessionTokens > 0 ? options.maxSessionTokens : 0;
+  if (!budget) return [base];
+
+  const keepTools = options.keepTools !== false;
+  const chunks: IrTurn[][] = [];
+  let cur: IrTurn[] = [];
+  let curTokens = 0;
+  for (const turn of base) {
+    const t = turnTokens(turn, keepTools, trim);
+    if (cur.length > 0 && curTokens + t > budget) {
+      chunks.push(cur);
+      cur = [];
+      curTokens = 0;
+    }
+    cur.push(turn);
+    curTokens += t;
+  }
+  if (cur.length > 0) chunks.push(cur);
+  return chunks.length > 0 ? chunks : [base];
 }

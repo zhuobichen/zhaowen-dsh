@@ -124,6 +124,11 @@ export function apply(ctx: any, config: Config = {}): void {
           type: "integer",
           description: "工具结果截断长度（字符），缺省 800；0 = 不截",
         },
+        maxSessionTokens: {
+          type: "integer",
+          description:
+            "单个 DSH 会话的 token 预算（缺省 0 = 不分片）。超过就按轮切段，每段单独成会、标题带 (1/N)——豆包 JsonlShardWriter 的等价做法。",
+        },
         apply: { type: "boolean", description: "true 才真写；缺省只空跑" },
         overwrite: { type: "boolean", description: "覆盖已存在的同名会话" },
         out: { type: "string", description: "DSH sessions 根目录；缺省用插件配置或 $DSH_HOME/sessions" },
@@ -149,6 +154,8 @@ export function apply(ctx: any, config: Config = {}): void {
         dropReasoning: args?.keepReasoning !== true,
         maxToolResultChars:
           args?.maxToolResultChars === undefined ? undefined : Number(args.maxToolResultChars),
+        maxSessionTokens:
+          args?.maxSessionTokens === undefined ? undefined : Number(args.maxSessionTokens),
         apply: args?.apply === true,
         overwrite: args?.overwrite === true,
         out: args?.out ? String(args.out) : root,
