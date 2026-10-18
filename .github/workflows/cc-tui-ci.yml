@@ -1,0 +1,48 @@
+name: CI · dsh-cc-tui
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/dsh-cc-tui/**', '.github/workflows/cc-tui-ci.yml']
+  pull_request:
+    paths: ['packages/dsh-cc-tui/**', '.github/workflows/cc-tui-ci.yml']
+
+concurrency:
+  group: cc-tui-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: packages/dsh-cc-tui
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: packages/dsh-cc-tui/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - run: node --import tsx/esm scripts/repro-askpanel.tsx
+      - run: node --import tsx/esm scripts/verify-askpanel-layout.tsx
+      - run: node --import tsx/esm scripts/repro-toolcards.tsx
+      - run: node --import tsx/esm scripts/verify-teardown-exit.tsx
+      - run: node scripts/verify-update.mjs
+      - run: node --import tsx/esm scripts/verify-submit.mjs
+      - run: node --import tsx/esm scripts/verify-compact.mjs
+      - run: node --import tsx/esm scripts/verify-channel-goal-todo.mjs
+      - run: node --import tsx/esm scripts/repro-effort.tsx
+      - run: node --import tsx/esm scripts/verify-child-stderr.tsx
+      - run: node scripts/verify-model-route.mjs
+      - run: node --import tsx/esm scripts/verify-cjk-truncate.tsx

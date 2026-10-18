@@ -1,0 +1,25 @@
+name: CI · dsh-team
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/dsh-team/**', '.github/workflows/team-ci.yml']
+  pull_request:
+    paths: ['packages/dsh-team/**', '.github/workflows/team-ci.yml']
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: packages/dsh-team
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      # 插件运行时吃的是 lib/，所以这里做真构建（tsc -p .）而不只是 --noEmit。
+      - run: npm run build

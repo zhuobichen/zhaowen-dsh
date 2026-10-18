@@ -1,11 +1,16 @@
-name: Publish
+name: Publish · dsh-cc-tui
 
-# 发版入口：推送 v* 标签（git tag v0.3.4 && git push origin v0.3.4）。
-# 需要在仓库 Secrets 配置 NPM_TOKEN（对 dsh-cc-tui 有 write 权限的
-# granular token）。标签版本号必须与 package.json 的 version 一致。
+# 发版：打带包名前缀的标签
+#   git tag dsh-cc-tui-v0.4.3 && git push origin dsh-cc-tui-v0.4.3
+# 需要仓库 Secrets 里的 NPM_TOKEN（对 dsh-cc-tui 有 write 权限的 granular token）。
+# 标签里的版本必须与 packages/dsh-cc-tui/package.json 的 version 一致。
 on:
   push:
-    tags: ['v*']
+    tags: ['dsh-cc-tui-v*']
+
+defaults:
+  run:
+    working-directory: packages/dsh-cc-tui
 
 jobs:
   npm:
@@ -21,21 +26,19 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: packages/dsh-cc-tui/pnpm-lock.yaml
           registry-url: https://registry.npmjs.org
 
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm build
 
-      # 标签与 package.json version 不一致直接失败，防止发错版本。
       - name: Check tag matches package version
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${GITHUB_REF_NAME#dsh-cc-tui-v}"
           pkg="$(node -p "require('./package.json').version")"
           [ "$tag" = "$pkg" ] || { echo "tag $tag != package.json $pkg"; exit 1; }
 
       - run: node --import tsx/esm scripts/repro-askpanel.tsx
-
       - run: node --import tsx/esm scripts/repro-toolcards.tsx
 
       - run: pnpm publish --no-git-checks --access public

@@ -1,10 +1,16 @@
-name: CI
+name: CI · dsh-term
 
 on:
   push:
     branches: [main]
+    paths: ['packages/dsh-term/**', '.github/workflows/term-ci.yml']
   pull_request:
+    paths: ['packages/dsh-term/**', '.github/workflows/term-ci.yml']
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: packages/dsh-term
 
 jobs:
   typecheck:
