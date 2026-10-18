@@ -144,6 +144,10 @@ export const hourlyOf = (samples: Sample[], nowMs: number, count = HOURS_SHOWN):
 export const hourlyTextOf = (hours: (number | null)[]): string => {
   if (hours.length === 0) return ''
 
+  // 一个桶都没测到（刚装上、只有一次读数）时整条省略：`? ? ? ? ?` 不传达
+  // 任何信息，只是噪声。只要有一个桶有数，未知的桶照旧画成 `?`。
+  if (hours.every(one => one === null)) return ''
+
   const cells = hours.map(one => {
     if (one === null) return '?'
     if (one < 0) return `+${Math.abs(one).toFixed(2)}`

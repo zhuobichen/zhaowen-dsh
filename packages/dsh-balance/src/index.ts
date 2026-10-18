@@ -10,7 +10,7 @@
  *    投影是回放派生的，所以重启后上一次读数还在。
  * 2. **TUI prompt 槽位** —— TUI 组合存在时注册 `${balance}`，加进
  *    `theme.leftPrompt` 就能在 cwd/model 旁边看到。
- * 3. **`/balance` 命令** —— 立刻重读一次，并把结果作为命令输出吐出来。
+ * 3. **`/bal` 命令** —— 立刻重读一次，并把结果作为命令输出吐出来。
  *
  * 与原版的差别（有意为之，写在 README 里）：
  * - 原版用 `ANTHROPIC_BASE_URL` 含不含 "deepseek" 来决定「这条会话该不该显示」。
@@ -25,6 +25,7 @@
  */
 
 import { z } from 'zod'
+import { appendPluginRecord } from '@deepseek-ai/dsh-session'
 
 import {
   BALANCE_URL,
@@ -39,7 +40,33 @@ import {
 } from './balance.js'
 import type { Reading, Sample } from './types.js'
 
+
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface PluginRecordMap {
+    /** 一次余额读数；负载形状见 Payload。 */
+    'plugin:balance/status': Payload
+  }
+}
+
 export const name = 'balance'
+
+/**
+ * 0.2.1 起才有 `appendPluginRecord`（写 `plugin:` 命名空间 + ignorable 的官方入口）。
+ * 0.2.0 没有这个导出，而且普通 `append` 写的自定义事件会让会话日志在重启后读不了，
+ * 所以这里做运行时探测：拿不到就不落盘（余额是瞬时状态，丢了下一拍重来）。
+ */
+type AppendRecord = (session: any, type: string, data: unknown) => unknown
+let appendRecord: AppendRecord | null = null
+
+/**
+ * 测试接缝：真的 `appendPluginRecord` 最终调 `session.#appendRecord(...)`（私有字段），
+ * 假会话永远实现不了，所以单元测试用这个换掉写入函数。传 `null` 恢复默认。
+ * 生产代码路径里没有人调用它。
+ */
+export const setAppendRecordForTests = (fn: AppendRecord | null): void => {
+  appendRecord = fn
+}
 
 /** 可调项；都有缺省值，不配也能跑。 */
 export interface Config {
@@ -73,13 +100,30 @@ const balanceViewSchema = z
 type State = { reading: Payload; samples: Sample[] }
 
 /**
+ * 投影内部状态的校验器（注册时的 `stateSchema`）：持久化状态折进新投影之前
+ * 先过一遍，形状不对就丢掉重来，而不是把半个对象带进渲染。
+ */
+const balanceStateSchema = z
+  .object({
+    reading: z.object({
+      kind: z.enum(['pending', 'ok', 'no-key', 'refused', 'failed']),
+      amount: z.string().nullable(),
+      total: z.number().nullable(),
+      atMs: z.number(),
+      note: z.string().nullable(),
+    }),
+    samples: z.array(z.object({ atMs: z.number(), total: z.number() })),
+  })
+  .nullable()
+
+/**
  * 把一条 `balance/status` 折进投影。
  *
  * 无关事件必须**原样返回同一个引用**——注册表用 `Object.is` 判定有没有变化，
  * 返回新对象会让下游每一条事件都白跑一遍。
  */
 const applyBalance = (state: State | null, event: any): State | null => {
-  if (event?.type !== 'balance/status') return state
+  if (event?.type !== 'plugin:balance/status') return state
 
   const data = event.data as Payload | undefined
 
@@ -124,17 +168,21 @@ export function apply(ctx: any, config: Config = {}): void {
 
   /** 最近见过事件的会话：定时器得有个地方追加读数。 */
   let activeSession: any
-  /** 一次只跑一个采样：定时器和 `/balance` 可能同时问。 */
+  /** 一次只跑一个采样：定时器和 `/bal` 可能同时问。 */
   let isSampling = false
 
   // ---- 接缝 1：会话投影 -------------------------------------------------
   ctx.inject(['sessionProjections'], (projectionCtx: any) => {
     projectionCtx.sessionProjections.register({
       key: 'balance',
-      schema: balanceViewSchema,
+      // 0.2.1 的字段名是 `stateSchema`（校验**折出来的内部状态**），
+      // 不是 `schema`；写成 `schema` 会被静默忽略。
+      stateSchema: balanceStateSchema,
       init: () => null,
       apply: applyBalance,
-      view: viewBalance,
+      // 客户端下发只认 `wire`。只写一个 `view` 的注册会被当成 host-only：
+      // 宿主里算得好好的，但永远不进控制流，Web 那行就一直是空的。
+      wire: { viewSchema: balanceViewSchema, view: viewBalance },
       stateVersion: 1,
     })
   })
@@ -188,7 +236,7 @@ export function apply(ctx: any, config: Config = {}): void {
    * 为什么要等：`session.append` 只能在会话的追加守卫放下之后调用（原来那套
    * 守卫在 session/event 回调期间是按着的），所以真正 append 排在微任务里。而
    * 投影注册表是在 append 内部**同步**驱动的，所以这个 Promise 一 resolve，
-   * `snapshot()` 拿到的就已经是折进这条读数之后的值了。`/balance` 的输出靠这个
+   * `snapshot()` 拿到的就已经是折进这条读数之后的值了。`/bal` 的输出靠这个
    * 顺序才拿得到时长条。
    */
   const append = (session: any, payload: Payload): Promise<void> =>
@@ -201,7 +249,7 @@ export function apply(ctx: any, config: Config = {}): void {
 
       queueMicrotask(() => {
         try {
-          session.append('balance/status', payload)
+          ;(appendRecord ?? appendPluginRecord)(session, 'plugin:balance/status', payload)
         } catch {
           // 会话已关或守卫还按着：这次读数丢了，下一拍重来
         }
@@ -274,10 +322,10 @@ export function apply(ctx: any, config: Config = {}): void {
     }
   }
 
-  // ---- 接缝 3：/balance 命令 --------------------------------------------
+  // ---- 接缝 3：/bal 命令 --------------------------------------------
   ctx.inject(['commands'], (commandCtx: any) => {
     commandCtx.commands.register({
-      name: 'balance',
+      name: 'bal',
       description:
         'DeepSeek balance: read it again now and show what the last answer said (dsh-balance)',
       handler: async (invocation: any) => {
@@ -291,8 +339,20 @@ export function apply(ctx: any, config: Config = {}): void {
   })
 
   // ---- 会话跟踪 + 定时器 ------------------------------------------------
+  /** 已经在首条事件上补采过的会话，免得每条事件都去问一次。 */
+  const bootstrapped = new WeakSet<object>()
+
   ctx.on('session/event', (session: any) => {
     activeSession = session
+
+    // `agent/created` 那一刻会话可能还按着追加守卫，第一次读数会被静默吞掉，
+    // 然后要等满一个 refreshMs（5 分钟）才有数。所以首条会话事件再补一次：
+    // 只在投影里还是「从没读过」（pending + atMs 0）时补，读到就不再补。
+    if (!bootstrapped.has(session)) {
+      bootstrapped.add(session)
+
+      if (readingOfSession(session).atMs === 0) void sample(session)
+    }
   })
 
   ctx.on('session/disposed', (session: any) => {
@@ -301,7 +361,9 @@ export function apply(ctx: any, config: Config = {}): void {
 
   // 会话一开始就先读一次，之后按 refreshMs 重读。手动 setInterval 而不是
   // @cordisjs/plugin-timer：少一个依赖，卸载时 effect 自己清掉。
-  ctx.on('agent/session-start', ({ agent }: any) => {
+  // 0.2.x 的宿主事件叫 `agent/created`（负载 `{ agent, source, signal }`）；
+  // 早期草稿里写的 `agent/session-start` 在宿主里根本不存在，监听器静默不触发。
+  ctx.on('agent/created', ({ agent }: any) => {
     const session = agent?.session ?? agent
 
     activeSession = session

@@ -110,6 +110,7 @@ describe('客户端与宿主的措辞一致', () => {
 
     assert.equal(client.hourlyTextOf([null, 0, 0.34, -15, 5]), '· 5h ? 0.00 0.34 +15.00 5.00')
     assert.equal(client.hourlyTextOf([]), '')
+    assert.equal(client.hourlyTextOf([null, null, null, null, null]), '')
     assert.equal(client.ageOf(AT, AT + 20_000), 'just now')
     assert.equal(client.ageOf(AT, AT + 3 * MINUTE), '3m ago')
   })

@@ -9,7 +9,7 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { apply } from '../lib/index.js'
+import { apply, setAppendRecordForTests } from '../lib/index.js'
 import { INITIAL, readingOf } from '../src/balance.ts'
 
 const ANSWER = JSON.stringify({
@@ -18,6 +18,10 @@ const ANSWER = JSON.stringify({
 })
 
 const AT = 1_700_000_000_000
+
+// 真的 `appendPluginRecord` 走 `session.#appendRecord`（私有字段），假会话实现不了；
+// 用插件留的测试接缝把写入换成假会话自己的 `append`。
+setAppendRecordForTests((session, type, data) => (session as any).append(type, data))
 
 /**
  * 一个够用的假会话：记下被追加了什么，并且**像真注册表那样**把每条事件立刻折进
@@ -35,7 +39,7 @@ const makeSession = (captured: { projection?: any }) => {
 
       if (captured.projection !== undefined) {
         session.__state = captured.projection.apply(session.__state, { type, data })
-        session.projected = captured.projection.view(session.__state)
+        session.projected = captured.projection.wire.view(session.__state)
       }
     },
   }
@@ -119,9 +123,11 @@ describe('装配起来之后', () => {
     assert.notEqual(captured.projection, undefined, '没有注册会话投影')
     assert.equal(captured.projection.key, 'balance')
     assert.equal(typeof captured.projection.apply, 'function')
-    assert.equal(typeof captured.projection.view, 'function')
-    assert.notEqual(captured.command, undefined, '没有注册 /balance 命令')
-    assert.equal(captured.command.name, 'balance')
+    assert.equal(typeof captured.projection.wire.view, 'function')
+    assert.equal(typeof captured.projection.wire.viewSchema?.safeParse, 'function')
+    assert.equal(typeof captured.projection.stateSchema?.safeParse, 'function')
+    assert.notEqual(captured.command, undefined, '没有注册 /bal 命令')
+    assert.equal(captured.command.name, 'bal')
     assert.ok(captured.command.description.length > 0)
   })
 })
@@ -148,7 +154,7 @@ describe('/balance 命令', () => {
       // 读数要落成一条事件，Web 那边的投影才有东西可折
       await settle()
       assert.equal(session.appended.length, 1)
-      assert.equal(session.appended[0].type, 'balance/status')
+      assert.equal(session.appended[0].type, 'plugin:balance/status')
       assert.equal(session.appended[0].data.kind, 'ok')
       assert.equal(session.appended[0].data.total, 16.65)
       // 载荷里不该带 hours：那是投影现算的
@@ -262,7 +268,7 @@ describe('投影的折叠', () => {
 
     const fold = (atMs: number, total: number) => {
       state = captured.projection.apply(state, {
-        type: 'balance/status',
+        type: 'plugin:balance/status',
         data: { kind: 'ok', amount: `¥${total.toFixed(2)}`, total, atMs, note: null },
       })
     }
@@ -271,7 +277,7 @@ describe('投影的折叠', () => {
     fold(EDGE - 10 * 60_000, 20)
     fold(EDGE + 5 * 60_000, 17.5)
 
-    const view = captured.projection.view(state)
+    const view = captured.projection.wire.view(state)
 
     assert.equal(view.kind, 'ok')
     assert.equal(view.amount, '¥17.50')
@@ -280,7 +286,7 @@ describe('投影的折叠', () => {
     assert.equal(view.hours.at(-1), 5)
 
     // schema 也得认这个形状
-    assert.equal(captured.projection.schema.safeParse(view).success, true)
+    assert.equal(captured.projection.wire.viewSchema.safeParse(view).success, true)
   })
 
   test('再读一次就多一个点，时长条跟着走', () => {
@@ -293,7 +299,7 @@ describe('投影的折叠', () => {
 
     const fold = (atMs: number, total: number) => {
       state = captured.projection.apply(state, {
-        type: 'balance/status',
+        type: 'plugin:balance/status',
         data: { kind: 'ok', amount: `¥${total.toFixed(2)}`, total, atMs, note: null },
       })
     }
@@ -302,7 +308,7 @@ describe('投影的折叠', () => {
     fold(EDGE - 10 * 60_000, 20)
     fold(EDGE, 17.5)
 
-    const view = captured.projection.view(state)
+    const view = captured.projection.wire.view(state)
 
     // 现在 EDGE 这个时刻有读数了，它替掉了「上一小时的结尾」→ 25 − 17.5
     assert.equal(view.amount, '¥17.50')
@@ -317,11 +323,11 @@ describe('投影的折叠', () => {
     let state = captured.projection.init()
 
     state = captured.projection.apply(state, {
-      type: 'balance/status',
+      type: 'plugin:balance/status',
       data: { kind: 'failed', amount: null, total: null, atMs: AT, note: 'the request failed' },
     })
 
     assert.equal(state.samples.length, 0)
-    assert.equal(captured.projection.view(state).kind, 'failed')
+    assert.equal(captured.projection.wire.view(state).kind, 'failed')
   })
 })

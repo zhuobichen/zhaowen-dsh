@@ -35,7 +35,16 @@ if (!existsSync(join(DSH_HOME, 'profiles'))) {
 }
 
 // createRequire 只需要一个「基准路径」，那个文件本身不必存在。
-const requireFromProfile = createRequire(join(PROFILES, 'package.json'))
+// 0.2.x 的依赖装在 `profiles/<name>/node_modules` 下，`profiles/` 本身没有
+// node_modules；所以基准路径优先挑一个真存在的 profile，再退回 profiles/。
+// 运行时包（cordis / session-projection）在 toolchain 里；profile 的
+// node_modules 只有插件依赖。两个都试，谁先有 @deepseek-ai 用谁。
+const profileBase = [
+  join(dirname(DSH_HOME), 'toolchain', 'package.json'),
+  ...['web', 'headless', 'cc-tui'].map((name) => join(PROFILES, name, 'package.json')),
+].find((candidate) => existsSync(join(dirname(candidate), 'node_modules', '@deepseek-ai')))
+
+const requireFromProfile = createRequire(profileBase ?? join(PROFILES, 'package.json'))
 
 const load = async (specifier) => {
   const resolved = requireFromProfile.resolve(specifier)
@@ -52,6 +61,22 @@ try {
 } catch (error) {
   console.log(`SKIP：解析不到 DSH 的依赖包（${error.message}）`)
   process.exit(0)
+}
+
+// 0.2.0 的注册表字段是 `schema`/`view`，0.2.1 才是 `stateSchema`/`wire`。用旧
+// 环境跑这个测试会得到一条看起来像「插件坏了」的失败，其实是版本不匹配——
+// 显式跳过并说清楚，比让人去查一个假的回归便宜。
+try {
+  const manifestPath = requireFromProfile.resolve('@deepseek-ai/dsh-session-projection/package.json')
+  const { readFileSync } = await import('node:fs')
+  const version = JSON.parse(readFileSync(manifestPath, 'utf8')).version
+
+  if (!/^0\.2\.(?:[1-9]|\d{2,})/.test(version)) {
+    console.log(`SKIP：解析到的 dsh-session-projection 是 ${version}，需要 >=0.2.1（设 DSH_HOME 指向 0.2.1 的 home）`)
+    process.exit(0)
+  }
+} catch {
+  // 拿不到版本就照常跑，让真正的错误自己冒出来
 }
 
 const failures = []
@@ -117,6 +142,19 @@ const EDGE = Math.floor(1_700_000_000_000 / HOUR) * HOUR
 // 注册表读 session.events（按 seq 下标），不是 session.log。
 const session = {
   events: [],
+  // 0.2.1 的真注册表读这几样：header / inheritedEventCount / snapshotEvents /
+  // eventAt / seq。少一样就在 buildCell 里炸。
+  header: { version: 4, id: 'integration-session', createdAt: EDGE, cwd: process.cwd() },
+  inheritedEventCount: 0,
+  get seq() {
+    return this.events.length - 1
+  },
+  snapshotEvents(from = 0, to = this.events.length) {
+    return this.events.slice(Number(from), Number(to))
+  },
+  eventAt(seq) {
+    return this.events[Number(seq)]
+  },
   append(type, data) {
     const event = { type, seq: this.events.length, time: Date.now(), data }
 
@@ -128,7 +166,7 @@ const session = {
 
 const emit = (type, data) => app.emit('session/event', session, session.append(type, data))
 const fold = (atMs, total) =>
-  emit('balance/status', { kind: 'ok', amount: `¥${total.toFixed(2)}`, total, atMs, note: null })
+  emit('plugin:balance/status', { kind: 'ok', amount: `¥${total.toFixed(2)}`, total, atMs, note: null })
 
 try {
   // 上一整小时：开头 25、结尾 20 → 花掉 5.00；第三条落在本小时里

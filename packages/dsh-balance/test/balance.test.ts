@@ -142,6 +142,7 @@ describe('the hourly strip', () => {
   test('the strip spells out what it does not know', () => {
     assert.equal(hourlyTextOf([null, 0, 0.34, -15, 5]), '· 5h ? 0.00 0.34 +15.00 5.00')
     assert.equal(hourlyTextOf([]), '')
+    assert.equal(hourlyTextOf([null, null, null, null, null]), '')
   })
 })
 

@@ -13,7 +13,7 @@ DeepSeek ¥16.65 · 3m ago · 5h ? 0.34 0.00 ? 5.00
 | 在哪儿 | 长什么样 |
 |---|---|
 | **Web GUI** | 输入框上沿一行 12px 灰字（靠 `@zhuobichen/dsh-client-ui-balance` 那半画） |
-| **`/balance`** | 立刻重读一次，把结果作为命令输出吐出来 |
+| **`/bal`** | 立刻重读一次，把结果作为命令输出吐出来 |
 | **TUI** | 有 `dsh-tui` 时注册 `${balance}` 提示槽位，加进 `theme.leftPrompt` 就能看到 |
 
 每 5 分钟自动重读一次（`refreshMs` 可调）。
@@ -64,8 +64,8 @@ dsh plugin --profile web add @zhuobichen/dsh-balance @zhuobichen/dsh-client-ui-b
 
 三个接缝，每个都可选，缺了就静默退化：
 
-1. **会话投影 `balance`** —— 每次读数追加一条 log-only 的 `balance/status` 事件，投影把它折成当前读数（含时长条）。Web 客户端 `useProjection('balance')` 直接读，不需要任何 remote 代码生成。
-2. **`/balance` 命令** —— `ctx.commands.register`。
+1. **会话投影 `balance`** —— 每次读数追加一条 log-only 的 `plugin:balance/status` 事件，投影把它折成当前读数（含时长条）。Web 客户端 `useProjection('balance')` 直接读，不需要任何 remote 代码生成。
+2. **`/bal` 命令** —— `ctx.commands.register`。
 3. **TUI prompt 槽位** —— `ctx.get('tuiPrompt')` 存在时才注册。
 
 意图：**只报它真的看见的东西**。读不到就是读不到的理由，没被观察的小时是 `?` 而不是 0；刷新失败时保留上一次的好数字**和它自己的读取时间**，让旁边的 age 自己说明这个数字有多旧。

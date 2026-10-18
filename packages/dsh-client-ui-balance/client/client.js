@@ -46,6 +46,8 @@ window.__ModuleLoader__.load({
 		// 产物**来钉住一致性——漂移会当场变红。
 		const hourlyTextOf = (hours) => {
 			if (!Array.isArray(hours) || hours.length === 0) return "";
+			// 和宿主 balance.ts 同步：一个桶都没测到就整条省略，未知桶才有 `?`。
+			if (hours.every((one) => one === null)) return "";
 
 			const cells = hours.map((one) => {
 				if (one === null) return "?";
