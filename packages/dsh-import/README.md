@@ -47,10 +47,33 @@ dsh plugin --profile web add ./zhuobichen-dsh-import-0.1.0.tgz
 | `days` / `cwd` / `maxMb` | 时间窗 / 目录过滤 / 体积上限 |
 | `keepTools` | 缺省 true；false 只留对话 |
 | `titlePrefix` | 标题前缀，如 `"[Claude] "`，侧栏里区分来源 |
+| `maxTurns` | 只导最后 N 轮（缺省 0 = 全留）；**长会话必须裁** |
+| `keepReasoning` | 是否保留 thinking；缺省 false（通常是体积大头） |
+| `maxToolResultChars` | 工具结果截断长度，缺省 800 字符 |
 | `apply` / `overwrite` | 真写 / 覆盖同名 |
 | `out` | 覆盖目标 sessions 根目录 |
 
-返回 `{ applied, written, reports[] }`，`reports[i]` 带 `turns / events / file / verified / skipped`。
+返回 `{ applied, written, reports[] }`，`reports[i]` 带 `turns / events / estimatedTokens / file / verified / skipped`。
+
+### 长会话一定要裁
+
+DSH 每轮请求都要把历史整段重放给模型，而上下文有上限（当前 1,048,576 tokens，completion 还预留 256k）。实测原始 Claude 会话：
+
+```
+785f7929  809 turns  ≈ 18M tokens   ← 直接导必炸
+8c965989   76 turns  ≈ 1.3M tokens
+f5a436c2  161 turns  ≈ 1.0M tokens
+```
+
+不裁就会报 `maximum context length is 1048576 tokens`。默认因此做三件事：**丢 thinking、工具结果截到 800 字符、参数截到 800 字符**，再用 `maxTurns` 控轮数。裁完：
+
+```
+785f7929  60 turns  ≈ 459k tokens
+8c965989  60 turns  ≈ 273k tokens
+f5a436c2  60 turns  ≈ 109k tokens
+```
+
+裁掉的地方会留一行 `…[imported: truncated N chars]`，不静默丢内容。
 
 ## 为什么要这么写（DSH v4 的硬约束）
 

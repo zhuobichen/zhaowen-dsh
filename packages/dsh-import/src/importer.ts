@@ -502,9 +502,66 @@ export function parseCodexFile(file: string, fallbackCwd?: string): IrSession {
 
 // --------------------------------------------------------------- 映射 + 落盘
 
+export interface TrimOptions {
+  /** 只保留最后 N 轮（0/缺省 = 全留）。长会话不裁会超出模型上下文窗口。 */
+  maxTurns?: number;
+  /** 丢掉 reasoning（thinking）块——通常是体积大头。缺省 true。 */
+  dropReasoning?: boolean;
+  /** 工具结果截断长度（字符）；0 = 不截。缺省 2000。 */
+  maxToolResultChars?: number;
+  /** 工具调用参数截断长度（字符）；0 = 不截。缺省 2000。 */
+  maxToolArgChars?: number;
+  /** 普通文本块截断长度（字符）；0 = 不截。缺省 12000。 */
+  maxTextChars?: number;
+}
+
+function clip(text: string, limit: number): string {
+  if (!limit || text.length <= limit) return text;
+  return `${text.slice(0, limit)}\n…[imported: truncated ${text.length - limit} chars]`;
+}
+
+/** 粗略 token 估计（字符数 / 3），只用来提前发现「会撑爆上下文」。 */
+function estimateTokens(events: any[]): number {
+  let chars = 0;
+  for (const e of events) {
+    if (e.type === "user/message") {
+      for (const b of e.data.content ?? []) chars += (b.text ?? "").length;
+    } else if (e.type === "assistant/message") {
+      for (const b of e.data.message?.content ?? []) {
+        chars += (b.text ?? b.arguments ?? "").length + (b.name ?? "").length;
+      }
+    } else if (e.type === "tool/result") {
+      for (const b of e.data.message?.content ?? []) chars += (b.text ?? "").length;
+    }
+  }
+  return Math.round(chars / 3);
+}
+
+function trimContent(content: any[], trim: TrimOptions, kind: "assistant" | "user"): any[] {
+  const out: any[] = [];
+  for (const block of content) {
+    if (block.type === "reasoning") {
+      if (trim.dropReasoning !== false) continue;
+      out.push({ ...block, text: clip(block.text ?? "", trim.maxTextChars ?? 12000) });
+      continue;
+    }
+    if (block.type === "text") {
+      out.push({ ...block, text: clip(block.text ?? "", trim.maxTextChars ?? 12000) });
+      continue;
+    }
+    if (block.type === "tool-call") {
+      out.push({ ...block, arguments: clip(block.arguments ?? "", trim.maxToolArgChars ?? 2000) });
+      continue;
+    }
+    out.push(block);
+  }
+  // 裁完可能只剩空文本块
+  return out.filter((b) => !(b.type === "text" && !b.text));
+}
+
 export function toBuilder(
   ir: IrSession,
-  options: { keepTools: boolean; titlePrefix?: string },
+  options: { keepTools: boolean; titlePrefix?: string } & TrimOptions,
 ): SessionBuilder {
   const builder = new SessionBuilder({
     id: `session-${String(ir.id).replace(/^session-/, "")}`,
@@ -515,15 +572,21 @@ export function toBuilder(
   let lastTime = ir.createdAt;
   let titled = false;
   const titlePrefix = options.titlePrefix ?? "";
+  const trim: TrimOptions = options;
+  const turns =
+    options.maxTurns && options.maxTurns > 0 ? ir.turns.slice(-options.maxTurns) : ir.turns;
 
-  for (const turn of ir.turns) {
+  for (const turn of turns) {
     const start = turn.time ?? ir.createdAt;
     builder.startTurn(start);
     builder.startStep(start);
     const advertised = new Set<string>();
 
     if (turn.user) {
-      builder.userMessage(start, { id: turn.user.id, content: turn.user.content });
+      builder.userMessage(start, {
+        id: turn.user.id,
+        content: trimContent(turn.user.content, trim, "user"),
+      });
       // 标题取「第一条带用户消息的 turn」，不一定是第一个 turn（有的源头几轮只有 assistant）。
       if (!titled) {
         const text = turn.user.content.find((b: any) => b.type === "text")?.text ?? "";
@@ -546,9 +609,10 @@ export function toBuilder(
       const time = item.time || start;
       lastTime = time;
       if (item.kind === "assistant") {
-        const content = options.keepTools
+        const base = options.keepTools
           ? item.content!
           : item.content!.filter((b: any) => b.type !== "tool-call");
+        const content = trimContent(base, trim, "assistant");
         if (content.length === 0) continue;
         assists.push({
           id: item.id!,
@@ -577,9 +641,10 @@ export function toBuilder(
       const r = resultMap.get(callId);
       if (!r) return false;
       const extra = extraResultText.get(callId) ?? [];
+      const joined = [r.text, ...extra.filter(Boolean)].join("\n--- duplicate result ---\n");
       builder.toolResult(r.time || start, {
         callId,
-        text: [r.text, ...extra.filter(Boolean)].join("\n--- duplicate result ---\n"),
+        text: clip(joined, trim.maxToolResultChars ?? 2000),
         isError: r.isError,
       });
       return true;
@@ -677,6 +742,16 @@ export interface ExportOptions {
   apply?: boolean;
   keepTools?: boolean;
   overwrite?: boolean;
+  /** 只保留最后 N 轮（0/缺省 = 全留）。长会话不裁会超出模型上下文窗口。 */
+  maxTurns?: number;
+  /** 丢掉 reasoning（thinking）块；缺省 true。 */
+  dropReasoning?: boolean;
+  /** 工具结果截断长度（字符）；0 = 不截；缺省 2000。 */
+  maxToolResultChars?: number;
+  /** 工具调用参数截断长度（字符）；0 = 不截；缺省 2000。 */
+  maxToolArgChars?: number;
+  /** 普通文本块截断长度（字符）；0 = 不截；缺省 12000。 */
+  maxTextChars?: number;
 }
 
 export interface ExportReport {
@@ -692,6 +767,8 @@ export interface ExportReport {
   file?: string;
   verified: boolean;
   closedUnresolved: number;
+  /** 重放成请求时的粗略 token 估计（字符数 / 3），用来判断会不会撑爆上下文。 */
+  estimatedTokens?: number;
   skipped?: string;
 }
 
@@ -860,17 +937,26 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
       }
     }
 
-    const builder = toBuilder(ir, { keepTools, titlePrefix: options.titlePrefix });
+    const builder = toBuilder(ir, {
+      keepTools,
+      titlePrefix: options.titlePrefix,
+      maxTurns: options.maxTurns,
+      dropReasoning: options.dropReasoning,
+      maxToolResultChars: options.maxToolResultChars,
+      maxToolArgChars: options.maxToolArgChars,
+      maxTextChars: options.maxTextChars,
+    });
     const report: ExportReport = {
       index,
       agent: session.agent,
       sourceId: session.id,
       sessionId: String(builder.meta.id),
       cwd: ir.cwd,
-      turns: ir.turns.length,
+      turns: builder.turn,
       events: builder.events.length,
       verified: false,
       closedUnresolved: builder.closedUnresolved,
+      estimatedTokens: estimateTokens(builder.events),
     };
 
     if (apply) {

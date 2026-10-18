@@ -111,6 +111,19 @@ export function apply(ctx: any, config: Config = {}): void {
         maxMb: { type: "number", description: "跳过大于 N MB 的源文件" },
         keepTools: { type: "boolean", description: "是否保留工具调用；缺省 true，传 false 只留对话" },
         titlePrefix: { type: "string", description: "标题前缀，如 \"[Claude] \"，用来在列表里区分来源" },
+        maxTurns: {
+          type: "integer",
+          description:
+            "只导入最后 N 轮（缺省 0 = 全留）。长会话必须裁，否则重放会超出上下文窗口；返回里的 estimatedTokens 用来判断会不会撑爆。",
+        },
+        keepReasoning: {
+          type: "boolean",
+          description: "是否保留 thinking（reasoning）块；缺省 false —— 它通常是体积大头",
+        },
+        maxToolResultChars: {
+          type: "integer",
+          description: "工具结果截断长度（字符），缺省 800；0 = 不截",
+        },
         apply: { type: "boolean", description: "true 才真写；缺省只空跑" },
         overwrite: { type: "boolean", description: "覆盖已存在的同名会话" },
         out: { type: "string", description: "DSH sessions 根目录；缺省用插件配置或 $DSH_HOME/sessions" },
@@ -132,6 +145,10 @@ export function apply(ctx: any, config: Config = {}): void {
         maxMb: args?.maxMb ? Number(args.maxMb) : undefined,
         keepTools: args?.keepTools !== false,
         titlePrefix: args?.titlePrefix ? String(args.titlePrefix) : undefined,
+        maxTurns: args?.maxTurns ? Number(args.maxTurns) : undefined,
+        dropReasoning: args?.keepReasoning !== true,
+        maxToolResultChars:
+          args?.maxToolResultChars === undefined ? undefined : Number(args.maxToolResultChars),
         apply: args?.apply === true,
         overwrite: args?.overwrite === true,
         out: args?.out ? String(args.out) : root,
