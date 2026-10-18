@@ -114,3 +114,63 @@ describe('客户端与宿主的措辞一致', () => {
     assert.equal(client.ageOf(AT, AT + 3 * MINUTE), '3m ago')
   })
 })
+
+/**
+ * 客户端挂载契约。
+ *
+ * 这一组钉的是「它挂到哪儿、以什么身份挂」——槽位名写错、order 撞号、组件不是函数，
+ * 都会表现为「插件明明 active，界面上什么都没有」。浏览器里看不出来，只能在这里钉住。
+ */
+describe('客户端挂载契约', () => {
+  /** 用假的 slots 服务跑一遍 apply，把注册动作抓下来。 */
+  const registrationOf = async () => {
+    const client = await loadClient()
+
+    const registered: { name?: string; id?: string; order?: number; component?: unknown } = {}
+    let waitedSlot: string | undefined
+
+    const ctx = {
+      slots: {
+        inject(name: string, callback: () => void) {
+          waitedSlot = name
+          callback()
+        },
+        register(definition: any, component: unknown) {
+          registered.name = definition?.name
+          registered.id = definition?.id
+          registered.order = definition?.order
+          registered.component = component
+
+          return () => {}
+        },
+      },
+    }
+
+    client.apply(ctx)
+
+    return { client, registered, waitedSlot }
+  }
+
+  test('声明只依赖 slots 服务', async () => {
+    const client = await loadClient()
+
+    assert.deepEqual(client.inject, ['slots'])
+  })
+
+  test('挂在 conversation.input.dock（输入框上沿）', async () => {
+    const { registered, waitedSlot } = await registrationOf()
+
+    assert.equal(waitedSlot, 'conversation.input.dock', '等待的槽位名不对')
+    assert.equal(registered.name, 'conversation.input.dock', '注册的槽位名不对')
+    assert.equal(registered.id, 'balance')
+    assert.equal(typeof registered.component, 'function', '注册的组件不是函数')
+  })
+
+  test('order 是 15：夹在 goal(10) 和 queue(20) 之间，不撞号', async () => {
+    const { registered } = await registrationOf()
+
+    assert.equal(registered.order, 15)
+    assert.ok((registered.order as number) > 10, '不该盖在 goal 上面')
+    assert.ok((registered.order as number) < 20, '不该和 queue 撞号')
+  })
+})
