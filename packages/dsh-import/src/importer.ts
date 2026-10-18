@@ -823,9 +823,9 @@ export async function exportToDsh(options: ExportOptions = {}): Promise<ExportRe
   const keepTools = options.keepTools !== false;
   const root = options.out ?? defaultRoot();
   const apply = options.apply === true;
-  // 默认策略对齐豆包：过滤 + 分片。单个 DSH 会话留 400k token 预算，
+  // 默认不自动分片（一个对话 = 一条 DSH 会话）；需要全史存档时显式传 maxSessionTokens。
   // 加上 completion 预留 256k 仍远低于 1M 窗口，同时保留完整历史（不靠截轮数）。
-  const DEFAULT_MAX_SESSION_TOKENS = 400_000;
+  const DEFAULT_MAX_SESSION_TOKENS = 0;
   const opts: ExportOptions = {
     ...options,
     maxSessionTokens:
