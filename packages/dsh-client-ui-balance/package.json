@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "description": "Balance line docked above the DSH composer (client half of @zhuobichen/dsh-balance)",
   "type": "module",
-  "main": "lib/index.js",
+  "main": "index.js",
   "exports": {
-    ".": "./lib/index.js",
+    ".": "./index.js",
     "./client": "./client/client.js",
     "./package.json": "./package.json"
   },
   "files": [
-    "lib",
+    "index.js",
     "client",
     "cordis.patch.yml",
     "README.md"

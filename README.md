@@ -4,13 +4,17 @@
 
 | 目录 | 包名 | 是什么 |
 |---|---|---|
+| [`packages/dsh-balance`](packages/dsh-balance) | `@zhuobichen/dsh-balance` | **DSH 插件**：DeepSeek 账户余额作为输入框上方的一行（宿主半身：会话投影 + `/balance` 命令 + TUI `\${balance}` 槽位）。移植自 Claude Code 的 `deepseek-balance` mod |
+| [`packages/dsh-client-ui-balance`](packages/dsh-client-ui-balance) | `@zhuobichen/dsh-client-ui-balance` | **DSH 客户端插件**：Web GUI 里画那一行的浏览器半身（无构建步骤，手写 `window.__ModuleLoader__` 信封） |
 | [`packages/dsh-team`](packages/dsh-team) | `@zhuobichen/dsh-team` | **DSH 插件**：多 Agent 团队编排（顺序接力 loop + DAG 图编排），角色化 agent 协作 |
 | [`packages/dsh-cc-tui`](packages/dsh-cc-tui) | `dsh-cc-tui` | **DSH 插件**：Claude Code 风格的交互式 TUI 入口（基于移植的 Ink core） |
 | [`packages/dsh-term`](packages/dsh-term) | `dsh-term` | **独立的终端客户端**（不是插件）：像 Claude Code 一样住在终端的 DSH 前端 |
 | [`packages/dsh-import`](packages/dsh-import) | `@zhuobichen/dsh-import` | **DSH 插件**：把 Claude Code / Codex 的本地会话导入 DSH（扫描 + 导入 + 用 DSH 自己的还原器校验） |
 
-四个包各自独立：**各有自己的 package.json / lockfile / 构建脚本**，可以单独 `npm install`、单独发版。
-本仓库只做“放在一起”，不引入 workspace 依赖提升（四个包的包管理器还不一样：`dsh-cc-tui` 用 pnpm，另两个用 npm）。
+`dsh-balance` 和 `dsh-client-ui-balance` 是一对：前者算数、后者画条，**两个都装**才在 Web GUI 里看得到那一行。
+
+六个包各自独立：**各有自己的 package.json / lockfile / 构建脚本**，可以单独 `npm install`、单独发版。
+本仓库只做“放在一起”，不引入 workspace 依赖提升（六个包的包管理器还不一样：`dsh-cc-tui` 用 pnpm，其余用 npm）。
 
 ## 安装
 
