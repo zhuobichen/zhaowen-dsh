@@ -1,0 +1,29 @@
+{
+  "name": "dsh-term",
+  "version": "0.1.0",
+  "description": "终端版 DeepSeek Harness —— 像 Claude Code 一样住在终端的 AI 编码助手",
+  "type": "module",
+  "bin": {
+    "dsh-term": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli.ts",
+    "dev": "tsx watch src/cli.ts"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}
