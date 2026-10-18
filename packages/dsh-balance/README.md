@@ -90,6 +90,8 @@ node test/host.smoke.ts      # 9 条：拿编译后的 lib/ 在假 Cordis 上下
 
 三个测试都直接 `node <file>.ts` 跑（Node 24 原生剥类型），不要用 `node --test <dir>`——那会 spawn 子进程。
 
+第四个 `test/integration.mjs` 是另一回事：它用本机 DSH 安装里**真的** `SessionProjectionRegistry`，发真的 `session/event`，读回折出来的值。专门钉两件事——一是 **zod 实例**：我的 schema 和注册表各自那份 zod 若不兼容，症状是插件装得上、不报错、但投影**永远不更新**；二是真驱动的行为（无关事件必须不改状态引用）。没有 DSH 安装时它会自己 SKIP。
+
 `test/parity.test.ts` 值得单说一句：客户端信封里那份措辞是**抄**过去的（浏览器侧拿不到宿主源码），所以这个测试加载**真正会被下发给浏览器的那个 `client.js`**，和宿主逐条对表。改了一边忘了另一边，它会当场变红。
 
 ## License

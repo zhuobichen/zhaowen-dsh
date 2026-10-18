@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node test/balance.test.ts",
+    "test": "node test/balance.test.ts && node test/parity.test.ts && node test/host.smoke.ts && node test/integration.mjs",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
