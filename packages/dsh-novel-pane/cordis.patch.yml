@@ -1,0 +1,9 @@
+# dsh-novel-pane 的 bundle patch：把「读书窗格」插件条目插进 profile。
+#
+# 这一行挂上之后，插件会注册：
+#   - `/novel` 命令（打开 / 翻页 / 书单 / 收起）
+#   - `GET /dsh-novel-pane/state`、`POST /dsh-novel-pane/move`（给浏览器那半用）
+# 画窗格的是配套的客户端插件 @zhuobichen/dsh-client-ui-novel-pane。
+- insert:
+    - id: novel-pane
+      name: '@zhuobichen/dsh-novel-pane'
