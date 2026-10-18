@@ -114,6 +114,29 @@ export class SessionBuilder {
     this.openStep = true;
   }
 
+  /**
+   * 系统提示消息，必须是 surface 的第一个节点（v4 的「protected first surface head」）。
+   * 导入的会话如果缺这一段，续聊时 DSH 追加 system/message 会写到中间，日志随即被判定损坏。
+   */
+  systemMessage(time: number, text: string): void {
+    const { turn, step } = this.requireOpen();
+    this.emit(
+      "system/message",
+      time,
+      {
+        turn,
+        step,
+        message: {
+          role: "system",
+          id: `system-${this.turn}`,
+          content: [{ type: "text", text }],
+          source: { kind: "system-prompt" },
+        },
+      },
+      { surfaceOp: "append" },
+    );
+  }
+
   userMessage(time: number, message: { id: string; content: any[]; source?: any }): void {
     this.emit(
       "user/message",

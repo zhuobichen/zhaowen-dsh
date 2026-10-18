@@ -559,6 +559,9 @@ function trimContent(content: any[], trim: TrimOptions, kind: "assistant" | "use
   return out.filter((b) => !(b.type === "text" && !b.text));
 }
 
+const SYSTEM_HEAD_TEXT =
+  "You are an AI assistant continuing an imported conversation. The earlier turns were imported from another agent tool; treat them as your own history.";
+
 export function toBuilder(
   ir: IrSession,
   options: {
@@ -589,10 +592,18 @@ export function toBuilder(
     options.turns ??
     (options.maxTurns && options.maxTurns > 0 ? ir.turns.slice(-options.maxTurns) : ir.turns);
 
+  let headSeeded = false;
+
   for (const turn of turns) {
     const start = turn.time ?? ir.createdAt;
     builder.startTurn(start);
     builder.startStep(start);
+    // surface 的第一个节点必须是 system/message（v4 的 protected first surface head）。
+    // 缺了它，之后续聊时 DSH 追加的 system/message 会落在中间，整份日志被判损坏。
+    if (!headSeeded) {
+      builder.systemMessage(start, SYSTEM_HEAD_TEXT);
+      headSeeded = true;
+    }
     const advertised = new Set<string>();
 
     if (turn.user) {

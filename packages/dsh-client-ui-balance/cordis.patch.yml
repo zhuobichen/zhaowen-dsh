@@ -1,0 +1,7 @@
+# dsh-client-ui-balance 的 bundle patch：把客户端插件条目插进 profile。
+#
+# 宿主半身是空的；真正干活的是 exports["./client"] 那个浏览器模块，它把自己
+# 注册进 `conversation.input.dock` 槽位（输入框上沿）。
+- insert:
+    - id: client-ui-balance
+      name: '@zhuobichen/dsh-client-ui-balance'
