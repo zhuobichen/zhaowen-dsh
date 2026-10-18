@@ -8,11 +8,11 @@
     "lib",
     "skills",
     "graphs",
-    "cordis.yml"
+    "cordis.patch.yml"
   ],
   "dsh": {
     "bundle": {
-      "patch": "./cordis.yml"
+      "patch": "./cordis.patch.yml"
     }
   },
   "scripts": {
@@ -42,5 +42,8 @@
   ],
   "publishConfig": {
     "access": "public"
+  },
+  "engines": {
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
   }
 }

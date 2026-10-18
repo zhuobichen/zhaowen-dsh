@@ -30,7 +30,8 @@
     "skills"
   ],
   "engines": {
-    "node": "^22.19 || >=24"
+    "node": "^22.19 || >=24",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
