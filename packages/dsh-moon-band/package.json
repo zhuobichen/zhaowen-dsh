@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node test/moon.test.ts"
+    "test": "node test/moon.test.ts && node test/dynasty.test.ts && node test/cache.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
