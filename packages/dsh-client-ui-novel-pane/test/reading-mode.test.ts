@@ -396,6 +396,9 @@ beforeEach(() => {
   client.panelState.open = false
   client.panelState.view = 'shelf'
   client.panelState.liteUrl = ''
+  client.panelState.snap = null
+  client.panelState.zoom = 1
+  client.panelState.liteZoom = 1
 })
 
 /**
@@ -1226,6 +1229,39 @@ test('切换会话（组件重挂）后面板保持展开，灵台地址还在',
 
   assert.notEqual(frame, undefined, '重挂之后面板被收起了（应该保持展开）')
   assert.equal(frame.props.src, 'http://127.0.0.1:8769', '重挂后灵台地址丢了')
+
+  unmount()
+})
+
+test('切换会话后仍停在同一本书的正文页（不是退回书库）', async () => {
+  resetHooks()
+  classSet.clear()
+  cssVars.clear()
+  storageMap.clear()
+  windowListeners.clear()
+  installFetch(bookHandler)
+
+  const props = {}
+  let tree = render(client.NovelPane, props)
+
+  findByClass(tree, 'dshnp_launch').props.onClick()
+  tree = await flush(props)
+
+  allByClass(tree, 'dshnp_book')[0].props.onClick()
+  tree = await flush(props)
+
+  assert.match(textOf(findByClass(tree, 'dshnp_text')), /第一行/, '一开始就没进正文')
+
+  // 切会话 = 卸载 + 用全新 hook 单元重挂；重挂后第一帧就该是正文
+  unmount()
+  resetHooks()
+
+  tree = render(client.NovelPane, props)
+
+  const pre = findByClass(tree, 'dshnp_text')
+
+  assert.notEqual(pre, undefined, '重挂后退回书库了（正文快照没恢复）')
+  assert.match(textOf(pre), /第一行/, '重挂后正文内容丢了')
 
   unmount()
 })

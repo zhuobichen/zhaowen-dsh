@@ -440,7 +440,7 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		 * 组件内的 `useState` 因此清零（表现就是"一换会话读书面板就收起"）。
 		 * 把开合/视图/灵台地址放在模块作用域，重挂时从这里恢复；页面刷新才丢。
 		 */
-		const panelState = { open: false, view: "shelf", liteUrl: "" };
+		const panelState = { open: false, view: "shelf", liteUrl: "", snap: null, zoom: 1, liteZoom: 1 };
 
 		/**
 		 * 窗格本体。
@@ -449,7 +449,9 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		 * （正文）。两者都从宿主快照渲染，这里不缓存正文。
 		 */
 		function NovelPane() {
-			const [snap, setSnap] = react.useState(null);
+			// 重挂时把上次的正文快照也带回来：否则切会话回来是"书没了"（快照是空的），
+			// 得等下一次 /state 才有内容，中间那一下就是用户看到的"退出了"。
+			const [snap, setSnap] = react.useState(() => panelState.snap);
 			// 面板状态挂在模块级：切换会话时这个组件会被卸载重挂，放组件 state 里
 			// 会"一换会话就收起"。模块级只在页面刷新时丢，恰好是我们想要的粒度。
 			const [open, setOpen] = react.useState(() => panelState.open);
@@ -489,9 +491,9 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			// 拖拽过程中要知道"当前多宽"，而 setPaneW 是异步的
 			const paneWRef = react.useRef(paneW);
 			// 阅读区字号倍数：只作用于正文 <pre>，不动整页
-			const [zoom, setZoom] = react.useState(storedZoom);
+			const [zoom, setZoom] = react.useState(() => (panelState.zoom === 1 ? storedZoom() : panelState.zoom));
 			// 灵台（iframe）的缩放：跨源改不了它内部的字号，只能整体缩放 iframe
-			const [liteZoom, setLiteZoom] = react.useState(storedLiteZoom);
+			const [liteZoom, setLiteZoom] = react.useState(() => (panelState.liteZoom === 1 ? storedLiteZoom() : panelState.liteZoom));
 			// 按住 Ctrl 时在 iframe 上盖一层遮罩，把滚轮从 iframe 手里抢回来
 			const [ctrlHeld, setCtrlHeld] = react.useState(false);
 			// Ctrl+滚轮要 preventDefault 才拦得住浏览器整页缩放，得用非 passive 的原生监听
@@ -507,6 +509,9 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			panelState.open = open;
 			panelState.view = view;
 			panelState.liteUrl = liteUrl;
+			panelState.snap = snap;
+			panelState.zoom = zoom;
+			panelState.liteZoom = liteZoom;
 
 			const reading = open && !failed;
 

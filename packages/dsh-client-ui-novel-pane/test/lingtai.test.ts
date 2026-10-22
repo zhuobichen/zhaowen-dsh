@@ -369,6 +369,9 @@ beforeEach(() => {
   client.panelState.open = false
   client.panelState.view = 'shelf'
   client.panelState.liteUrl = ''
+  client.panelState.snap = null
+  client.panelState.zoom = 1
+  client.panelState.liteZoom = 1
 })
 
 const flush = async (props: any = {}) => {
