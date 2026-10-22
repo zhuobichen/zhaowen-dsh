@@ -16,7 +16,7 @@ DeepSeek ¥16.65 · 3m ago · 5h ? 0.34 0.00 ? 5.00
 | **`/bal`** | 立刻重读一次，把结果作为命令输出吐出来 |
 | **TUI** | 有 `dsh-tui` 时注册 `${balance}` 提示槽位，加进 `theme.leftPrompt` 就能看到 |
 
-每 5 分钟自动重读一次（`refreshMs` 可调）。
+每 5 分钟自动重读一次（`refreshMs` 可调）；Web 那一行每 15 秒拉一次宿主的 `GET /dsh-balance/current`，所以**所有对话永远是同一个数**，新对话一打开就有，不用等下一拍。
 
 ## 安装
 
@@ -64,9 +64,14 @@ dsh plugin --profile web add @zhuobichen/dsh-balance @zhuobichen/dsh-client-ui-b
 
 三个接缝，每个都可选，缺了就静默退化：
 
-1. **会话投影 `balance`** —— 每次读数追加一条 log-only 的 `plugin:balance/status` 事件，投影把它折成当前读数（含时长条）。Web 客户端 `useProjection('balance')` 直接读，不需要任何 remote 代码生成。
-2. **`/bal` 命令** —— `ctx.commands.register`。
+1. **宿主持有唯一状态 + 只读路由** —— 余额是**账户级**的，所以状态只有一份：当前读数 + 算时长条用的采样历史，落盘在 `$DSH_HOME/plugins/dsh-balance/state.json`（重启后时长条还在）。客户端拉 `GET /dsh-balance/current`，回包是
+   `{ line, kind, amount, total, atMs, note, hours, ts }`，其中 `line` 是宿主算好的整行。
+2. **`/bal` 命令** —— `ctx.commands.register`，立刻重读一次并把结果作为命令输出。
 3. **TUI prompt 槽位** —— `ctx.get('tuiPrompt')` 存在时才注册。
+
+> **为什么不在会话投影里**：账户级的数字放进会话级的投影，就变成每个对话各存一份
+> 「最后一次采样时的快照」——不同对话显示的金额不一样（本质是读数时间不同）。
+> 那是这个插件修掉的一个真 bug。现在宿主只有一份状态，`/bal`、TUI、Web 读的都是它。
 
 意图：**只报它真的看见的东西**。读不到就是读不到的理由，没被观察的小时是 `?` 而不是 0；刷新失败时保留上一次的好数字**和它自己的读取时间**，让旁边的 age 自己说明这个数字有多旧。
 
@@ -84,15 +89,16 @@ dsh plugin --profile web add @zhuobichen/dsh-balance @zhuobichen/dsh-client-ui-b
 npm install
 npm run build          # tsc → lib/
 node test/balance.test.ts    # 18 条：纯函数（数字/措辞/时长条）
-node test/parity.test.ts     # 3 条：客户端与宿主的措辞一致性
-node test/host.smoke.ts      # 9 条：拿编译后的 lib/ 在假 Cordis 上下文里真跑
+node test/parity.test.ts     # 8 条：客户端画的就是宿主给的 line + 挂载契约
+node test/host.smoke.ts      # 14 条：拿编译后的 lib/ 在假 Cordis 上下文里真跑
+node test/integration.mjs    # 落盘 roundtrip：重启后时长条还在、不同对话同一个数
 ```
 
-三个测试都直接 `node <file>.ts` 跑（Node 24 原生剥类型），不要用 `node --test <dir>`——那会 spawn 子进程。
+前三个都直接 `node <file>.ts` 跑（Node 24 原生剥类型），不要用 `node --test <dir>`——那会 spawn 子进程。
 
-第四个 `test/integration.mjs` 是另一回事：它用本机 DSH 安装里**真的** `SessionProjectionRegistry`，发真的 `session/event`，读回折出来的值。专门钉两件事——一是 **zod 实例**：我的 schema 和注册表各自那份 zod 若不兼容，症状是插件装得上、不报错、但投影**永远不更新**；二是真驱动的行为（无关事件必须不改状态引用）。没有 DSH 安装时它会自己 SKIP。
+第四个 `test/integration.mjs` 起**两个宿主实例共用一个临时 `DSH_HOME`**，中间只隔着一次 `apply`（就是「重启」的最短复现）：宿主 A 采两次并落盘 → 检查 state.json 里有读数、有采样、**没有** `hours`（那是纯函数现算的）→ 宿主 B 用「永远不返回」的假 fetch 启动，证明它给出的数字只可能来自文件；最后用三个不同 `session` 的请求断言金额与读取时刻完全一致（那个 bug 的回归）。它不需要本机装 DSH、也不开端口，只要求先 `npm run build`。
 
-`test/parity.test.ts` 值得单说一句：客户端信封里那份措辞是**抄**过去的（浏览器侧拿不到宿主源码），所以这个测试加载**真正会被下发给浏览器的那个 `client.js`**，和宿主逐条对表。改了一边忘了另一边，它会当场变红。
+`test/parity.test.ts` 值得单说一句：它加载**真正会被下发给浏览器的那个 `client.js`**，用一对最小的 react 桩把组件跑起来，然后逐字比对「画出来的字」和宿主 `lineOf` 的输出；还有一条故意喂一条和字段互相矛盾的 `line`，证明客户端**不再自己算**（之前它抄了一份 `lineOf`，靠对表防漂移）。
 
 ## License
 

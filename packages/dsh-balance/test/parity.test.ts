@@ -1,9 +1,15 @@
-// 一致性地表：宿主侧 src/balance.ts 的 lineOf 与客户端真实产物
-// dsh-client-ui-balance/client/client.js 的 lineOf，必须逐字相同。
+// 一致性地表：客户端**不许自己算**，宿主给什么就画什么。
 //
-// 客户端信封只能 require 静态表里的包，拿不到宿主源码，所以那份措辞是**抄过去的**。
-// 抄的东西会漂移——这个测试就是防漂移的那颗钉子：它加载的是**真正会被下发给浏览器
-// 的那个文件**（不是另抄一份），任何一边改了措辞都会当场变红。
+// 这一版之前两边各有一份措辞（宿主 `src/balance.ts` 的 lineOf / ageOf /
+// hourlyTextOf，客户端 client.js 抄了一份），这个测试把两份逐字对表。现在余额改成
+// 「宿主持有唯一状态 + 客户端拉 `/dsh-balance/current`」，一行字由宿主算好放进
+// `line`，客户端那份副本删掉了——所以这里钉的东西跟着变了：
+//
+//   1. 客户端挂上去之后画出来的文本，**逐字等于**宿主 `lineOf` 的输出；
+//   2. 客户端不再按 kind/amount/hours 重算——喂一条和字段互相矛盾的 `line`，它照画；
+//   3. 挂载契约（槽位名 / id / order / 信封 id）不变。
+//
+// 加载的是**真正会被下发给浏览器的那个文件**，不是另抄一份。
 //
 // 跑：node test/parity.test.ts
 
@@ -22,12 +28,10 @@ const CLIENT_FILE = join(HERE, '..', '..', 'dsh-client-ui-balance', 'client', 'c
 type Registration = { id: string; factory: (require: (name: string) => unknown) => any }
 
 /** 模块只会执行一次（ESM 缓存），所以这里也得只加载一次。 */
-let loaded: any
+let registration: Registration | undefined
 
-const loadClient = async (): Promise<any> => {
-  if (loaded !== undefined) return loaded
-
-  let registration: Registration | undefined
+const loadEnvelope = async (): Promise<Registration> => {
+  if (registration !== undefined) return registration
 
   ;(globalThis as any).window = {
     __ModuleLoader__: {
@@ -41,19 +45,40 @@ const loadClient = async (): Promise<any> => {
 
   assert.notEqual(registration, undefined, '客户端的 client.js 没有调用 window.__ModuleLoader__.load')
 
-  // factory 里的 require 只在这个测试里被调用到 react / react/jsx-runtime 两行
-  // import；lineOf 用不上它们，给个空壳就够了。
-  const stub = (name: string): unknown =>
-    name === 'react' ? { useState: () => [0, () => {}], useEffect: () => {} } : { jsx: () => null }
-
-  const mod = registration!.factory(stub)
-
   // 信封的 id 必须等于包名，否则宿主那边的模块图对不上。
   assert.equal(registration!.id, '@zhuobichen/dsh-client-ui-balance', '客户端信封的 id 要等于包名')
 
-  loaded = mod
+  return registration!
+}
 
-  return mod
+/**
+ * 用一对最小的 react 桩把组件真跑一遍。
+ *
+ * `useState` 直接回测试给的这份快照（组件只有这一个 state），`useEffect` 不执行
+ * （否则它会去 fetch 真路由），`jsx` 记成一个普通对象——于是「真正画出来的字」
+ * 可以逐字检查，而不是只检查导出了什么函数。
+ */
+const mount = async (snapshot: unknown): Promise<{ client: any; node: any }> => {
+  const envelope = await loadEnvelope()
+  const react = {
+    useState: () => [snapshot, () => {}],
+    useEffect: () => {},
+  }
+  const jsx = (type: string, props: any) => ({ type, props })
+  const client = envelope.factory((name: string) => (name === 'react' ? react : { jsx }))
+
+  assert.equal(typeof client.BalanceLine, 'function', '客户端没有导出 BalanceLine 组件')
+
+  return { client, node: client.BalanceLine() }
+}
+
+/** 把 jsx 节点摊平成文本。 */
+const textOf = (node: any): string => {
+  if (node === null || node === undefined || node === false) return ''
+  if (typeof node === 'string') return node
+  if (Array.isArray(node)) return node.map(textOf).join('')
+
+  return textOf(node?.props?.children)
 }
 
 const ANSWER = JSON.stringify({
@@ -64,12 +89,12 @@ const ANSWER = JSON.stringify({
 const AT = 1_700_000_000_000
 const MINUTE = 60_000
 
-/** 两边都要能算出来的同一批读数。 */
+/** 宿主会放进 `line` 的那批读数（措辞本身由 test/balance.test.ts 钉着）。 */
 const readings = () => {
   const ok = readingOf(ANSWER, AT)
 
   return [
-    ['还没读过', INITIAL],
+    ['刚装上还没读过', INITIAL],
     ['普通读数', ok],
     ['带时长条', { ...ok, hours: [null, 0.34, 0, null, 5] }],
     ['充值了', { ...ok, hours: [null, 0, 0.34, -15, 5] }],
@@ -81,38 +106,71 @@ const readings = () => {
   ] as const
 }
 
-describe('客户端与宿主的措辞一致', () => {
-  test('同一条读数、同一个时刻，两边算出的行完全相同', async () => {
-    const client = await loadClient()
-
+describe('客户端只负责显示宿主给的那一行', () => {
+  test('画出来的文本逐字等于宿主 lineOf 的输出', async () => {
     for (const [label, reading] of readings()) {
       for (const drift of [0, 20_000, 3 * MINUTE, 42 * MINUTE, 5 * 60 * MINUTE, 30 * 60 * MINUTE]) {
         const now = AT + drift
+        const line = hostLineOf(reading as any, now)
+        // 这就是 `GET /dsh-balance/current` 的 body：读数字段 + 宿主算好的 line。
+        const { node } = await mount({ ...reading, line, ts: now })
 
-        assert.equal(
-          client.lineOf(reading, now),
-          hostLineOf(reading as any, now),
-          `${label}（+${drift}ms）两边不一致`,
-        )
+        assert.equal(textOf(node), line, `${label}（+${drift}ms）客户端画的和宿主给的不一样`)
       }
     }
   })
 
-  test('客户端把 null 读成空行，不报错', async () => {
-    const client = await loadClient()
+  test('不再按 kind/amount/hours 重算：line 和字段矛盾也照画', async () => {
+    const line = 'DeepSeek ¥99.99 · 5h ago · 5h 1.00 2.00 3.00 4.00 5.00'
+    const { node } = await mount({
+      line,
+      kind: 'no-key',
+      amount: null,
+      total: null,
+      atMs: 0,
+      note: 'no key in ANTHROPIC_AUTH_TOKEN or DEEPSEEK_API_KEY',
+      hours: [1, 2, 3, 4, 5],
+      ts: AT,
+    })
 
-    assert.equal(client.lineOf(null, AT), '')
-    assert.equal(client.lineOf(undefined, AT), '')
+    // 若还在本地重算，这里会变成「DeepSeek balance: no key in …」
+    assert.equal(textOf(node), line)
   })
 
-  test('客户端自己也会算时长条和 age', async () => {
-    const client = await loadClient()
+  test('没有可用的一行就不画，不占布局', async () => {
+    for (const snapshot of [
+      null,
+      undefined,
+      {},
+      { line: null },
+      { line: '' },
+      { line: 42 },
+    ]) {
+      const { node } = await mount(snapshot)
 
-    assert.equal(client.hourlyTextOf([null, 0, 0.34, -15, 5]), '· 5h ? 0.00 0.34 +15.00 5.00')
-    assert.equal(client.hourlyTextOf([]), '')
-    assert.equal(client.hourlyTextOf([null, null, null, null, null]), '')
-    assert.equal(client.ageOf(AT, AT + 20_000), 'just now')
-    assert.equal(client.ageOf(AT, AT + 3 * MINUTE), '3m ago')
+      assert.equal(node, null, `快照 ${JSON.stringify(snapshot)} 不该画出东西`)
+    }
+  })
+
+  test('画出来的那一行还是原来那个节点：dshbl_dock / dshbl_line / role=status', async () => {
+    const { node } = await mount({ line: 'DeepSeek ¥16.65 · 3m ago', kind: 'ok', amount: '¥16.65', atMs: AT, hours: [], ts: AT })
+
+    assert.equal(node.type, 'div')
+    assert.equal(node.props.className, 'dshbl_dock')
+
+    const inner = node.props.children
+
+    assert.equal(inner.type, 'div')
+    assert.equal(inner.props.className, 'dshbl_line')
+    assert.equal(inner.props.role, 'status')
+  })
+
+  test('客户端里不再有措辞副本（lineOf / ageOf / hourlyTextOf）', async () => {
+    const { client } = await mount(null)
+
+    for (const name of ['lineOf', 'ageOf', 'hourlyTextOf']) {
+      assert.equal(client[name], undefined, `客户端不该再自带 ${name}：措辞只有宿主那份`)
+    }
   })
 })
 
@@ -125,7 +183,7 @@ describe('客户端与宿主的措辞一致', () => {
 describe('客户端挂载契约', () => {
   /** 用假的 slots 服务跑一遍 apply，把注册动作抓下来。 */
   const registrationOf = async () => {
-    const client = await loadClient()
+    const { client } = await mount(null)
 
     const registered: { name?: string; id?: string; order?: number; component?: unknown } = {}
     let waitedSlot: string | undefined
@@ -153,7 +211,7 @@ describe('客户端挂载契约', () => {
   }
 
   test('声明只依赖 slots 服务', async () => {
-    const client = await loadClient()
+    const { client } = await mount(null)
 
     assert.deepEqual(client.inject, ['slots'])
   })

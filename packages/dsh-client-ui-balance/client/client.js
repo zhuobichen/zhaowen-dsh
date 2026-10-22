@@ -13,6 +13,17 @@ window.__ModuleLoader__.load({
 		// 所以直接照着写就不用引入 tsdown/React 构建链，改一行立刻生效。
 		// 信封里的 `require` 只认静态表里的模块（react / react/jsx-runtime 等）。
 
+		// 余额是**账户级**的（一个账号一个数），所以宿主只持有一份状态，这里每 15
+		// 秒拉一次 `/dsh-balance/current`。**不要**再读会话投影：投影是会话级的，
+		// 每个对话各存一份「最后一次采样时的快照」，结果不同对话显示的金额不一样
+		// （本质是读数时间不同）——那正是这个插件修掉的 bug。
+		//
+		// 一行字（含 age 和时长条）全部由宿主算好放在 `line` 里。客户端不再抄一份
+		// 措辞：抄的东西会漂移，而这里没有第二个说法。
+
+		const REFRESH_MS = 15_000;
+		const ENDPOINT = "/dsh-balance/current";
+
 		//#region 样式：一行小字，贴着输入框上沿
 		//
 		// 照 DSH 自己的 StatsLine（会话底部那行 12px 灰字）的写法：12px +
@@ -39,94 +50,52 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 
-		//#region 措辞：和宿主侧 src/balance.ts 的 hourlyTextOf/ageOf/lineOf 逐字一致
-		//
-		// 为什么这里另写一份而不是共享：客户端信封只能 require 静态表里的包，拿不到
-		// 宿主源码。所以两边各一份，靠 test/parity.test.ts **同时加载宿主与这个真实
-		// 产物**来钉住一致性——漂移会当场变红。
-		const hourlyTextOf = (hours) => {
-			if (!Array.isArray(hours) || hours.length === 0) return "";
-			// 和宿主 balance.ts 同步：一个桶都没测到就整条省略，未知桶才有 `?`。
-			if (hours.every((one) => one === null)) return "";
-
-			const cells = hours.map((one) => {
-				if (one === null) return "?";
-				if (one < 0) return `+${Math.abs(one).toFixed(2)}`;
-
-				return one.toFixed(2);
-			});
-
-			return `· ${hours.length}h ${cells.join(" ")}`;
-		};
-
-		const ageOf = (atMs, nowMs) => {
-			const minutes = Math.round((nowMs - atMs) / 60000);
-
-			if (minutes < 1) return "just now";
-			if (minutes < 60) return `${minutes}m ago`;
-
-			const hours = Math.round(minutes / 60);
-
-			return hours < 48 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
-		};
-
-		/** 和宿主 lineOf 同一个分支表；`reading.hours` 由宿主算好带过来。 */
-		const lineOf = (reading, nowMs) => {
-			if (reading === null || reading === undefined) return "";
-
-			const strip = hourlyTextOf(reading.hours);
-			const tail = strip === "" ? "" : ` ${strip}`;
-
-			switch (reading.kind) {
-				case "pending":
-					return "DeepSeek balance: reading…";
-				case "no-key":
-				case "refused":
-					return `DeepSeek balance: ${reading.note ?? "not available"}`;
-				case "failed":
-					return reading.amount === null
-						? `DeepSeek balance: ${reading.note ?? "the request failed"}`
-						: `DeepSeek ${reading.amount} · ${ageOf(reading.atMs, nowMs)} · refresh failed: ${reading.note ?? "unknown"}${tail}`;
-				case "ok":
-					return `DeepSeek ${reading.amount} · ${ageOf(reading.atMs, nowMs)}${tail}`;
-				default:
-					return "";
-			}
-		};
-		//#endregion
-
 		/**
 		 * 输入框上方那一行。
 		 *
-		 * `useProjection` 是槽位框架给的钩子，读宿主算好的 `balance` 投影
-		 * （还没读过时是 null，就不画）。
-		 *
-		 * 每 30 秒自己重画一次：投影只在**读数变化**时才更新（省日志），而
-		 * 「3m ago」这种字得自己走，不然会一直停在「just now」。
+		 * 数据只有一条路：`GET /dsh-balance/current` → `line`。非 200、网络错、
+		 * 或者宿主还没给出可用的一行——这些情况都只是「不画」，不占布局、不往
+		 * 页面上写错误，下一轮再问。已经拿到过的那一行在宿主短暂抽风时保持不动，
+		 * 免得一行字一闪一闪的；宿主恢复后自然就更新了。
 		 */
-		function BalanceLine({ useProjection }) {
-			const projection = useProjection("balance");
-			const [, bump] = react.useState(0);
+		function BalanceLine() {
+			const [snapshot, setSnapshot] = react.useState(null);
 
 			react.useEffect(() => {
-				const ticker = setInterval(() => bump((n) => n + 1), 30000);
+				let alive = true;
 
-				return () => clearInterval(ticker);
+				const load = () => {
+					fetch(ENDPOINT, { cache: "no-store" })
+						.then((response) => (response.ok ? response.json() : null))
+						.then((body) => {
+							if (!alive || body === null || typeof body.line !== "string") return;
+
+							setSnapshot(body);
+						})
+						.catch(() => {
+							// 宿主还没起来／路由还没挂上：下一轮再问
+						});
+				};
+
+				load();
+
+				const ticker = setInterval(load, REFRESH_MS);
+
+				return () => {
+					alive = false;
+					clearInterval(ticker);
+				};
 			}, []);
 
-			if (projection === undefined || projection === null) return null;
-
-			const text = lineOf(projection, Date.now());
-
-			if (text === "") return null;
+			if (!snapshot || typeof snapshot.line !== "string" || snapshot.line === "") return null;
 
 			return jsx("div", {
 				className: "dshbl_dock",
-				children: jsx("div", { className: "dshbl_line", role: "status", children: text }),
+				children: jsx("div", { className: "dshbl_line", role: "status", children: snapshot.line }),
 			});
 		}
 
-		/** 只需要槽位服务；投影由 `useProjection` 给，不用自己订阅。 */
+		/** 只需要槽位服务；数据靠上面那个路由拉，不用自己订阅别的东西。 */
 		const inject = ["slots"];
 
 		/**
@@ -151,10 +120,6 @@ window.__ModuleLoader__.load({
 		exports.BalanceLine = BalanceLine;
 		exports.apply = apply;
 		exports.inject = inject;
-		// 给 test/parity.test.ts 用：拿真实产物和宿主对表。
-		exports.lineOf = lineOf;
-		exports.ageOf = ageOf;
-		exports.hourlyTextOf = hourlyTextOf;
 
 		return module.exports;
 	},

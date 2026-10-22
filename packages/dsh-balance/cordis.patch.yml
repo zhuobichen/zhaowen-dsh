@@ -1,9 +1,9 @@
 # dsh-balance 的 bundle patch：把「余额行」插件条目插进 profile。
 #
 # 这一行挂上之后，插件会注册：
-#   - 会话投影 `balance`（Web GUI 的客户端插件读它）
+#   - 只读路由 `GET /dsh-balance/current`（Web 客户端插件拉它，宿主只有一份状态）
 #   - TUI 的 `${balance}` 提示槽位（有 TUI 才生效）
-#   - `/balance` 斜杠命令
+#   - `/bal` 斜杠命令
 - insert:
     - id: balance
       name: '@zhuobichen/dsh-balance'

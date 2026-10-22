@@ -5,9 +5,16 @@
  * 的 hooks 里，靠 `ui.render/AbovePrompt` 画行；DSH 没有那套 hook，所以换成
  * DSH 自己的三个接缝（每个都是可选的，缺了就退化，不报错）：
  *
- * 1. **会话投影**（`balance` key）——每次读数追加一条 `balance/status` 事件，
- *    Web GUI 的客户端插件用 `useProjection('balance')` 读它来画状态条。
- *    投影是回放派生的，所以重启后上一次读数还在。
+ * 1. **宿主状态 + 只读路由** —— 余额是**账户级**的：一个账号一个数。所以宿主
+ *    持有唯一的那一份读数（外加算时长条用的采样历史），客户端每 15 秒拉一次
+ *    `GET /dsh-balance/current`。状态落盘到 `$DSH_HOME/plugins/dsh-balance/state.json`，
+ *    重启后时长条还在。
+ *
+ *    这里原来用的是**会话投影**（每次读数往当前会话追加一条 `balance/status`
+ *    事件，客户端 `useProjection('balance')` 各自读）。账户级的数字放进会话级
+ *    的投影，就变成每个对话各存一份「最后一次采样时的快照」——不同对话显示的
+ *    金额不一样（本质是读数时间不同）。现在只有一个宿主状态，所有对话同一个数，
+ *    新对话也不用等下一拍。
  * 2. **TUI prompt 槽位** —— TUI 组合存在时注册 `${balance}`，加进
  *    `theme.leftPrompt` 就能在 cwd/model 旁边看到。
  * 3. **`/bal` 命令** —— 立刻重读一次，并把结果作为命令输出吐出来。
@@ -24,8 +31,11 @@
  * @module dsh-balance
  */
 
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+
 import { z } from 'zod'
-import { appendPluginRecord } from '@deepseek-ai/dsh-session'
 
 import {
   BALANCE_URL,
@@ -40,33 +50,10 @@ import {
 } from './balance.js'
 import type { Reading, Sample } from './types.js'
 
-
-
-declare module '@deepseek-ai/dsh-session/types' {
-  interface PluginRecordMap {
-    /** 一次余额读数；负载形状见 Payload。 */
-    'plugin:balance/status': Payload
-  }
-}
+/** 路由前缀；客户端那半（`dsh-client-ui-balance/client/client.js`）写死了同一个串。 */
+const ROUTE = '/dsh-balance'
 
 export const name = 'balance'
-
-/**
- * 0.2.1 起才有 `appendPluginRecord`（写 `plugin:` 命名空间 + ignorable 的官方入口）。
- * 0.2.0 没有这个导出，而且普通 `append` 写的自定义事件会让会话日志在重启后读不了，
- * 所以这里做运行时探测：拿不到就不落盘（余额是瞬时状态，丢了下一拍重来）。
- */
-type AppendRecord = (session: any, type: string, data: unknown) => unknown
-let appendRecord: AppendRecord | null = null
-
-/**
- * 测试接缝：真的 `appendPluginRecord` 最终调 `session.#appendRecord(...)`（私有字段），
- * 假会话永远实现不了，所以单元测试用这个换掉写入函数。传 `null` 恢复默认。
- * 生产代码路径里没有人调用它。
- */
-export const setAppendRecordForTests = (fn: AppendRecord | null): void => {
-  appendRecord = fn
-}
 
 /** 可调项；都有缺省值，不配也能跑。 */
 export interface Config {
@@ -77,33 +64,27 @@ export interface Config {
 }
 
 /**
- * `balance/status` 事件的载荷：一次读数的全部事实，**不含**时长条。
+ * 落盘的那份读数：一次读数的全部事实，**不含**时长条。
  *
- * 时长条由投影的 `apply` 从保留下来的读数现算——这样日志里只需要记「这一刻
- * 余额是多少」，历史怎么切成小时是纯函数的事，改了也不会让老日志读歪。
+ * 时长条由保留下来的采样现算（`hourlyOf`），这样文件里只需要记「这一刻余额是
+ * 多少」，历史怎么切成小时是纯函数的事，改了也不会让老状态读歪。
  */
-type Payload = Omit<Reading, 'hours'>
+type StoredReading = Omit<Reading, 'hours'>
 
-/** 投影的线上形状：当前读数（含时长条），或 `null` 表示还没有读过。 */
-const balanceViewSchema = z
-  .object({
-    kind: z.enum(['pending', 'ok', 'no-key', 'refused', 'failed']),
-    amount: z.string().nullable(),
-    total: z.number().nullable(),
-    atMs: z.number(),
-    note: z.string().nullable(),
-    hours: z.array(z.number().nullable()),
-  })
-  .nullable()
+/** 宿主内存里（以及 state.json 里）的那份状态：当前读数 + 采样历史。 */
+type State = { reading: StoredReading; samples: Sample[] }
 
-/** 投影内部状态：当前读数 + 用来算时长条的读数历史。 */
-type State = { reading: Payload; samples: Sample[] }
+/** 插件自己的落盘目录。 */
+const stateDirOf = (): string =>
+  join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'plugins', 'dsh-balance')
+
+const stateFileOf = (): string => join(stateDirOf(), 'state.json')
 
 /**
- * 投影内部状态的校验器（注册时的 `stateSchema`）：持久化状态折进新投影之前
- * 先过一遍，形状不对就丢掉重来，而不是把半个对象带进渲染。
+ * 落盘状态的校验器：文件是上一个进程写的（也可能是人手改的），形状不对就丢掉
+ * 重来，而不是把半个对象带进来——半个对象会一路漏到浏览器里。
  */
-const balanceStateSchema = z
+const stateSchema = z
   .object({
     reading: z.object({
       kind: z.enum(['pending', 'ok', 'no-key', 'refused', 'failed']),
@@ -116,40 +97,33 @@ const balanceStateSchema = z
   })
   .nullable()
 
-/**
- * 把一条 `balance/status` 折进投影。
- *
- * 无关事件必须**原样返回同一个引用**——注册表用 `Object.is` 判定有没有变化，
- * 返回新对象会让下游每一条事件都白跑一遍。
- */
-const applyBalance = (state: State | null, event: any): State | null => {
-  if (event?.type !== 'plugin:balance/status') return state
+/** 读上次落盘的状态；读不到、不是 JSON、形状不对都当作「还没读过」。 */
+const readState = (): State | null => {
+  try {
+    const parsed = stateSchema.safeParse(JSON.parse(readFileSync(stateFileOf(), 'utf8')))
 
-  const data = event.data as Payload | undefined
-
-  if (data === null || typeof data !== 'object' || typeof data.atMs !== 'number') return state
-
-  // 只有真读到数字的那次读数才进历史：一次失败不该在时长条上留下一个点。
-  const samples =
-    data.kind === 'ok' && typeof data.total === 'number'
-      ? withSample(samplesOf(state?.samples), { atMs: data.atMs, total: data.total })
-      : samplesOf(state?.samples)
-
-  return {
-    reading: {
-      kind: data.kind,
-      amount: data.amount ?? null,
-      total: data.total ?? null,
-      atMs: data.atMs,
-      note: data.note ?? null,
-    },
-    samples,
+    return parsed.success ? (parsed.data as State | null) : null
+  } catch {
+    return null
   }
 }
 
-/** 投影 → 线上值：当前读数，时长条按读数时间现算。 */
-const viewBalance = (state: State | null): Reading | null =>
-  state === null ? null : { ...state.reading, hours: hourlyOf(state.samples, state.reading.atMs) }
+/**
+ * 把状态落盘。
+ *
+ * 写不进去（只读 home、磁盘满、目录建不出来）只影响「下次启动记不记得」，
+ * 这一轮照样有效——所以这里绝不抛：一个余额显示不该把宿主带下来。
+ */
+const writeState = (state: State): void => {
+  try {
+    const file = stateFileOf()
+
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, JSON.stringify(state), 'utf8')
+  } catch {
+    // 见上：丢的只是「重启记不记得」
+  }
+}
 
 /**
  * `credentialRef` 只是给字符串打一个编译期品牌，运行时就是原值。这里不 import
@@ -166,44 +140,31 @@ export function apply(ctx: any, config: Config = {}): void {
   const refreshMs = config.refreshMs ?? REFRESH_MS
   const wantsTui = config.tuiPrompt ?? true
 
-  /** 最近见过事件的会话：定时器得有个地方追加读数。 */
-  let activeSession: any
+  /** 宿主持有的唯一状态：所有对话、所有标签页读的都是它。 */
+  let state: State | null = readState()
   /** 一次只跑一个采样：定时器和 `/bal` 可能同时问。 */
   let isSampling = false
 
-  // ---- 接缝 1：会话投影 -------------------------------------------------
-  ctx.inject(['sessionProjections'], (projectionCtx: any) => {
-    projectionCtx.sessionProjections.register({
-      key: 'balance',
-      // 0.2.1 的字段名是 `stateSchema`（校验**折出来的内部状态**），
-      // 不是 `schema`；写成 `schema` 会被静默忽略。
-      stateSchema: balanceStateSchema,
-      init: () => null,
-      apply: applyBalance,
-      // 客户端下发只认 `wire`。只写一个 `view` 的注册会被当成 host-only：
-      // 宿主里算得好好的，但永远不进控制流，Web 那行就一直是空的。
-      wire: { viewSchema: balanceViewSchema, view: viewBalance },
-      stateVersion: 1,
-    })
-  })
+  /** 状态 → 线上值：当前读数，时长条按读数时间现算。 */
+  const currentReading = (): Reading =>
+    state === null ? INITIAL : { ...state.reading, hours: hourlyOf(state.samples, state.reading.atMs) }
 
   // ---- 接缝 2：TUI 提示槽位（没有 TUI 就静默跳过）----------------------
   const promptHandle = wantsTui
     ? (ctx.get?.('tuiPrompt', false)?.register?.('balance', undefined) ?? undefined)
     : undefined
 
-  /** 当前会话的读数，读投影；投影还没注册好时按「还没读」算。 */
-  const readingOfSession = (session: any): Reading => {
-    if (session === undefined) return INITIAL
-
+  /** 上游的 `set` 是别人家的代码：它抛了也不该让一次采样失败。 */
+  const showInTui = (reading: Reading): void => {
     try {
-      const snapshot = ctx.get?.('sessionProjections', false)?.snapshot?.(session)
-
-      return (snapshot?.values?.balance as Reading | null | undefined) ?? INITIAL
+      promptHandle?.set?.(lineOf(reading, Date.now()))
     } catch {
-      return INITIAL
+      // TUI 槽位坏了就只是那一行不更新
     }
   }
+
+  // 重启之后先把落盘的读数摆到 TUI 那一行上（Web 那边自己拉，不用管）。
+  if (state !== null) showInTui(currentReading())
 
   /** 这条会话的密钥：先问 DSH 的凭据服务，再退回进程环境变量。 */
   const keyOf = async (): Promise<string | null> => {
@@ -231,57 +192,48 @@ export function apply(ctx: any, config: Config = {}): void {
   }
 
   /**
-   * 追加一次读数，等它真的落进日志之后才 resolve。
+   * 把一次读数收进宿主状态：替换当前读数、必要时追加一个采样点、落盘、
+   * 顺手刷新 TUI 那一行，然后回答**收进去之后**的读数（含时长条）。
    *
-   * 为什么要等：`session.append` 只能在会话的追加守卫放下之后调用（原来那套
-   * 守卫在 session/event 回调期间是按着的），所以真正 append 排在微任务里。而
-   * 投影注册表是在 append 内部**同步**驱动的，所以这个 Promise 一 resolve，
-   * `snapshot()` 拿到的就已经是折进这条读数之后的值了。`/bal` 的输出靠这个
-   * 顺序才拿得到时长条。
+   * 现在没有会话要等：状态在内存里，收是同步的，不用再排微任务去 append。
    */
-  const append = (session: any, payload: Payload): Promise<void> =>
-    new Promise<void>((resolve) => {
-      if (session === undefined) {
-        resolve()
+  const adopt = (next: Reading): Reading => {
+    const samples =
+      next.kind === 'ok' && typeof next.total === 'number'
+        ? withSample(samplesOf(state?.samples), { atMs: next.atMs, total: next.total })
+        : samplesOf(state?.samples)
 
-        return
-      }
+    const { hours, ...reading } = next
 
-      queueMicrotask(() => {
-        try {
-          ;(appendRecord ?? appendPluginRecord)(session, 'plugin:balance/status', payload)
-        } catch {
-          // 会话已关或守卫还按着：这次读数丢了，下一拍重来
-        }
+    state = { reading, samples }
+    writeState(state)
 
-        // 只在 TUI 槽位在场时更新它；Web 那边走投影，不需要这一手。
-        promptHandle?.set?.(lineOf({ ...payload, hours: readingOfSession(session).hours }, Date.now()))
-        resolve()
-      })
-    })
+    const current = { ...reading, hours: hourlyOf(samples, reading.atMs) }
 
-  /** 读一次余额，把结论追加到会话，并回答**折进去之后**的读数。 */
-  const sample = async (session: any): Promise<Reading> => {
-    if (session === undefined) return INITIAL
+    showInTui(current)
+
+    return current
+  }
+
+  /** 读一次余额，收进宿主状态，并回答收进去之后的读数。 */
+  const sample = async (): Promise<Reading> => {
     // 已经有一次采样在跑：这次就用手上有的，不排队。
-    if (isSampling) return readingOfSession(session)
+    if (isSampling) return currentReading()
 
     isSampling = true
 
     try {
       const nowMs = Date.now()
-      const previous = readingOfSession(session)
+      const previous = currentReading()
       const key = await keyOf()
 
       if (key === null) {
-        await append(session, {
+        return adopt({
           ...INITIAL,
           kind: 'no-key',
           atMs: nowMs,
           note: `no key in ${KEY_VARS.join(' or ')}`,
-        } as Payload)
-
-        return readingOfSession(session)
+        })
       }
 
       let next: Reading
@@ -299,28 +251,90 @@ export function apply(ctx: any, config: Config = {}): void {
       // 和从那几次读数算出来的时长条，让旁边的 age 自己说明这个数字有多旧，
       // 而不是假装它是刚读的。
       if (next.kind === 'failed' && previous.kind === 'ok') {
-        await append(session, {
+        return adopt({
           kind: 'failed',
           amount: previous.amount,
           total: previous.total,
           atMs: previous.atMs,
           note: next.note,
+          hours: [],
         })
-
-        return readingOfSession(session)
       }
 
-      const payload = { ...next } as Payload
-
-      delete (payload as any).hours
-
-      await append(session, payload)
-
-      return readingOfSession(session)
+      return adopt(next)
     } finally {
       isSampling = false
     }
   }
+
+  /** 后台采样：一次意外不该把进程带走（Node 会为 unhandled rejection 退出）。 */
+  const kick = (): void => {
+    void sample().catch(() => {
+      // 下一拍重来
+    })
+  }
+
+  // ---- 接缝 1：给客户端的只读路由 ---------------------------------------
+  const send = (res: any, status: number, body: unknown): void => {
+    const text = JSON.stringify(body)
+
+    try {
+      res.writeHead(status, {
+        'content-type': 'application/json; charset=utf-8',
+        'content-length': Buffer.byteLength(text),
+        'cache-control': 'no-store',
+      })
+      res.end(text)
+    } catch {
+      // 连接已经被对端掐了：除了收尾没别的可做，别把异常漏给路由层
+      try {
+        res.end()
+      } catch {
+        // 同上
+      }
+    }
+  }
+
+  ctx.inject(['webServer'], (webCtx: any) => {
+    webCtx.effect(
+      () =>
+        webCtx.webServer.register({
+          kind: 'prefix',
+          path: ROUTE,
+          handler: async (req: any, res: any) => {
+            try {
+              // `HEAD` 也放行：node:http 自己会把 body 吞掉，客户端只想知道
+              // 这一行现在有没有（以及缓存头）。
+              if (req.method !== 'GET' && req.method !== 'HEAD') {
+                res.writeHead(405)
+                res.end()
+
+                return
+              }
+
+              const rawPath = String(req.url ?? '/').split('?')[0]
+              const path = rawPath.replace(ROUTE, '') || '/'
+
+              if (path !== '/current' && path !== '/') {
+                send(res, 404, { error: 'not found' })
+
+                return
+              }
+
+              const nowMs = Date.now()
+              const reading = currentReading()
+
+              // `line` 由宿主算好：措辞只有一份（`./balance.ts`），客户端照着画。
+              // `ts` 是这次回答的时刻，`atMs` 是读数本身的时刻（失败时会更旧）。
+              send(res, 200, { ...reading, line: lineOf(reading, nowMs), ts: nowMs })
+            } catch (error) {
+              send(res, 500, { error: error instanceof Error ? error.message : String(error) })
+            }
+          },
+        }),
+      'balance: /dsh-balance route',
+    )
+  })
 
   // ---- 接缝 3：/bal 命令 --------------------------------------------
   ctx.inject(['commands'], (commandCtx: any) => {
@@ -328,51 +342,22 @@ export function apply(ctx: any, config: Config = {}): void {
       name: 'bal',
       description:
         'DeepSeek balance: read it again now and show what the last answer said (dsh-balance)',
-      handler: async (invocation: any) => {
-        const session = invocation?.agent?.session ?? activeSession
-        // sample 回答的是「折进去之后」的读数（含时长条），直接拿去排版。
-        const reading = await sample(session)
+      handler: async () => {
+        // sample 回答的是「收进状态之后」的读数（含时长条），直接拿去排版。
+        const reading = await sample()
 
         return { kind: 'success' as const, text: lineOf(reading, Date.now()) }
       },
     })
   })
 
-  // ---- 会话跟踪 + 定时器 ------------------------------------------------
-  /** 已经在首条事件上补采过的会话，免得每条事件都去问一次。 */
-  const bootstrapped = new WeakSet<object>()
+  // ---- 定时器 ----------------------------------------------------------
+  // 启动就先读一次：新对话／新标签页一打开就有数，不用等满一个 refreshMs。
+  kick()
 
-  ctx.on('session/event', (session: any) => {
-    activeSession = session
-
-    // `agent/created` 那一刻会话可能还按着追加守卫，第一次读数会被静默吞掉，
-    // 然后要等满一个 refreshMs（5 分钟）才有数。所以首条会话事件再补一次：
-    // 只在投影里还是「从没读过」（pending + atMs 0）时补，读到就不再补。
-    if (!bootstrapped.has(session)) {
-      bootstrapped.add(session)
-
-      if (readingOfSession(session).atMs === 0) void sample(session)
-    }
-  })
-
-  ctx.on('session/disposed', (session: any) => {
-    if (activeSession === session) activeSession = undefined
-  })
-
-  // 会话一开始就先读一次，之后按 refreshMs 重读。手动 setInterval 而不是
-  // @cordisjs/plugin-timer：少一个依赖，卸载时 effect 自己清掉。
-  // 0.2.x 的宿主事件叫 `agent/created`（负载 `{ agent, source, signal }`）；
-  // 早期草稿里写的 `agent/session-start` 在宿主里根本不存在，监听器静默不触发。
-  ctx.on('agent/created', ({ agent }: any) => {
-    const session = agent?.session ?? agent
-
-    activeSession = session
-    void sample(session)
-  })
-
-  const tick = setInterval(() => {
-    void sample(activeSession)
-  }, refreshMs)
+  // 之后按 refreshMs 重读。手动 setInterval 而不是 @cordisjs/plugin-timer：
+  // 少一个依赖，卸载时 effect 自己清掉。
+  const tick = setInterval(kick, refreshMs)
 
   // 别让这个计时器成为「进程还不退」的唯一理由：unref 只影响进程能不能自然退出，
   // 不影响它按点触发。测试和 `dsh -p` 这类一次性运行都靠这一手。

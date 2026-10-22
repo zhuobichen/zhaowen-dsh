@@ -1,83 +1,45 @@
-// 真集成：把插件挂进**真的** dsh-session-projection 注册表，喂真事件，读回折出来的值。
+// 落盘 roundtrip：**重启之后时长条还在**吗？
 //
-// 为什么还要这一层（`host.smoke.ts` 已经用假注册表验过逻辑了）：
+// 这个文件原来是「真 SessionProjectionRegistry 集成测试」——它存在的理由是投影
+// 那套东西（zod 实例对不对、真驱动怎么折事件）。投影删掉之后那两个理由一起没了，
+// 所以整个测试换成钉**新设计里唯一有状态的那块**：宿主内存状态 → state.json →
+// 下一个进程读回来。
 //
-//   1. **zod 实例**。我的 schema 是包自己 node_modules 里那份 zod 造的，注册表用的是
-//      它自己那份。如果注册表对 schema 做 instanceof 检查，两份 zod 就会打架——表现是
-//      插件装上去了、不报错、但投影永远不更新。这是最难查的一类故障，值得专门钉一下。
-//   2. **真驱动**。注册表靠 `session/event` 驱动折叠；假注册表是我自己调的 apply。
-//      这个测试发的是真事件，走的是真注册表的 drive。
+// 为什么不是直接删掉：
 //
-// 它需要本机有一份 DSH 安装（用来解析 @deepseek-ai/*）。没有就跳过，不算失败。
+//   1. 落盘是新加的，而且只有它能保证「重启后时长条还在」（内存里那份谁都会写）；
+//   2. 它能在**不装 DSH、不开端口**的情况下真跑：起两个宿主实例、共用一个
+//      DSH_HOME，中间只隔着一次 apply，就是「重启」的最短复现；
+//   3. 顺手钉住那个 bug 本身：余额是账户级的，**同一份状态**，所以「不同对话」
+//      发来的请求拿到的金额和读取时刻必须一模一样（以前每个会话各存一份，
+//      显示的金额自然不一样）。
+//
 // 跑：node test/integration.mjs
 
-import { createRequire } from 'node:module'
-import { pathToFileURL, fileURLToPath } from 'node:url'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, unlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { homedir } from 'node:os'
-import { existsSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PLUGIN = join(HERE, '..', 'lib', 'index.js')
-
-/** DSH 的 home；profile 的依赖从这里解析。 */
-const DSH_HOME = process.env.DSH_HOME ?? join(homedir(), '.dsh')
-const PROFILES = join(DSH_HOME, 'profiles')
 
 if (!existsSync(PLUGIN)) {
   console.log('SKIP：还没构建（先 npm run build，lib/index.js 不存在）')
   process.exit(0)
 }
 
-if (!existsSync(join(DSH_HOME, 'profiles'))) {
-  console.log(`SKIP：本机没有 DSH profile 目录（${PROFILES}），这个测试需要一个已安装的 DSH`)
-  process.exit(0)
-}
+const plugin = await import(pathToFileURL(PLUGIN).href)
 
-// createRequire 只需要一个「基准路径」，那个文件本身不必存在。
-// 0.2.x 的依赖装在 `profiles/<name>/node_modules` 下，`profiles/` 本身没有
-// node_modules；所以基准路径优先挑一个真存在的 profile，再退回 profiles/。
-// 运行时包（cordis / session-projection）在 toolchain 里；profile 的
-// node_modules 只有插件依赖。两个都试，谁先有 @deepseek-ai 用谁。
-const profileBase = [
-  join(dirname(DSH_HOME), 'toolchain', 'package.json'),
-  ...['web', 'headless', 'cc-tui'].map((name) => join(PROFILES, name, 'package.json')),
-].find((candidate) => existsSync(join(dirname(candidate), 'node_modules', '@deepseek-ai')))
+// 系统临时目录在有些机器上不可写（本机就是这样，mkdtemp 直接 EPERM），所以用包
+// 自己的 .tmp/；跑完删掉。
+const TMP_ROOT = join(HERE, '..', '.tmp')
 
-const requireFromProfile = createRequire(profileBase ?? join(PROFILES, 'package.json'))
+mkdirSync(TMP_ROOT, { recursive: true })
 
-const load = async (specifier) => {
-  const resolved = requireFromProfile.resolve(specifier)
+const DSH_HOME = mkdtempSync(join(TMP_ROOT, 'roundtrip-'))
+const STATE_FILE = join(DSH_HOME, 'plugins', 'dsh-balance', 'state.json')
 
-  return import(pathToFileURL(resolved).href)
-}
-
-let cordis
-let projectionModule
-
-try {
-  cordis = await load('@deepseek-ai/cordis')
-  projectionModule = await load('@deepseek-ai/dsh-session-projection')
-} catch (error) {
-  console.log(`SKIP：解析不到 DSH 的依赖包（${error.message}）`)
-  process.exit(0)
-}
-
-// 0.2.0 的注册表字段是 `schema`/`view`，0.2.1 才是 `stateSchema`/`wire`。用旧
-// 环境跑这个测试会得到一条看起来像「插件坏了」的失败，其实是版本不匹配——
-// 显式跳过并说清楚，比让人去查一个假的回归便宜。
-try {
-  const manifestPath = requireFromProfile.resolve('@deepseek-ai/dsh-session-projection/package.json')
-  const { readFileSync } = await import('node:fs')
-  const version = JSON.parse(readFileSync(manifestPath, 'utf8')).version
-
-  if (!/^0\.2\.(?:[1-9]|\d{2,})/.test(version)) {
-    console.log(`SKIP：解析到的 dsh-session-projection 是 ${version}，需要 >=0.2.1（设 DSH_HOME 指向 0.2.1 的 home）`)
-    process.exit(0)
-  }
-} catch {
-  // 拿不到版本就照常跑，让真正的错误自己冒出来
-}
+process.env.DSH_HOME = DSH_HOME
 
 const failures = []
 const ok = (message) => console.log(`  OK   ${message}`)
@@ -86,121 +48,265 @@ const bad = (message) => {
   console.log(`  FAIL ${message}`)
 }
 
-const { Context } = cordis
-const Registry = projectionModule.SessionProjectionRegistry ?? projectionModule.default
-const plugin = await import(pathToFileURL(PLUGIN).href)
+/**
+ * 递归删目录。
+ *
+ * 这台机器上 `fs.rmSync(..., { recursive: true })` 会**静默不删**（不抛错、也不
+ * 删掉，目录原地不动），所以自己 readdir + unlink + rmdir。删不掉最多留一堆
+ * `.tmp/`（已 gitignore），不该让测试变红。
+ */
+const removeTree = (target) => {
+  let entries = []
 
-// ---- 真注册表 + 我的插件 -------------------------------------------------
-console.log('== 真注册表 ==')
+  try {
+    entries = readdirSync(target, { withFileTypes: true })
+  } catch {
+    return
+  }
 
-const app = new Context()
+  for (const entry of entries) {
+    const full = join(target, entry.name)
 
-app.plugin(Registry)
-await new Promise((resolve) => setTimeout(resolve, 100))
+    if (entry.isDirectory()) {
+      removeTree(full)
 
-const registry = app.get('sessionProjections')
-
-if (registry === undefined) bad('sessionProjections 服务没起来')
-else ok('真 SessionProjectionRegistry 起来了')
-
-/** 把插件要的服务都转发到真 app，让它的 register 落进真注册表。 */
-const forwardingCtx = {
-  inject(names, callback) {
-    const scope = { get: (name, fallback) => app.get(name) ?? fallback }
-
-    for (const name of names) {
-      const service = app.get(name)
-
-      if (service === undefined) return
-      scope[name] = service
+      continue
     }
 
-    callback(scope)
-  },
-  get: (name, fallback) => app.get(name) ?? fallback,
-  on: (...args) => app.on(...args),
-  effect: (fn) => {
-    fn()
+    try {
+      unlinkSync(full)
+    } catch {
+      // 删不掉就算了
+    }
+  }
 
-    return () => {}
-  },
+  try {
+    rmdirSync(target)
+  } catch {
+    // 同上
+  }
 }
+
+// ---- 假 fetch：余额接口的回答由这里给 ------------------------------------
+const answerFor = (total) =>
+  JSON.stringify({
+    is_available: true,
+    balance_infos: [{ currency: 'CNY', total_balance: total, granted_balance: '0.00', topped_up_balance: total }],
+  })
+
+const answering = (body, status = 200) =>
+  async () => ({ ok: status >= 200 && status < 300, status, text: async () => body })
+
+/** 永远不回：用来证明「这个数字来自落盘，不是刚读的」。 */
+const never = () => new Promise(() => {})
+
+// ---- 一个够用的假宿主 ----------------------------------------------------
+const makeHost = (credential) => {
+  const captured = {}
+
+  const services = {
+    webServer: {
+      register(route) {
+        captured.route = route
+
+        return () => {}
+      },
+    },
+    commands: {
+      register(definition) {
+        captured.command = definition
+
+        return () => {}
+      },
+    },
+    credentials: {
+      async resolve() {
+        return credential === undefined ? undefined : { value: credential, source: 'test' }
+      },
+    },
+  }
+
+  const ctx = {
+    inject(names, callback) {
+      const scope = { get: ctx.get, effect: ctx.effect }
+
+      for (const name of names) {
+        if (services[name] === undefined) return
+        scope[name] = services[name]
+      }
+
+      callback(scope)
+    },
+    get: (name, fallback) => services[name] ?? fallback,
+    on: () => () => {},
+    effect: (fn) => {
+      fn()
+    },
+  }
+
+  return { ctx, captured }
+}
+
+const makeRes = () => {
+  const state = { status: 0, headers: {}, body: '' }
+  const res = {
+    writeHead(status, headers) {
+      state.status = status
+      if (headers !== undefined) Object.assign(state.headers, headers)
+
+      return res
+    },
+    end(text) {
+      state.body = typeof text === 'string' ? text : ''
+    },
+  }
+
+  return { res, state }
+}
+
+/** 走一遍真路由 handler；`session` 只是请求里的一个查询串（宿主根本不看它）。 */
+const get = async (route, session = 'alpha') => {
+  const { res, state } = makeRes()
+
+  await route.handler({ method: 'GET', url: `/dsh-balance/current?session=${session}` }, res)
+
+  return { ...state, json: state.status === 200 ? JSON.parse(state.body) : null }
+}
+
+const until = async (ready, label) => {
+  for (let i = 0; i < 250; i += 1) {
+    const state = await ready()
+
+    if (state !== null) return state
+
+    await new Promise((resolve) => setTimeout(resolve, 4))
+  }
+
+  throw new Error(`等不到：${label}`)
+}
+
+const originalFetch = globalThis.fetch
 
 try {
-  plugin.apply(forwardingCtx, { refreshMs: 24 * 60 * 60 * 1000 })
-  ok('apply() 在真注册表前跑通（schema 被接受）')
-} catch (error) {
-  bad(`apply() 抛错：${error.message}`)
-}
+  // ---- 宿主 A：读两次，落盘 ----------------------------------------------
+  console.log('== 宿主 A：采两次 ==')
 
-// ---- 喂真事件，读回投影 --------------------------------------------------
-console.log('== 折叠 ==')
+  globalThis.fetch = answering(answerFor('16.65'))
 
-const HOUR = 3_600_000
-const EDGE = Math.floor(1_700_000_000_000 / HOUR) * HOUR
+  const hostA = makeHost('sk-test')
 
-// 注册表读 session.events（按 seq 下标），不是 session.log。
-const session = {
-  events: [],
-  // 0.2.1 的真注册表读这几样：header / inheritedEventCount / snapshotEvents /
-  // eventAt / seq。少一样就在 buildCell 里炸。
-  header: { version: 4, id: 'integration-session', createdAt: EDGE, cwd: process.cwd() },
-  inheritedEventCount: 0,
-  get seq() {
-    return this.events.length - 1
-  },
-  snapshotEvents(from = 0, to = this.events.length) {
-    return this.events.slice(Number(from), Number(to))
-  },
-  eventAt(seq) {
-    return this.events[Number(seq)]
-  },
-  append(type, data) {
-    const event = { type, seq: this.events.length, time: Date.now(), data }
+  plugin.apply(hostA.ctx, { refreshMs: 24 * 60 * 60 * 1000 })
 
-    this.events.push(event)
+  const first = await until(async () => {
+    const one = await get(hostA.captured.route)
 
-    return event
-  },
-}
+    return one.json !== null && one.json.kind === 'ok' ? one.json : null
+  }, '宿主 A 的第一次读数')
 
-const emit = (type, data) => app.emit('session/event', session, session.append(type, data))
-const fold = (atMs, total) =>
-  emit('plugin:balance/status', { kind: 'ok', amount: `¥${total.toFixed(2)}`, total, atMs, note: null })
+  if (first.amount === '¥16.65') ok('第一次读数是 ¥16.65')
+  else bad(`第一次读数不对：${first.amount}`)
 
-try {
-  // 上一整小时：开头 25、结尾 20 → 花掉 5.00；第三条落在本小时里
-  fold(EDGE - 70 * 60_000, 25)
-  fold(EDGE - 10 * 60_000, 20)
-  fold(EDGE + 5 * 60_000, 17.5)
+  // 第二次读：换一个数字，用 `/bal` 强制立刻重读
+  globalThis.fetch = answering(answerFor('12.00'))
 
-  const value = registry.snapshot(session)?.values?.balance
+  const text = (await hostA.captured.command.handler({})).text
 
-  if (value === undefined || value === null) {
-    bad('真注册表里读不到 balance 投影（schema 可能没被接受）')
+  if (/¥12\.00/.test(text)) ok('/bal 立刻重读到 ¥12.00')
+  else bad(`/bal 的文本不对：${text}`)
+
+  const second = await until(async () => {
+    const one = await get(hostA.captured.route)
+
+    return one.json !== null && one.json.amount === '¥12.00' ? one.json : null
+  }, '宿主 A 的第二次读数')
+
+  // ---- state.json 本身 ---------------------------------------------------
+  console.log('== 落盘 ==')
+
+  if (existsSync(STATE_FILE)) ok(`state.json 落在 $DSH_HOME/plugins/dsh-balance/（${STATE_FILE}）`)
+  else bad(`没有落盘：${STATE_FILE} 不存在`)
+
+  let saved = null
+
+  try {
+    saved = JSON.parse(readFileSync(STATE_FILE, 'utf8'))
+  } catch (error) {
+    bad(`state.json 读不出来：${error.message}`)
+  }
+
+  if (saved !== null) {
+    if (saved.reading?.amount === '¥12.00' && saved.reading?.kind === 'ok') ok('文件里的当前读数是最后一次读数')
+    else bad(`文件里的当前读数不对：${JSON.stringify(saved.reading)}`)
+
+    if (saved.reading !== undefined && !('hours' in saved.reading)) ok('文件里不存 hours（时长条是纯函数现算的）')
+    else bad('文件里不该有 hours：它是派生值')
+
+    if (Array.isArray(saved.samples) && saved.samples.length === 2) ok('两次读数都在采样历史里')
+    else bad(`采样历史不对：${JSON.stringify(saved.samples)}`)
+
+    if (saved.samples?.at(-1)?.total === 12) ok('采样点带着金额（算时长条要用）')
+    else bad(`最后一个采样点不对：${JSON.stringify(saved.samples?.at(-1))}`)
+
+    if (saved.reading?.atMs === second.atMs) ok('文件里的读取时刻和路由给的一致')
+    else bad(`读取时刻不一致：${saved.reading?.atMs} vs ${second.atMs}`)
+  }
+
+  // ---- 宿主 B：「重启」之后靠落盘就有数 ----------------------------------
+  console.log('== 宿主 B：重启（同一个 DSH_HOME，全新实例）==')
+
+  // fetch 永远不回：所以下面看到的任何数字都只可能来自 state.json
+  globalThis.fetch = never
+
+  const hostB = makeHost('sk-test')
+
+  plugin.apply(hostB.ctx, { refreshMs: 24 * 60 * 60 * 1000 })
+
+  const restored = (await get(hostB.captured.route, 'brand-new-conversation')).json
+
+  if (restored === null) {
+    bad('宿主 B 的路由没有回 200')
   } else {
-    ok('真注册表读到了 balance 投影')
+    if (restored.amount === '¥12.00') ok('重启后立刻就是 ¥12.00，不用等下一次采样')
+    else bad(`重启后的金额不对：${restored.amount}`)
 
-    if (value.amount === '¥17.50') ok('金额正确')
-    else bad(`金额不对：${value.amount}`)
+    if (restored.atMs === second.atMs) ok('重启后的「读取时刻」还是原来那一次（age 说的是实话）')
+    else bad(`重启后的读取时刻不对：${restored.atMs} vs ${second.atMs}`)
 
-    if (Array.isArray(value.hours) && value.hours.at(-1) === 5) ok('时长条正确（上一小时 5.00）')
-    else bad(`时长条不对：${JSON.stringify(value.hours)}`)
+    if (Array.isArray(restored.hours) && restored.hours.length === 5) ok('时长条还是 5 格（历史从文件里回来了）')
+    else bad(`重启后的时长条不对：${JSON.stringify(restored.hours)}`)
 
-    // 无关事件必须不改状态引用，否则真注册表每来一条事件都白跑一次
-    const before = registry.snapshot(session)?.values?.balance
+    if (typeof restored.line === 'string' && /¥12\.00/.test(restored.line)) ok('line 由宿主算好，带上了金额')
+    else bad(`重启后的 line 不对：${restored.line}`)
+  }
 
-    emit('turn/start', {})
-    const after = registry.snapshot(session)?.values?.balance
+  // ---- 那个 bug 的回归：不同会话看到同一个数 -----------------------------
+  console.log('== 不同对话 ==')
 
-    if (JSON.stringify(before) === JSON.stringify(after)) ok('无关事件不改投影')
-    else bad('无关事件改变了投影')
+  const alpha = (await get(hostB.captured.route, 'alpha')).json
+  const beta = (await get(hostB.captured.route, 'beta')).json
+  const gamma = (await get(hostB.captured.route, 'gamma')).json
+
+  if (alpha !== null && beta !== null && gamma !== null) {
+    const same = [alpha, beta, gamma].every(
+      (one) => one.amount === alpha.amount && one.atMs === alpha.atMs && one.total === alpha.total,
+    )
+
+    if (same) ok('三个「对话」拿到的金额 / 读取时刻 / 数值完全一样')
+    else bad(`不同对话不一致：${JSON.stringify([alpha, beta, gamma].map((one) => [one.amount, one.atMs, one.total]))}`)
+
+    if (new Set([alpha.line, beta.line, gamma.line]).size === 1) ok('连那一行字都一样')
+    else bad(`不同对话的 line 不一致：${JSON.stringify([alpha.line, beta.line, gamma.line])}`)
+  } else {
+    bad('有请求没拿到 200')
   }
 } catch (error) {
-  bad(`喂事件/读快照时抛错：${error.message}`)
+  // 未捕获的异常要算成失败，而不是让 VERDICT 误报通过
+  bad(`测试自己炸了：${error instanceof Error ? error.stack : String(error)}`)
+} finally {
+  globalThis.fetch = originalFetch
+  removeTree(DSH_HOME)
 }
 
 console.log('')
-console.log(failures.length === 0 ? 'VERDICT: 真注册表集成通过' : `VERDICT: ${failures.length} 项失败`)
-await app.stop?.()
+console.log(failures.length === 0 ? 'VERDICT: 落盘 roundtrip 通过' : `VERDICT: ${failures.length} 项失败`)
 process.exit(failures.length === 0 ? 0 : 1)
