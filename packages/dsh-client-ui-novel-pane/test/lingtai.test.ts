@@ -5,7 +5,7 @@
 //
 //   点「读书」-> POST /dsh-novel-pane/lingtai -> 面板里渲染 <iframe src=url>
 //   失败（超时 / 没配目录）-> 面板里可读错误 + 重试 + 新标签打开
-//   「新标签打开」-> window.open(..., '_blank', 'noopener') 一次
+//   「新标签打开」-> window.open(url, '_blank') 一次，然后把 opener 置空
 //   window.open 返回 null -> 行内出现可点的手动打开提示
 //   「内置」-> 切回原来的书库面板（书库 / 索引 / 翻页不删）
 //
@@ -454,7 +454,7 @@ test('POST 失败（超时）→ 面板里可读错误 + 重试 + 新标签打�
   assert.ok(classSet.has('dshnp-reading'), '错误面板也要占住右边那块（#root 让位）')
 })
 
-test('「新标签打开」→ window.open 恰好调用一次，参数带 url 与 noopener', async () => {
+test('「新标签打开」→ window.open 恰好调用一次，参数带 url 与 _blank', async () => {
   reset()
   installFetch(
     lingtaiHandler({
@@ -472,9 +472,12 @@ test('「新标签打开」→ window.open 恰好调用一次，参数带 url �
   tree = await flush({})
 
   browserWindow.open = (url: string, target: string, features: string) => {
-    openCalls.push({ url, target, features })
+    // 返回一个真的对象，才能验证"打开成功后 opener 被断开"
+    const handle: any = { opener: 'linked' }
 
-    return {}
+    openCalls.push({ url, target, features, handle })
+
+    return handle
   }
 
   buttonWithText(tree, '新标签打开').props.onClick()
@@ -483,7 +486,10 @@ test('「新标签打开」→ window.open 恰好调用一次，参数带 url �
   assert.equal(openCalls.length, 1, 'window.open 应该只调用一次')
   assert.equal(openCalls[0].url, LINGTAI_URL)
   assert.equal(openCalls[0].target, '_blank')
-  assert.equal(openCalls[0].features, 'noopener')
+  // 传 'noopener' 时 window.open 按规范返回 null（Chromium 如此），会误报「被拦截」；
+  // 所以改成两参调用 + 手动把 opener 断成 null。
+  assert.equal(openCalls[0].features, undefined, '不该再传 noopener 参数')
+  assert.equal(openCalls[0].handle.opener, null, 'opener 没有被断开')
 })
 
 test('window.open 返回 null → 行内出现可点的手动打开提示，点了走 location.href', async () => {

@@ -440,7 +440,68 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		 * 组件内的 `useState` 因此清零（表现就是"一换会话读书面板就收起"）。
 		 * 把开合/视图/灵台地址放在模块作用域，重挂时从这里恢复；页面刷新才丢。
 		 */
-		const panelState = { open: false, view: "shelf", liteUrl: "", snap: null, zoom: 1, liteZoom: 1 };
+				const PANEL_KEY = "dshnp-panel";
+
+		/** 面板状态。只把轻量字段写进 localStorage（正文快照太大，不落盘）。 */
+		const defaultPanelState = () => ({
+			open: false,
+			view: "shelf",
+			liteUrl: "",
+			snap: null,
+			zoom: 1,
+			liteZoom: 1,
+		});
+
+		const loadPanelState = () => {
+			const base = defaultPanelState();
+
+			try {
+				const raw = window.localStorage.getItem(PANEL_KEY);
+
+				if (raw === null) return base;
+
+				const parsed = JSON.parse(raw);
+
+				if (!parsed || typeof parsed !== "object") return base;
+
+				return {
+					...base,
+					open: parsed.open === true,
+					view: parsed.view === "read" || parsed.view === "lingtai" ? parsed.view : "shelf",
+					liteUrl: typeof parsed.liteUrl === "string" ? parsed.liteUrl : "",
+					zoom: clampZoom(parsed.zoom),
+					liteZoom: clampZoom(parsed.liteZoom),
+				};
+			} catch {
+				return base;
+			}
+		};
+
+		/**
+		 * 跨会话 + 跨刷新都保持：DSH 切换会话会卸载重挂这个组件（有时连插件模块
+		 * 一起重来），所以只放模块作用域不够，必须落 localStorage。
+		 */
+		const panelState = loadPanelState();
+		let savedPanelJson = "";
+
+		const savePanelState = () => {
+			try {
+				const json = JSON.stringify({
+					open: panelState.open,
+					view: panelState.view,
+					liteUrl: panelState.liteUrl,
+					zoom: panelState.zoom,
+					liteZoom: panelState.liteZoom,
+				});
+
+				if (json === savedPanelJson) return;
+
+				savedPanelJson = json;
+				window.localStorage.setItem(PANEL_KEY, json);
+			} catch {
+				// 隐私模式：退化成"只在本次页面有效"
+			}
+		};
 
 		/**
 		 * 窗格本体。
@@ -512,6 +573,7 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			panelState.snap = snap;
 			panelState.zoom = zoom;
 			panelState.liteZoom = liteZoom;
+			savePanelState();
 
 			const reading = open && !failed;
 
@@ -816,7 +878,17 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 
 				try {
 					if (typeof window !== "undefined" && typeof window.open === "function") {
-						opened = window.open(target, "_blank", "noopener");
+						// 传 "noopener" 时按规范返回 null（Chromium 就是这样），会误报"被拦截"。
+				// 所以先拿到窗口句柄，再把 opener 手动断开，效果一样但判断准确。
+				opened = window.open(target, "_blank");
+
+				if (opened) {
+					try {
+						opened.opener = null;
+					} catch {
+						// 跨源后拿不到句柄属性：断不开也没关系，只是不隔离 opener
+					}
+				}
 					}
 				} catch {
 					opened = null;
@@ -1479,10 +1551,15 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 											// 跨源改不了它内部字号，只能整体缩放 iframe。
 											// 用 CSS `zoom` 而不是 `transform: scale()`：后者是把已经画好的位图
 											// 放大，文字会糊；`zoom` 会按新比例重新排版重绘，字形仍然锐利。
-											// 宽高按 1/zoom 反算，视觉上仍然铺满面板。
+											//
+											// 几何：绝对定位铺满 + 尺寸按 1/zoom 反算。
+											// 不能用 flex/百分比高度 —— 父容器高度不确定时百分比会失效，
+											// iframe 退回默认高度，再被 zoom 放大就变成"内容被裁掉一截"。
 											style: {
 												zoom: liteZoom,
-												flex: "none",
+												position: "absolute",
+												top: 0,
+												left: 0,
 												width: `${Math.round((100 / liteZoom) * 100) / 100}%`,
 												height: `${Math.round((100 / liteZoom) * 100) / 100}%`,
 											},
