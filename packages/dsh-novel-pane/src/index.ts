@@ -8,6 +8,10 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 
+import { readEpubText } from './epub.js'
+import { createLibraryIndex, defaultLibraryRoots, kindOf, titleOf } from './library.js'
+import type { LibraryIndexCache } from './library.js'
+import { readPdfText } from './pdf.js'
 import {
   bookFilesOf,
   isStepOf,
@@ -36,6 +40,21 @@ export interface Config {
   pageRows?: number
   /** 关掉 web 路由。缺省 true。 */
   web?: boolean
+  /**
+   * 书库索引扫哪些根目录。缺省是本机现有的四个（Downloads、ebook-library/files、
+   * lingtai-reader/books、lingtai-reader/data/text_cache），可在 cordis.patch.yml
+   * 里用 `config.library` 整份覆盖。
+   */
+  library?: string[]
+  /**
+   * 索引排除规则（正则或子串，匹配文件 / 目录名）。缺省是一小串明显的垃圾：
+   * `简历` / `_raw` / `副本` / `~$`。刻意不给大表——论文和书靠文件名分不干净。
+   */
+  exclude?: string[]
+  /** 抽 PDF 用的 python 可执行文件。缺省 `python`，失败再试 `py -3`。 */
+  python?: string
+  /** PDF 抽取超时（毫秒），超时会杀子进程。缺省 120000。 */
+  pdfTimeoutMs?: number
 }
 
 type State = {
@@ -88,9 +107,53 @@ type Book = { file: string; title: string; lines: string[] }
 const linesOfFile = (file: string): string[] =>
   readFileSync(file, 'utf8').replace(/\r\n?/g, '\n').split('\n')
 
+/**
+ * 读一本书的正文。`.epub` 走 EPUB 那条链（抽正文 + 磁盘缓存），`.pdf` 走
+ * python + PyMuPDF（同样是缓存），其余按纯文本读。
+ * 标题对 epub/pdf 会洗掉 z-library 尾巴，纯文本保持文件名（与旧行为一致）。
+ */
+const readBook = async (
+  file: string,
+  pdf: { python?: string; timeoutMs?: number } = {},
+): Promise<{ title: string; lines: string[] }> => {
+  const name = file.split(/[\\/]/).pop() ?? file
+  const kind = kindOf(name)
+
+  if (kind === 'epub') {
+    const extracted = readEpubText(file)
+
+    return {
+      title: titleOf(name),
+      lines: extracted.text.replace(/\r\n?/g, '\n').split('\n'),
+    }
+  }
+
+  if (kind === 'pdf') {
+    const extracted = await readPdfText(file, { python: pdf.python, timeoutMs: pdf.timeoutMs })
+
+    return {
+      title: titleOf(name),
+      lines: extracted.text.replace(/\r\n?/g, '\n').split('\n'),
+    }
+  }
+
+  return { title: name, lines: linesOfFile(file) }
+}
+
+/** 把 `~` 展开成家目录；其余原样返回。 */
+const expandHome = (raw: string): string => {
+  if (raw === '~') return homedir()
+  if (raw.startsWith('~/') || raw.startsWith('~\\')) return join(homedir(), raw.slice(2))
+
+  return raw
+}
+
 /** 把用户给的路径按会话目录解析。 */
-const resolvePath = (raw: string, cwd: string): string =>
-  isAbsolute(raw) ? raw : resolve(cwd, raw)
+const resolvePath = (raw: string, cwd: string): string => {
+  const path = expandHome(raw)
+
+  return isAbsolute(path) ? path : resolve(cwd, path)
+}
 
 /** 装配这个插件。 */
 export function apply(ctx: any, config: Config = {}): void {
@@ -100,13 +163,24 @@ export function apply(ctx: any, config: Config = {}): void {
   let state = readState()
   /** 当前这本书，读一次缓存住；换书或文件变了才重读。 */
   let book: Book | null = null
+  /** 书库索引：进程内缓存，按需重建。 */
+  const libraryRoots = (config.library ?? defaultLibraryRoots()).map((root) => expandHome(String(root)))
+  const library: LibraryIndexCache = createLibraryIndex(libraryRoots, { exclude: config.exclude })
+  const pdfOptions = { python: config.python, timeoutMs: config.pdfTimeoutMs }
 
-  const openBook = (file: string): Book => {
-    if (book !== null && book.file === file) return book
+  const openBook = async (file: string): Promise<Book> => {
+    // 缓存命中也要把窗格打开：`open-path` 重开同一本书时走的就是这条路。
+    if (book !== null && book.file === file) {
+      state.open = true
+      writeState(state)
 
-    const lines = linesOfFile(file)
+      return book
+    }
 
-    book = { file, title: file.split(/[\\/]/).pop() ?? file, lines }
+    const read = await readBook(file, pdfOptions)
+    const lines = read.lines
+
+    book = { file, title: read.title, lines }
     state.file = file
     state.dir = dirname(file)
     state.line = Math.min(state.line, lastLineOf(lines.length, pageRows))
@@ -124,18 +198,19 @@ export function apply(ctx: any, config: Config = {}): void {
 
   /**
    * 当前这本书的正文。**只读**：GET 快照不该顺手把窗格重新打开，也不该写盘。
+   * 异步：PDF 第一次打开要等 python 抽完（之后走缓存）。
    */
-  const currentLines = (): string[] => {
+  const currentLines = async (): Promise<string[]> => {
     if (state.file === null) return []
     if (book !== null && book.file === state.file) return book.lines
     if (!existsSync(state.file)) return []
 
     try {
-      const lines = linesOfFile(state.file)
+      const read = await readBook(state.file, pdfOptions)
 
-      book = { file: state.file, title: state.file.split(/[\\/]/).pop() ?? state.file, lines }
+      book = { file: state.file, title: read.title, lines: read.lines }
 
-      return lines
+      return read.lines
     } catch {
       return []
     }
@@ -157,15 +232,24 @@ export function apply(ctx: any, config: Config = {}): void {
   }
 
   /** 给客户端的一份快照。`shelf` 非空时窗格画书单，而不是正文。 */
-  const snapshot = (rows: number, wantShelf = false) => {
-    const lines = currentLines()
+  const snapshot = async (rows: number, wantShelf = false) => {
+    const lines = await currentLines()
     const total = lines.length
     const safeRows = Math.max(1, Math.floor(rows))
     const shelf = wantShelf ? shelfOf(safeRows) : null
+    const name = state.file === null ? null : (state.file.split(/[\\/]/).pop() ?? state.file)
+    const title =
+      state.file === null
+        ? null
+        : book !== null && book.file === state.file
+          ? book.title
+          : name !== null && (kindOf(name) === 'epub' || kindOf(name) === 'pdf')
+            ? titleOf(name)
+            : name
 
     return {
       open: state.open,
-      title: state.file === null ? null : (state.file.split(/[\\/]/).pop() ?? state.file),
+      title,
       file: state.file,
       dir: state.dir,
       mode: state.mode,
@@ -202,7 +286,25 @@ export function apply(ctx: any, config: Config = {}): void {
                 const rows = Number(url.searchParams.get('rows') ?? pageRows)
                 const shelf = url.searchParams.get('shelf') === '1'
 
-                json(200, snapshot(Number.isFinite(rows) ? rows : pageRows, shelf))
+                json(200, await snapshot(Number.isFinite(rows) ? rows : pageRows, shelf))
+
+                return
+              }
+
+              // 书库索引：扫本机几个目录里的书。`?refresh=1` 绕过 60 秒缓存。
+              if (path === '/library' && req.method === 'GET') {
+                try {
+                  const index = library.get(url.searchParams.get('refresh') === '1')
+
+                  json(200, { ...index, total: index.books.length })
+                } catch (error) {
+                  json(500, {
+                    error: 'library failed',
+                    message: String((error as Error)?.message ?? error),
+                    books: [],
+                    skipped: [],
+                  })
+                }
 
                 return
               }
@@ -232,7 +334,7 @@ export function apply(ctx: any, config: Config = {}): void {
               }
 
               const rows = Math.max(1, Math.floor(Number(body.rows ?? pageRows)))
-              const lines = currentLines()
+              const lines = await currentLines()
 
               switch (body.op) {
                 case 'close':
@@ -267,13 +369,64 @@ export function apply(ctx: any, config: Config = {}): void {
                   const name = String(body.name ?? '')
                   const file = state.dir === null ? null : join(state.dir, name)
 
-                  if (file !== null && existsSync(file) && statSync(file).isFile()) {
-                    try {
-                      openBook(file)
-                    } catch {
-                      // 读不了就保持原样
-                    }
+                  if (file === null || !existsSync(file) || !statSync(file).isFile()) {
+                    json(400, { error: 'not a file', path: file })
+
+                    return
                   }
+
+                  try {
+                    await openBook(file)
+                  } catch (error) {
+                    // 坏包 / 加密的 epub：说清楚为什么，别静默留在原来那本
+                    json(400, {
+                      error: 'unreadable',
+                      path: file,
+                      message: String((error as Error)?.message ?? error),
+                    })
+
+                    return
+                  }
+                  break
+                }
+                case 'open-path': {
+                  // 浏览器那半的「打开」输入框：绝对路径、相对上一本书的目录，
+                  // 或者 `~/...`。
+                  const raw = String(body.path ?? '').trim()
+
+                  if (raw === '') {
+                    json(400, { error: 'empty path' })
+
+                    return
+                  }
+
+                  const file = resolvePath(raw, state.dir ?? process.cwd())
+
+                  if (!existsSync(file) || !statSync(file).isFile()) {
+                    json(400, { error: 'not a file', path: file })
+
+                    return
+                  }
+
+                  try {
+                    await openBook(file)
+                  } catch (error) {
+                    json(400, { error: 'unreadable', path: file, message: String((error as Error)?.message ?? error) })
+
+                    return
+                  }
+                  break
+                }
+                case 'browse': {
+                  // 换一个目录看书单，但不动当前这本书。
+                  const raw = String(body.dir ?? '').trim()
+
+                  if (raw !== '') {
+                    const dir = resolvePath(raw, state.dir ?? process.cwd())
+
+                    if (existsSync(dir) && statSync(dir).isDirectory()) state.dir = dir
+                  }
+                  state.open = true
                   break
                 }
                 default:
@@ -283,7 +436,7 @@ export function apply(ctx: any, config: Config = {}): void {
               }
 
               writeState(state)
-              json(200, snapshot(rows, body.shelf === true))
+              json(200, await snapshot(rows, body.shelf === true))
             },
           }),
         'novel-pane: /dsh-novel-pane route',
@@ -296,7 +449,7 @@ export function apply(ctx: any, config: Config = {}): void {
     commandCtx.commands.register({
       name: 'novel',
       description: 'Read a book in a pane (/novel <file> · n · p · <page> · shelf)',
-      handler: (invocation: any) => {
+      handler: async (invocation: any) => {
         const session = invocation?.agent?.session
         const cwd = String(session?.header?.cwd ?? process.cwd())
         // 宿主给的是 `rawInput`：命令名之后的原文（含分隔空白），不是参数数组
@@ -333,7 +486,7 @@ export function apply(ctx: any, config: Config = {}): void {
         if (isStepOf(word)) {
           if (state.file === null) return reply('novel: 还没有书。用 `/novel <文件>` 打开一本')
 
-          const lines = currentLines()
+          const lines = await currentLines()
           const next = steppedBy(word, state.line, pageRows, lines.length)
 
           if (next === null) return reply('novel: 看不懂这个指令')
@@ -351,7 +504,7 @@ export function apply(ctx: any, config: Config = {}): void {
         if (!existsSync(file)) return reply(`novel: 找不到 ${file}`)
 
         try {
-          const opened = openBook(file)
+          const opened = await openBook(file)
 
           state.line = Math.min(state.line, lastLineOf(opened.lines.length, pageRows))
           state.open = true

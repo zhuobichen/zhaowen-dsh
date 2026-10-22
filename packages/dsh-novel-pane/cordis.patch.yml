@@ -1,9 +1,21 @@
 # dsh-novel-pane 的 bundle patch：把「读书窗格」插件条目插进 profile。
 #
 # 这一行挂上之后，插件会注册：
-#   - `/novel` 命令（打开 / 翻页 / 书单 / 收起）
+#   - `/novel` 命令（打开 / 翻页 / 书单 / 收起；txt / md / epub / pdf）
 #   - `GET /dsh-novel-pane/state`、`POST /dsh-novel-pane/move`（给浏览器那半用）
+#   - `GET /dsh-novel-pane/library`（书库索引）
 # 画窗格的是配套的客户端插件 @zhuobichen/dsh-client-ui-novel-pane。
+#
+# 可选配置（缺省值就在下面，不写也行）：
+#   config:
+#     library:                      # 书库索引扫这些根目录
+#       - 'C:\Users\Administrator\Downloads'
+#       - 'D:\github_project\ZhaoWen_GitHub维护\ebook-library\files'
+#       - 'D:\github_project\ZhaoWen_GitHub维护\lingtai-reader\books'
+#       - 'D:\github_project\ZhaoWen_GitHub维护\lingtai-reader\data\text_cache'
+#     exclude: ['简历', '_raw', '副本', '~$']   # 子串或正则，匹配文件 / 目录名
+#     python: python                            # 先试它，再试 py -3
+#     pdfTimeoutMs: 120000                      # 超时会杀子进程
 - insert:
     - id: novel-pane
       name: '@zhuobichen/dsh-novel-pane'

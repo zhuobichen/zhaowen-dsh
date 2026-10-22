@@ -23,6 +23,9 @@
       "platform": "web"
     }
   },
+  "scripts": {
+    "test": "node test/reading-mode.test.ts"
+  },
   "keywords": [
     "dsh",
     "dsh-plugin",
