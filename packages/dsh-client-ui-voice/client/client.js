@@ -32,6 +32,7 @@ window.__ModuleLoader__.load({
 			"color:var(--dsw-alias-label-primary,#222);font-size:15px;line-height:1}" +
 			".dshv_btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-solid,rgba(127,127,127,.16))}" +
 			".dshv_btn:disabled{opacity:.5;cursor:default}" +
+			".dshv_btn svg{display:block;pointer-events:none}" +
 			".dshv_on{background:var(--dsw-alias-state-business-tertiary,rgba(77,107,254,.16));" +
 			"color:var(--dsw-alias-state-business-primary,#4d6bfe);animation:dshv_pulse 1.2s ease-in-out infinite}" +
 			".dshv_hint{min-width:0;font-size:11px;line-height:16px;overflow:hidden;" +
@@ -104,10 +105,27 @@ window.__ModuleLoader__.load({
 		//#endregion
 
 		/**
+		 * 焦点是不是在输入区（textarea / contenteditable）。
+		 *
+		 * 不判断这个，快捷键会在侧栏、搜索框里也生效。
+		 */
+		const focusInComposer = () => {
+			const doc = typeof document === "undefined" ? undefined : document;
+			const active = doc === undefined || doc === null ? undefined : doc.activeElement;
+
+			if (!active) return false;
+			if (active.tagName === "TEXTAREA") return true;
+			if (active.isContentEditable === true) return true;
+
+			return false;
+		};
+
+		/**
 		 * 输入框工具行里的麦克风按钮。
 		 *
 		 * 说话 -> 识别 -> 最终文本写进当前会话草稿。按钮只在这次点击的生命周期里
-		 * 持有 SpeechRecognition 实例；`continuous = false`，浏览器说完自己停。
+		 * 持有 SpeechRecognition 实例；`continuous = true` + `interimResults = true`：
+		 * 边说边出字（interim 只做预览），结束时机由用户按 Ctrl+Alt 或点按钮决定。
 		 *
 		 * @param props - 槽位标准件 + 注入面：
 		 *   `inputActions`（首选写入路径）、`input.draft`（当前草稿）、
@@ -119,6 +137,8 @@ window.__ModuleLoader__.load({
 			const recognition = react.useRef(null);
 			const baseDraft = react.useRef("");
 			const spoken = react.useRef("");
+			// 正在说的那半句（浏览器会反复改写它，所以只做预览、每次整段替换）
+			const interimText = react.useRef("");
 			const failed = react.useRef(false);
 			const writeFailure = react.useRef(null);
 			const latest = react.useRef(props);
@@ -247,13 +267,16 @@ window.__ModuleLoader__.load({
 
 				rec.lang = "zh-CN";
 				rec.interimResults = true;
-				rec.continuous = false;
+				// continuous：边说边出字，一直听直到用户按 Ctrl+Alt 或点按钮结束。
+				// 不再靠浏览器"说完一句就停"来决定收尾。
+				rec.continuous = true;
 
 				const face = latest.current || {};
 
 				baseDraft.current =
 					face.input && typeof face.input.draft === "string" ? face.input.draft : "";
 				spoken.current = "";
+				interimText.current = "";
 				failed.current = false;
 				writeFailure.current = null;
 				setHint(null);
@@ -264,6 +287,7 @@ window.__ModuleLoader__.load({
 					if (!results) return;
 
 					const from = typeof event.resultIndex === "number" ? event.resultIndex : 0;
+					let interim = "";
 
 					for (let index = from; index < results.length; index += 1) {
 						const result = results[index];
@@ -273,12 +297,17 @@ window.__ModuleLoader__.load({
 								? alternative.transcript
 								: "";
 
-						// interim 只用来判断"听到了"，写草稿只写 final：
-						// interim 会被浏览器反复修正，写进去只会让文本抖。
+						// final 落进 spoken（累积）；interim 只是"正在说的那半句"的预览，
+						// 浏览器下一帧会改写它，所以整段替换、绝不追加。
 						if (result && result.isFinal === true) spoken.current += transcript;
+						else interim += transcript;
 					}
 
-					const text = spoken.current.trim();
+					interimText.current = interim;
+
+					// 实时预览：每来一帧都把 base + 已确定 + 正在说的 拼回去，
+					// 所以屏幕上是你边说话边长出来的字。
+					const text = (spoken.current + interimText.current).trim();
 
 					if (text === "") return;
 
@@ -304,6 +333,8 @@ window.__ModuleLoader__.load({
 
 				rec.onend = () => {
 					recognition.current = null;
+					// 收尾时把"正在说的那半句"清掉：它没被确认，留着会变成残句
+					interimText.current = "";
 					setPhase("idle");
 
 					// 说完了但一个字都没有：给一句可读提示，别静默回到 🎙。
@@ -325,6 +356,95 @@ window.__ModuleLoader__.load({
 
 			const listening = phase === "listening";
 
+			// 快捷键：单独按 Ctrl+Alt（不带第三个键）开始 / 结束。
+			//
+			// 修饰键自己不产生字符，不能直接当按键用，所以判定是：
+			//   按下 Ctrl+Alt → 期间没按别的键 → 松开任一修饰键 才算触发。
+			// 这样 Ctrl+Alt+C 之类的真组合键不会被抢。
+			//
+			// 只在焦点位于输入区（有文本光标）时生效：在侧栏、搜索框里按不生效。
+			react.useEffect(() => {
+				const view = typeof window === "undefined" ? undefined : window;
+
+				if (view === undefined || typeof view.addEventListener !== "function") return undefined;
+
+				const chord = { armed: false, used: false };
+
+				const reset = () => {
+					chord.armed = false;
+					chord.used = false;
+				};
+
+				const onKeyDown = (event) => {
+					if (event === null || event === undefined) return;
+
+					const key = event.key;
+
+					// 两个修饰键都按着的时候，任何"第三个键"都作废这次触发
+					if (chord.armed && key !== "Control" && key !== "Alt") chord.used = true;
+
+					if (key !== "Control" && key !== "Alt") return;
+					if (event.ctrlKey === true && event.altKey === true) chord.armed = true;
+				};
+
+				const onKeyUp = (event) => {
+					if (event === null || event === undefined) return;
+
+					const key = event.key;
+
+					if (key !== "Control" && key !== "Alt") return;
+
+					const fire = chord.armed === true && chord.used === false && focusInComposer();
+
+					// 先复位再动作：start()/stop() 里可能触发重渲染
+					reset();
+
+					if (!fire) return;
+
+					if (recognition.current !== null || phase === "listening") stop();
+					else start();
+				};
+
+				view.addEventListener("keydown", onKeyDown, true);
+				view.addEventListener("keyup", onKeyUp, true);
+				view.addEventListener("blur", reset);
+
+				return () => {
+					view.removeEventListener("keydown", onKeyDown, true);
+					view.removeEventListener("keyup", onKeyUp, true);
+					view.removeEventListener("blur", reset);
+				};
+			}, [phase]);
+
+			// 图标用 inline SVG：emoji（🎙）在有些中文字体下会渲染成抽象符号。
+			const icon = listening
+				? jsx("svg", {
+						viewBox: "0 0 24 24",
+						width: 15,
+						height: 15,
+						"aria-hidden": "true",
+						focusable: "false",
+						fill: "currentColor",
+						children: jsx("rect", { x: 6.5, y: 6.5, width: 11, height: 11, rx: 2.5 }),
+					})
+				: jsx("svg", {
+						viewBox: "0 0 24 24",
+						width: 16,
+						height: 16,
+						"aria-hidden": "true",
+						focusable: "false",
+						fill: "none",
+						stroke: "currentColor",
+						strokeWidth: 1.8,
+						strokeLinecap: "round",
+						strokeLinejoin: "round",
+						children: [
+							jsx("rect", { key: "body", x: 9, y: 2.5, width: 6, height: 11, rx: 3 }),
+							jsx("path", { key: "arc", d: "M5.5 11.5a6.5 6.5 0 0 0 13 0" }),
+							jsx("path", { key: "stem", d: "M12 18v3" }),
+						],
+					});
+
 			return jsx("span", {
 				className: "dshv_wrap",
 				children: [
@@ -333,8 +453,8 @@ window.__ModuleLoader__.load({
 						type: "button",
 						className: listening ? "dshv_btn dshv_on" : "dshv_btn",
 						title: listening
-							? "正在听…再点一下停止"
-							: "语音输入：点一下开始，识别结果只写进输入框草稿，不会自动发送",
+							? "正在听…按 Ctrl+Alt（松开）或点这里结束"
+							: "语音输入：Ctrl+Alt 按下再松开即可开始 / 结束（光标要在输入框里）；结果只写进草稿，不会自动发送",
 						"aria-label": listening ? "停止语音输入" : "开始语音输入",
 						"aria-pressed": listening,
 						onMouseDown: (event) => {
@@ -345,7 +465,7 @@ window.__ModuleLoader__.load({
 							if (listening || recognition.current !== null) stop();
 							else start();
 						},
-						children: listening ? "⏹" : "🎙",
+						children: icon,
 					}),
 					hint === null
 						? null

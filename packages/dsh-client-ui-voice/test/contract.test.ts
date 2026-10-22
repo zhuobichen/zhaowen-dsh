@@ -338,22 +338,22 @@ test('识别出一条 final 结果后，conversation.input.for(...).setDraft 收
 
   assert.equal(rec.lang, 'zh-CN')
   assert.equal(rec.interimResults, true)
-  assert.equal(rec.continuous, false)
+  assert.equal(rec.continuous, true, 'continuous 要开着，才能边说边出字、直到用户结束')
   assert.equal(rec.started, true, '没有调用 start()')
 
-  // interim 只是"听到了"，不该写草稿
+  // 实时：interim 也要立刻落到草稿（用户边说边看到字）
   rec.onresult({
     resultIndex: 0,
     results: [{ isFinal: false, 0: { transcript: '你好' } }],
   })
-  assert.deepEqual(harness.captured, [], 'interim 结果不该写进草稿')
+  assert.deepEqual(harness.captured, ['你好'], 'interim 没有实时写进草稿')
 
-  // final 才写
+  // final 到来后覆盖掉那半句预览，不重复叠加
   rec.onresult({
     resultIndex: 0,
     results: [{ isFinal: true, 0: { transcript: '你好，世界' } }],
   })
-  assert.deepEqual(harness.captured, ['你好，世界'], 'setDraft 没收到识别文本')
+  assert.deepEqual(harness.captured, ['你好', '你好，世界'], 'final 没有替换掉 interim 预览')
 
   rec.onend()
   assert.equal(harness.notices.length, 0, '成功路径不该弹错误')
@@ -530,11 +530,37 @@ test('再点一下停：listen 状态下按钮变成停止并调 stop()', () => 
   const button = findByType(second, 'button')
 
   assert.equal(button.props['aria-pressed'], true, '按钮没有 listening 态')
-  assert.equal(button.props.children, '⏹', '按钮图标没从 🎙 变 ⏹')
+  assert.equal(button.props.children.type, 'svg', '按钮图标不是 inline SVG（emoji 在有些字体下会变抽象符号）')
 
   button.props.onClick()
 
   assert.equal(rec.stopped, true, '第二次点击没有 stop()')
+})
+
+test('拿到 final 只写草稿，不会自己收尾（结束由用户决定）', () => {
+  const harness = makeHarness()
+
+  client.apply(harness.ctx)
+
+  const entry = harness.registered[0]
+  const injected = entry.definition.inject('session-1')
+  const props = { input: { draft: '' }, sessionId: 'session-1', ...injected }
+
+  browserWindow.SpeechRecognition = FakeRecognition
+  FakeRecognition.instances.length = 0
+
+  renderComponent(entry.component, props)
+  findByType(renderComponent(entry.component, props, false), 'button').props.onClick()
+
+  const rec = FakeRecognition.instances[0]
+
+  rec.onresult({
+    resultIndex: 0,
+    results: [Object.assign([{ transcript: '你好' }], { isFinal: true })],
+  })
+
+  assert.deepEqual(harness.captured, ['你好'], '识别结果没有落进草稿')
+  assert.equal(rec.stopped, false, '不该自己停：收尾要由用户按快捷键决定')
 })
 //#endregion
 
@@ -551,5 +577,101 @@ test('errorTextOf 覆盖权限 / 没声音 / 未知', () => {
   assert.match(client.errorTextOf('not-allowed'), /麦克风权限/)
   assert.match(client.errorTextOf('no-speech'), /没有听到声音/)
   assert.match(client.errorTextOf('mystery'), /mystery/)
+})
+//#endregion
+
+//#region 6. 快捷键：Ctrl+Alt（不带第三个键）
+const listeners = new Map<string, Set<(event: any) => void>>()
+
+browserWindow.addEventListener = (type: string, fn: any) => {
+  if (!listeners.has(type)) listeners.set(type, new Set())
+  listeners.get(type)!.add(fn)
+}
+
+browserWindow.removeEventListener = (type: string, fn: any) => {
+  listeners.get(type)?.delete(fn)
+}
+
+const composer = { tagName: 'TEXTAREA', value: '', isContentEditable: false }
+;(globalThis as any).document = { activeElement: composer }
+
+const fire = (type: string, event: any) => {
+  for (const fn of [...(listeners.get(type) ?? [])]) fn(event)
+}
+
+/** 按下 Ctrl+Alt，中途不按别的键，然后松开 Alt —— 应当触发。 */
+const pressChord = () => {
+  fire('keydown', { key: 'Control', ctrlKey: true, altKey: false })
+  fire('keydown', { key: 'Alt', ctrlKey: true, altKey: true })
+  fire('keyup', { key: 'Alt', ctrlKey: true, altKey: true })
+}
+
+/** Ctrl+Alt 中间夹一个真按键（Ctrl+Alt+C）—— 不该触发。 */
+const pressChordWith = (key: string) => {
+  fire('keydown', { key: 'Control', ctrlKey: true, altKey: false })
+  fire('keydown', { key: 'Alt', ctrlKey: true, altKey: true })
+  fire('keydown', { key, ctrlKey: true, altKey: true })
+  fire('keyup', { key: 'Alt', ctrlKey: true, altKey: true })
+}
+
+const mount = () => {
+  const harness = makeHarness()
+
+  client.apply(harness.ctx)
+
+  const entry = harness.registered[0]
+  const injected = entry.definition.inject('session-1')
+  const props = { input: { draft: '' }, sessionId: 'session-1', ...injected }
+
+  browserWindow.SpeechRecognition = FakeRecognition
+  FakeRecognition.instances.length = 0
+  listeners.clear()
+  ;(globalThis as any).document.activeElement = composer
+
+  renderComponent(entry.component, props)
+
+  return { harness, entry, props }
+}
+
+test('Ctrl+Alt 按下再松开：开始听', () => {
+  mount()
+
+  pressChord()
+
+  assert.equal(FakeRecognition.instances.length, 1, 'Ctrl+Alt 没有开始识别')
+  assert.equal(FakeRecognition.instances[0].started, true)
+})
+
+test('Ctrl+Alt+C 这类真组合键不被抢', () => {
+  mount()
+
+  pressChordWith('c')
+
+  assert.equal(FakeRecognition.instances.length, 0, '带第三个键时不该触发')
+})
+
+test('焦点不在输入框时不触发（没有文本光标就没有语音）', () => {
+  mount()
+
+  ;(globalThis as any).document.activeElement = { tagName: 'DIV' }
+
+  pressChord()
+
+  assert.equal(FakeRecognition.instances.length, 0, '焦点不在输入框却触发了')
+})
+
+test('Ctrl+Alt 再按一次：结束', () => {
+  mount()
+
+  pressChord()
+
+  const rec = FakeRecognition.instances[0]
+
+  assert.equal(rec.started, true)
+
+  // 不重渲染也能结束：判断走的是 recognition.current（ref），不是闭包里的 phase
+  pressChord()
+
+  assert.equal(rec.stopped, true, '再按一次 Ctrl+Alt 没有结束')
 })
 //#endregion
