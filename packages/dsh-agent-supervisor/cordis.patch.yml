@@ -1,0 +1,9 @@
+# dsh-agent-supervisor 的 bundle patch。
+#
+# 一个包两半：
+#   - 宿主半身（本行）注册 6 个 dsh_* 工具，靠 ctx.tools / ctx.sessionController；
+#   - 客户端半身由 `dsh.client.platform: web` + `exports["./client"]` 声明，
+#     不需要额外注册行，DSH 下发给前端后由右下角的对话气泡占住 shell.overlay。
+- insert:
+    - id: agent-supervisor
+      name: '@zhuobichen/dsh-agent-supervisor'
