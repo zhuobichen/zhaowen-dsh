@@ -11,7 +11,7 @@
 //
 // 跑：node test/lingtai.test.ts
 
-import { afterEach, test } from 'node:test'
+import { afterEach, beforeEach, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -363,6 +363,13 @@ const buttonWithText = (node: any, text: string): any => {
 assert.notEqual(registration, undefined, 'client.js 没有调用 window.__ModuleLoader__.load')
 
 const client = registration!.factory(requireStub)
+
+// 面板开合/视图是模块级状态（切会话不收起），用例之间必须复位
+beforeEach(() => {
+  client.panelState.open = false
+  client.panelState.view = 'shelf'
+  client.panelState.liteUrl = ''
+})
 
 const flush = async (props: any = {}) => {
   let tree = render(client.NovelPane, props)
