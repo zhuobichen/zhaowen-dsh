@@ -205,6 +205,40 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
   font:11px/16px var(--dshnp-sans);text-align:center}
 .dshnp_num:focus{border-color:var(--dshnp-brand)}
 
+/* 灵台阅读器：整块 iframe 占满阅读区（跨源，但它的响应头没有 X-Frame-Options，
+   所以 3080 的页面可以嵌 8769）。 */
+.dshnp_framebody{display:flex;flex-direction:column;flex:1;min-height:0;padding:10px 10px 12px}
+/* iframe 外面套一层定位盒：遮罩要绝对定位在它上面 */
+.dshnp_framebox{position:relative;flex:1;min-height:0;display:flex;overflow:hidden}
+/* 按住 Ctrl 才可吃事件：平时 pointer-events:none，灵台自己照常响应点击与滚动 */
+.dshnp_frameveil{position:absolute;inset:0;pointer-events:none;border-radius:8px;
+  background:transparent;transition:background .12s ease}
+.dshnp_frameveil_on{pointer-events:auto;background:rgba(77,107,254,.04)}
+.dshnp_frame{flex:1;width:100%;min-height:0;border:0;border-radius:8px;
+  background:var(--dsw-alias-bg-layer-1,#fff)}
+.dshnp_frameerr{display:flex;flex-direction:column;gap:2px;padding:4px 2px}
+.dshnp_actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.dshnp_btn{height:28px;padding:0 12px;appearance:none;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.12));
+  border-radius:8px;background:transparent;cursor:pointer;color:var(--dsw-alias-label-primary,#222);
+  font:12px/18px var(--dshnp-sans)}
+.dshnp_btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05))}
+/* dock 那行下面的行内提示：不用 alert，也不占面板 */
+.dshnp_note{margin:4px 8px 0;color:var(--dsw-alias-label-secondary,#666);
+  font:11px/16px var(--dshnp-sans);word-break:break-word}
+.dshnp_manual{display:block;margin:4px 8px 0;padding:4px 8px;appearance:none;border:1px dashed
+  var(--dsw-alias-border-l2,rgba(0,0,0,.14));border-radius:7px;background:transparent;cursor:pointer;
+  color:var(--dshnp-brand);font:11px/16px var(--dshnp-sans);text-align:left}
+.dshnp_manual:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05))}
+/* 次要入口：切回内置面板（书库 / 索引 / 翻页） */
+.dshnp_builtin{flex:none;height:30px;padding:0 8px;appearance:none;border:0;border-radius:8px;
+  background:transparent;cursor:pointer;color:var(--dsw-alias-label-tertiary,#999);
+  font:11px/18px var(--dshnp-sans)}
+.dshnp_builtin:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));
+  color:var(--dsw-alias-label-primary,#222)}
+.dshnp_builtin[aria-pressed="true"]{color:var(--dsw-alias-label-primary,#222)}
+.dshnp_launch:disabled{opacity:.6;cursor:default}
+.dshnp_launch:disabled:hover{background:transparent;color:var(--dsw-alias-label-secondary,#666)}
+
 @media (max-width:560px){
   .dshnp_ppos{display:none}
   .dshnp_textbox{padding:14px 16px 16px}
@@ -268,6 +302,24 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 				})
 				.catch(() => ({ ok: false, data: null }));
 
+		/**
+		 * `POST /dsh-novel-pane/lingtai`：确保灵台阅读器在跑。
+		 *
+		 * 宿主那边是「探测 → 没在跑就 spawn → 最多等 12 秒」，成功回
+		 * `{ok:true, launched, url}`，失败回 `{ok:false, code, message, url}`；
+		 * 整个宿主连不上时这里拿 null（调用方据此退回内置面板）。
+		 */
+		const requestLingTai = () =>
+			fetch(API + "/lingtai", { method: "POST" })
+				.then(async (r) => {
+					try {
+						return await r.json();
+					} catch {
+						return null;
+					}
+				})
+				.catch(() => null);
+
 		//#region 阅读区宽度（可拖拽）
 
 		/** 太窄读不了，太宽把对话挤没。 */
@@ -314,6 +366,73 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 
 		//#endregion
 
+		//#region 阅读区缩放（只缩正文，不缩整页）
+
+		/** 字号倍数下限/上限：再小看不清，再大撑破行宽。 */
+		const ZOOM_MIN = 0.7;
+		const ZOOM_MAX = 2.2;
+		const ZOOM_STEP = 0.1;
+		const ZOOM_KEY = "dshnp-zoom";
+
+		/** 正文基准字号与行高（与 CSS 里的 `font:15px/26px` 保持一致）。 */
+		const BASE_FONT = 15;
+		const BASE_LINE = 26;
+
+		/**
+		 * 把候选倍数夹进 [0.7, 2.2]，保留一位小数。
+		 *
+		 * 纯函数，测试直接调；非数字回 1（默认），不会把正文缩成 0。
+		 */
+		const clampZoom = (raw) => {
+			const value = Number(raw);
+
+			if (!Number.isFinite(value)) return 1;
+
+			return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 10) / 10));
+		};
+
+		/** 上次的缩放倍数；读不到就是 1。 */
+		const storedZoom = () => {
+			try {
+				const raw = window.localStorage.getItem(ZOOM_KEY);
+
+				return raw === null ? 1 : clampZoom(raw);
+			} catch {
+				return 1;
+			}
+		};
+
+		const rememberZoom = (value) => {
+			try {
+				window.localStorage.setItem(ZOOM_KEY, String(value));
+			} catch {
+				// 隐私模式：只影响"下次记不记得"
+			}
+		};
+
+		const LITE_ZOOM_KEY = "dshnp-lite-zoom";
+
+		/** 灵台的缩放倍数（iframe 整体缩放，范围同正文）。 */
+		const storedLiteZoom = () => {
+			try {
+				const raw = window.localStorage.getItem(LITE_ZOOM_KEY);
+
+				return raw === null ? 1 : clampZoom(raw);
+			} catch {
+				return 1;
+			}
+		};
+
+		const rememberLiteZoom = (value) => {
+			try {
+				window.localStorage.setItem(LITE_ZOOM_KEY, String(value));
+			} catch {
+				// 同上
+			}
+		};
+
+		//#endregion
+
 		/**
 		 * 窗格本体。
 		 *
@@ -331,6 +450,15 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			const [dirDraft, setDirDraft] = react.useState("");
 			const [dirOpen, setDirOpen] = react.useState(false);
 			const [jump, setJump] = react.useState("");
+			// 灵台阅读器：POST /lingtai 拉着走的那几个状态。
+			// starting → dock 那行「正在启动…」；liteUrl → iframe 的 src；
+			// liteError → 面板里那句可读错误（超时 / 没配目录）；dockNote → dock 下方的行内提示。
+			const [starting, setStarting] = react.useState(false);
+			const [liteUrl, setLiteUrl] = react.useState("");
+			const [liteError, setLiteError] = react.useState("");
+			const [dockNote, setDockNote] = react.useState("");
+			// window.open 被浏览器拦截时的兜底：这条提示自己可点（走 location.href）
+			const [manualUrl, setManualUrl] = react.useState("");
 			// 书库索引（宿主 /library）；null = 还没拿到，[] = 拿不到 / 真的空
 			const [library, setLibrary] = react.useState(null);
 			// 书库搜索框：纯前端过滤标题 / 原名
@@ -349,6 +477,18 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			const [paneW, setPaneW] = react.useState(storedWidth);
 			// 拖拽过程中要知道"当前多宽"，而 setPaneW 是异步的
 			const paneWRef = react.useRef(paneW);
+			// 阅读区字号倍数：只作用于正文 <pre>，不动整页
+			const [zoom, setZoom] = react.useState(storedZoom);
+			// 灵台（iframe）的缩放：跨源改不了它内部的字号，只能整体缩放 iframe
+			const [liteZoom, setLiteZoom] = react.useState(storedLiteZoom);
+			// 按住 Ctrl 时在 iframe 上盖一层遮罩，把滚轮从 iframe 手里抢回来
+			const [ctrlHeld, setCtrlHeld] = react.useState(false);
+			// Ctrl+滚轮要 preventDefault 才拦得住浏览器整页缩放，得用非 passive 的原生监听
+			const textboxRef = react.useRef(null);
+			// 滚轮回调是长生命周期闭包：读当前是「正文」还是「灵台」得走 ref
+			const viewRef = react.useRef(view);
+
+			viewRef.current = view;
 
 			snapRef.current = snap;
 			paneWRef.current = paneW;
@@ -383,6 +523,81 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 					}
 				};
 			}, [paneW]);
+
+			// 记住缩放倍数（拖动/按键都会改它）
+			react.useEffect(() => {
+				rememberZoom(zoom);
+			}, [zoom]);
+
+			// Ctrl+滚轮缩放：挂在 **window 的捕获阶段**，而不是正文容器上。
+			//
+			// 挂容器时只有鼠标正好在正文上才拦得住；在表头、边距、页面别处按
+			// Ctrl+滚轮，浏览器照样缩整页。用户要的是"阅读器开着就优先缩阅读器"，
+			// 所以只要阅读区开着就整页接管。
+			//
+			// 灵台那页是 iframe（跨源）：滚轮事件进到 iframe 内部，这里根本收不到。
+			// 对策是按住 Ctrl 时给 iframe 盖一层遮罩（见 dshnp_frameveil），
+			// 把事件截在父页面里，再整体缩放 iframe 自己。
+			//
+			// 必须用非 passive 监听，`preventDefault` 才拦得住浏览器缩放。
+			react.useEffect(() => {
+				if (!reading) return undefined;
+
+				const view = typeof window === "undefined" ? undefined : window;
+
+				if (!view || typeof view.addEventListener !== "function") return undefined;
+
+				const onZoomWheel = (event) => {
+					if (!event || event.ctrlKey !== true) return;
+
+					if (typeof event.preventDefault === "function") event.preventDefault();
+					if (typeof event.stopPropagation === "function") event.stopPropagation();
+
+					const step = Number(event.deltaY) > 0 ? -ZOOM_STEP : ZOOM_STEP;
+
+					if (viewRef.current === "lingtai") setLiteZoom((current) => clampZoom(current + step));
+					else setZoom((current) => clampZoom(current + step));
+				};
+
+				view.addEventListener("wheel", onZoomWheel, { passive: false, capture: true });
+
+				return () => view.removeEventListener("wheel", onZoomWheel, { capture: true });
+			}, [reading]);
+
+			// 灵台开着的时候盯住 Ctrl：按下才把遮罩变成"可吃事件"，松开就还回去。
+			react.useEffect(() => {
+				if (!reading || view !== "lingtai") return undefined;
+
+				const scope = typeof window === "undefined" ? undefined : window;
+
+				if (!scope || typeof scope.addEventListener !== "function") return undefined;
+
+				const down = (event) => {
+					if (event && event.key === "Control") setCtrlHeld(true);
+				};
+
+				const up = (event) => {
+					if (event && event.key === "Control") setCtrlHeld(false);
+				};
+
+				const blur = () => setCtrlHeld(false);
+
+				scope.addEventListener("keydown", down, true);
+				scope.addEventListener("keyup", up, true);
+				scope.addEventListener("blur", blur);
+
+				return () => {
+					scope.removeEventListener("keydown", down, { capture: true });
+					scope.removeEventListener("keyup", up, { capture: true });
+					scope.removeEventListener("blur", blur);
+					setCtrlHeld(false);
+				};
+			}, [reading, view]);
+
+			// 灵台缩放记忆
+			react.useEffect(() => {
+				rememberLiteZoom(liteZoom);
+			}, [liteZoom]);
 
 			/** 拖拽条：按下后跟指针走，松手才落盘（拖动期间不写 localStorage）。 */
 			const startDrag = (event) => {
@@ -435,6 +650,8 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 
 			react.useEffect(() => {
 				if (!open) return undefined;
+				// 灵台阅读器视图是宿主拉起来的独立 app：iframe 自己活着，不用取 /state
+				if (view === "lingtai") return undefined;
 
 				let alive = true;
 				const load = () => {
@@ -511,6 +728,95 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 				setNotice("");
 				setView("shelf");
 				setOpen(true);
+			};
+
+			/**
+			 * 点「读书」：先让宿主确保灵台阅读器在跑，成功就把右侧面板换成 iframe。
+			 *
+			 * 失败分两种：
+			 * - 宿主**认** /lingtai 但没起来（超时 / 没配目录）→ 面板里给可读错误 + 重试；
+			 * - 宿主连不上 / 是旧版没有这条路由（回执不带 `ok` 布尔）→ 退回内置面板，
+			 *   书库 / 索引 / 翻页一条都不能因此消失。
+			 */
+			const startLingTai = () => {
+				if (starting) return;
+
+				setStarting(true);
+				setDockNote("");
+				setLiteError("");
+				setManualUrl("");
+
+				requestLingTai().then((data) => {
+					setStarting(false);
+
+					const url = data && typeof data.url === "string" ? data.url : "";
+
+					if (data && data.ok === true && url !== "") {
+						setLiteUrl(url);
+						setLiteError("");
+						setView("lingtai");
+						setOpen(true);
+						setFailed(false);
+						setNotice("");
+
+						return;
+					}
+
+					if (data && typeof data.ok === "boolean") {
+						// 宿主认这条路由、但没起来：在面板里说清楚，给「重试」
+						const message =
+							typeof data.message === "string" && data.message !== ""
+								? data.message
+								: "灵台阅读器没能起来";
+
+						setLiteUrl(url);
+						setLiteError(message);
+						setView("lingtai");
+						setOpen(true);
+						setFailed(false);
+						setNotice("");
+						setDockNote(message);
+
+						return;
+					}
+
+					// 旧版宿主 / 整个宿主连不上：退回内置面板
+					setDockNote(OFFLINE);
+					openShelf();
+				});
+			};
+
+			/** iframe 的退路：新标签打开。被拦就把「点这里手动打开」放出来（提示自己可点）。 */
+			const openInTab = (url) => {
+				const target = typeof url === "string" && url !== "" ? url : liteUrl;
+
+				if (target === "") return;
+
+				let opened = null;
+
+				try {
+					if (typeof window !== "undefined" && typeof window.open === "function") {
+						opened = window.open(target, "_blank", "noopener");
+					}
+				} catch {
+					opened = null;
+				}
+
+				if (opened === null || opened === undefined) {
+					setManualUrl(target);
+					setDockNote("被浏览器拦截了，点这里手动打开");
+				}
+			};
+
+			/** 手动打开提示自己的点击：整页跳过去（不依赖 popup）。 */
+			const openManually = () => {
+				if (manualUrl === "") return;
+
+				try {
+					window.location.href = manualUrl;
+				} catch {
+					// 假环境 / 被拦：什么也做不了
+				}
 			};
 
 			const close = () => {
@@ -637,6 +943,9 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			};
 
 			const onWheel = (event) => {
+				// Ctrl+滚轮是缩放，不是翻页：交给下面的原生监听处理
+				if (event && event.ctrlKey) return;
+
 				if (event && typeof event.preventDefault === "function") event.preventDefault();
 
 				wheel.current += Number(event && event.deltaY ? event.deltaY : 0);
@@ -701,52 +1010,107 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 				total <= 0 ? 0 : Math.min(100, Math.round((Math.min(total, seen + rows) / total) * 100));
 
 			const meta = open
-				? view === "read"
-					? title || "阅读中"
-					: "书库"
+				? view === "lingtai"
+					? "灵台阅读器"
+					: view === "read"
+						? title || "阅读中"
+						: "书库"
 				: title === ""
 					? null
 					: "上次 · " + title;
 
-			const launch = jsx("div", {
+			const launch = jsxs("div", {
 				className: "dshnp_launchrow",
-				children: jsxs("button", {
-					className: "dshnp_launch",
-					title: open ? "收起阅读区" : "打开书库",
-					"aria-pressed": open === true,
-					onClick: () => {
-						if (open) close();
-						else openShelf();
-					},
-					children: [
-						icon(ICON.book),
-						jsx("span", { className: "dshnp_launch_label", children: "读书" }),
-						jsx("span", { className: "dshnp_launch_grow" }),
-						meta === null ? null : jsx("span", { className: "dshnp_launch_meta", children: meta }),
-					].filter((node) => node !== null),
-				}),
+				children: [
+					jsxs("button", {
+						className: "dshnp_launch",
+						title:
+							open && view !== "lingtai"
+								? "收起阅读区"
+								: "用灵台阅读器打开（没在跑会自动拉起）",
+						"aria-pressed": open === true,
+						disabled: starting,
+						onClick: startLingTai,
+						children: [
+							icon(ICON.book),
+							jsx("span", {
+								className: "dshnp_launch_label",
+								children: starting ? "正在启动…" : "读书",
+							}),
+							jsx("span", { className: "dshnp_launch_grow" }),
+							meta === null ? null : jsx("span", { className: "dshnp_launch_meta", children: meta }),
+						].filter((node) => node !== null),
+					}),
+					// 次要入口：内置面板（书库 / 索引 / 翻页）原样保留
+					jsx("button", {
+						className: "dshnp_builtin",
+						title: "内置阅读面板：书库 / 索引 / 翻页",
+						"aria-pressed": open && view !== "lingtai",
+						onClick: () => {
+							if (open && view !== "lingtai") close();
+							else openShelf();
+						},
+						children: "内置",
+					}),
+				],
 			});
 
-			const headline = view === "shelf" ? "书库" : title || "阅读";
+			const headline =
+				view === "lingtai" ? "灵台阅读器" : view === "shelf" ? "书库" : title || "阅读";
+			const liteHost = liteUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 			const sub =
-				view === "shelf"
-					? indexBooks !== null && indexBooks.length > 0
-						? indexBooks.length + " 本"
-						: shelfNames === null
-							? ""
-							: shelfNames.length + " 本"
-					: position;
+				view === "lingtai"
+					? liteError === ""
+						? liteHost
+						: "没起来"
+					: view === "shelf"
+						? indexBooks !== null && indexBooks.length > 0
+							? indexBooks.length + " 本"
+							: shelfNames === null
+								? ""
+								: shelfNames.length + " 本"
+						: position;
 
 			const head = jsxs("div", {
 				className: "dshnp_phead",
 				children: [
 					jsx("span", {
 						className: "dshnp_ptitle",
-						title: view === "shelf" ? dir || "书库" : file || title,
+						title:
+							view === "lingtai"
+								? liteUrl
+								: view === "shelf"
+									? dir || "书库"
+									: file || title,
 						children: headline,
 					}),
 					sub === "" ? null : jsx("span", { className: "dshnp_ppos", title: position, children: sub }),
 					jsx("span", { className: "dshnp_grow" }),
+					// 字号：只缩阅读区的正文，不动整页（Ctrl+滚轮等价于这两个按钮）
+					view === "read"
+						? jsx("button", {
+								className: "dshnp_ib",
+								title: "缩小正文（Ctrl+滚轮也行）",
+								onClick: () => setZoom((current) => clampZoom(current - ZOOM_STEP)),
+								children: "A−",
+							})
+						: null,
+					view === "read"
+						? jsx("button", {
+								className: "dshnp_ib",
+								title: "放大正文（Ctrl+滚轮也行）",
+								onClick: () => setZoom((current) => clampZoom(current + ZOOM_STEP)),
+								children: "A+",
+							})
+						: null,
+					view === "read" && zoom !== 1
+						? jsx("button", {
+								className: "dshnp_ib dshnp_mode",
+								title: "恢复默认字号",
+								onClick: () => setZoom(1),
+								children: `${Math.round(zoom * 100)}%`,
+							})
+						: null,
 					view === "read"
 						? jsx("button", {
 								className: "dshnp_ib dshnp_mode",
@@ -765,12 +1129,59 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 								},
 								children: icon(ICON.list),
 							})
-						: jsx("button", {
+						: view === "shelf"
+							? jsx("button", {
+									className: "dshnp_ib",
+									title: "换个目录",
+									onClick: () => setDirOpen((on) => !on),
+									children: icon(ICON.folder),
+								})
+							: null,
+					// 灵台（iframe）也得能缩：跨源改不了它的字号，只能整体缩放
+					view === "lingtai"
+						? jsx("button", {
 								className: "dshnp_ib",
-								title: "换个目录",
-								onClick: () => setDirOpen((on) => !on),
-								children: icon(ICON.folder),
-							}),
+								title: "缩小灵台（Ctrl+滚轮也行）",
+								onClick: () => setLiteZoom((current) => clampZoom(current - ZOOM_STEP)),
+								children: "A−",
+							})
+						: null,
+					view === "lingtai"
+						? jsx("button", {
+								className: "dshnp_ib",
+								title: "放大灵台（Ctrl+滚轮也行）",
+								onClick: () => setLiteZoom((current) => clampZoom(current + ZOOM_STEP)),
+								children: "A+",
+							})
+						: null,
+					view === "lingtai" && liteZoom !== 1
+						? jsx("button", {
+								className: "dshnp_ib dshnp_mode",
+								title: "恢复灵台默认缩放",
+								onClick: () => setLiteZoom(1),
+								children: `${Math.round(liteZoom * 100)}%`,
+							})
+						: null,
+					// 灵台阅读器：iframe 出问题时的退路，以及切回内置面板的入口
+					view === "lingtai" && liteUrl !== ""
+						? jsx("button", {
+								className: "dshnp_ib dshnp_mode",
+								title: "在新标签页打开（iframe 被拦时的退路）",
+								onClick: () => openInTab(liteUrl),
+								children: "新标签打开",
+							})
+						: null,
+					view === "lingtai"
+						? jsx("button", {
+								className: "dshnp_ib dshnp_mode",
+								title: "切回内置阅读面板",
+								onClick: () => {
+									setView("shelf");
+									setDirOpen(false);
+								},
+								children: "内置",
+							})
+						: null,
 					jsx("button", {
 						className: "dshnp_ib",
 						title: "关闭阅读区",
@@ -1006,12 +1417,74 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 								}),
 					].filter((node) => node !== null),
 				});
+			} else if (view === "lingtai") {
+				// 整块 iframe：灵台阅读器自己的书架 / 阅读 / 笔记都在里面跑。
+				// 跨源（3080 → 8769）嵌得进来，但浏览器层面读不到它的 DOM / localStorage，
+				// 所以「渲染失败」这里检测不到 —— 头部的「新标签」就是那条退路。
+				body = jsxs("div", {
+					className: "dshnp_framebody",
+					children: [
+						liteError !== ""
+							? jsxs("div", {
+									className: "dshnp_frameerr",
+									children: [
+										jsx("div", { className: "dshnp_hint", children: liteError }),
+										jsxs("div", {
+											className: "dshnp_actions",
+											children: [
+												jsx("button", {
+													className: "dshnp_btn",
+													onClick: startLingTai,
+													children: "重试",
+												}),
+												liteUrl === ""
+													? null
+													: jsx("button", {
+															className: "dshnp_btn",
+															onClick: () => openInTab(liteUrl),
+															children: "新标签打开",
+														}),
+											].filter((node) => node !== null),
+										}),
+									],
+								})
+							: jsxs("div", {
+									className: "dshnp_framebox",
+									children: [
+										jsx("iframe", {
+											className: "dshnp_frame",
+											src: liteUrl,
+											title: "灵台阅读器",
+											allow: "clipboard-read; clipboard-write",
+											// 跨源改不了它内部字号，只能整体缩放 iframe。
+											// 用 CSS `zoom` 而不是 `transform: scale()`：后者是把已经画好的位图
+											// 放大，文字会糊；`zoom` 会按新比例重新排版重绘，字形仍然锐利。
+											// 宽高按 1/zoom 反算，视觉上仍然铺满面板。
+											style: {
+												zoom: liteZoom,
+												flex: "none",
+												width: `${Math.round((100 / liteZoom) * 100) / 100}%`,
+												height: `${Math.round((100 / liteZoom) * 100) / 100}%`,
+											},
+										}),
+										// 按住 Ctrl 时这层变成可点，把滚轮从 iframe 手里截下来
+										jsx("div", {
+											className: ctrlHeld
+												? "dshnp_frameveil dshnp_frameveil_on"
+												: "dshnp_frameveil",
+											title: ctrlHeld ? "Ctrl+滚轮缩放灵台" : "",
+										}),
+									],
+								}),
+					],
+				});
 			} else {
 				body = jsxs("div", {
 					className: "dshnp_readbody",
 					children: [
 						jsxs("div", {
 							className: "dshnp_textbox",
+							ref: textboxRef,
 							onWheel,
 							children: [
 								notice === "" ? null : jsx("div", { className: "dshnp_hint", children: notice }),
@@ -1024,6 +1497,11 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 											// 换页时换 key，让淡入动画重新跑一次
 											key: seen + ":" + mode,
 											className: "dshnp_text",
+											// 字号/行高跟着缩放倍数走；只影响正文，不动整页
+											style: {
+												fontSize: `${Math.round(BASE_FONT * zoom * 10) / 10}px`,
+												lineHeight: `${Math.round(BASE_LINE * zoom * 10) / 10}px`,
+											},
 											children: text.join("\n"),
 										}),
 							].filter((node) => node !== null),
@@ -1091,9 +1569,21 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 					})
 				: null;
 
+			// dock 下方的行内提示：启动失败 / 新标签被拦都在这里说一句，不用 alert
+			const dockNoteNode =
+				dockNote === "" ? null : jsx("div", { className: "dshnp_note", children: dockNote });
+			const manualNode =
+				manualUrl === ""
+					? null
+					: jsx("button", {
+							className: "dshnp_manual",
+							onClick: openManually,
+							children: "被浏览器拦截了，点这里手动打开",
+						});
+
 			return jsxs("div", {
 				className: "dshnp_dock",
-				children: [launch, panel].filter((node) => node !== null),
+				children: [launch, dockNoteNode, manualNode, panel].filter((node) => node !== null),
 			});
 		}
 
@@ -1119,6 +1609,8 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		exports.inject = inject;
 		// 给测试用：宽度夹取是纯函数，单独钉住边界
 		exports.clampWidth = clampWidth;
+		// 给测试用：缩放倍数夹取，同样只测边界
+		exports.clampZoom = clampZoom;
 
 		return module.exports;
 	},

@@ -4,6 +4,8 @@
 #   - `/novel` 命令（打开 / 翻页 / 书单 / 收起；txt / md / epub / pdf）
 #   - `GET /dsh-novel-pane/state`、`POST /dsh-novel-pane/move`（给浏览器那半用）
 #   - `GET /dsh-novel-pane/library`（书库索引）
+#   - `GET /dsh-novel-pane/lingtai`（只查灵台阅读器在不在跑，不启动任何东西）
+#   - `POST /dsh-novel-pane/lingtai`（没在跑就 `python server.py` 拉起来，最多等 12 秒）
 # 画窗格的是配套的客户端插件 @zhuobichen/dsh-client-ui-novel-pane。
 #
 # 可选配置（缺省值就在下面，不写也行）：
@@ -16,6 +18,13 @@
 #     exclude: ['简历', '_raw', '副本', '~$']   # 子串或正则，匹配文件 / 目录名
 #     python: python                            # 先试它，再试 py -3
 #     pdfTimeoutMs: 120000                      # 超时会杀子进程
+#     lingtai:                                  # 灵台阅读器（独立 web app，默认 8769）
+#       dir: 'D:\github_project\ZhaoWen_GitHub维护\lingtai-reader'
+#                                               # 不写就取环境变量 LINGTAI_DIR；都没有就报可读错误
+#       port: 8769                              # 与 lingtai-reader/server/app.py 一致
+#       python: python                          # 用什么解释器跑 server.py
+#       # timeoutMs: 12000                      # 等它起来的时长（测试 / 排错用）
+#       # pollMs: 250                           # 轮询间隔（测试 / 排错用）
 - insert:
     - id: novel-pane
       name: '@zhuobichen/dsh-novel-pane'

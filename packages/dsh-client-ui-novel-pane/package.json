@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "test": "node test/reading-mode.test.ts"
+    "test": "node test/reading-mode.test.ts && node test/lingtai.test.ts"
   },
   "keywords": [
     "dsh",

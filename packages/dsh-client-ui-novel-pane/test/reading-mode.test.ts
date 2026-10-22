@@ -1023,4 +1023,164 @@ test('点索引里的一本书发 open-path（绝对路径），然后切到正�
   unmount()
 })
 //#endregion
+
+//#region 阅读区缩放（只缩正文，不动整页）
+test('clampZoom：夹在 0.7–2.2，非数字回 1', () => {
+  const clamp = client.clampZoom
+
+  assert.equal(clamp(0.2), 0.7, '太小没有抬到 0.7')
+  assert.equal(clamp(9), 2.2, '太大没有压到 2.2')
+  assert.equal(clamp('abc'), 1, '非数字没有回默认 1')
+  assert.equal(clamp(1.5), 1.5, '合法值被改了')
+})
+
+test('字号按钮：A+ 放大、A− 缩小、百分比恢复默认', async () => {
+  resetHooks()
+  classSet.clear()
+  cssVars.clear()
+  storageMap.clear()
+  installFetch(bookHandler)
+
+  const props = {}
+  let tree = render(client.NovelPane, props)
+
+  findByClass(tree, 'dshnp_launch').props.onClick()
+  tree = await flush(props)
+
+  allByClass(tree, 'dshnp_book')[0].props.onClick()
+  tree = await flush(props)
+
+  assert.equal(findByClass(tree, 'dshnp_text').props.style.fontSize, '15px', '默认字号应当是 15px')
+
+  buttonWithText(tree, 'A+').props.onClick()
+  tree = render(client.NovelPane, props)
+
+  assert.equal(findByClass(tree, 'dshnp_text').props.style.fontSize, '16.5px', 'A+ 没有放大正文')
+
+  buttonWithText(tree, 'A−').props.onClick()
+  tree = render(client.NovelPane, props)
+
+  assert.equal(findByClass(tree, 'dshnp_text').props.style.fontSize, '15px', 'A− 没有缩回去')
+
+  buttonWithText(tree, 'A+').props.onClick()
+  tree = render(client.NovelPane, props)
+
+  const percent = buttonWithText(tree, '110%')
+
+  assert.notEqual(percent, undefined, '放大之后没有出现百分比按钮')
+  percent.props.onClick()
+  tree = render(client.NovelPane, props)
+
+  assert.equal(findByClass(tree, 'dshnp_text').props.style.fontSize, '15px', '百分比按钮没有恢复默认')
+
+  // 只改正文元素的 inline style，整页不该被缩
+  assert.equal(cssVars.has('--dshnp-zoom'), false, '缩放不该写进全局 CSS 变量')
+
+  unmount()
+})
+
+test('Ctrl+滚轮：阅读器开着就拦下整页缩放，只改正文字号', async () => {
+  resetHooks()
+  classSet.clear()
+  cssVars.clear()
+  storageMap.clear()
+  windowListeners.clear()
+  installFetch(bookHandler)
+
+  const props = {}
+  let tree = render(client.NovelPane, props)
+
+  findByClass(tree, 'dshnp_launch').props.onClick()
+  tree = await flush(props)
+
+  allByClass(tree, 'dshnp_book')[0].props.onClick()
+  tree = await flush(props)
+
+  assert.equal(findByClass(tree, 'dshnp_text').props.style.fontSize, '15px')
+
+  let prevented = false
+
+  fireWindow('wheel', {
+    ctrlKey: true,
+    deltaY: -100,
+    preventDefault() {
+      prevented = true
+    },
+    stopPropagation() {},
+  })
+
+  tree = render(client.NovelPane, props)
+
+  assert.equal(prevented, true, 'Ctrl+滚轮没有被拦下，浏览器会缩整页')
+  assert.equal(findByClass(tree, 'dshnp_text').props.style.fontSize, '16.5px', '没有放大正文')
+
+  unmount()
+})
+
+test('灵台面板：Ctrl+滚轮缩放 iframe，按住 Ctrl 时遮罩把事件截下来', async () => {
+  resetHooks()
+  classSet.clear()
+  cssVars.clear()
+  storageMap.clear()
+  windowListeners.clear()
+
+  installFetch((url) => {
+    if (url.includes('/lingtai')) {
+      return { body: { ok: true, launched: true, url: 'http://127.0.0.1:8769' } }
+    }
+
+    if (url.includes('/state')) return { body: url.includes('shelf=1') ? SHELF : BOOK }
+
+    return { body: BOOK }
+  })
+
+  const props = {}
+  let tree = render(client.NovelPane, props)
+
+  findByClass(tree, 'dshnp_launch').props.onClick()
+  tree = await flush(props)
+
+  const frame = findByClass(tree, 'dshnp_frame')
+
+  assert.notEqual(frame, undefined, '灵台面板里没有 iframe')
+  assert.equal(frame.props.src, 'http://127.0.0.1:8769')
+  assert.equal(frame.props.style.zoom, 1)
+
+  // 按住 Ctrl：遮罩变成可吃事件，否则滚轮会被 iframe 吃掉
+  fireWindow('keydown', { key: 'Control' })
+  tree = render(client.NovelPane, props)
+
+  assert.notEqual(findByClass(tree, 'dshnp_frameveil_on'), undefined, '按住 Ctrl 时遮罩没有生效')
+
+  let prevented = false
+
+  fireWindow('wheel', {
+    ctrlKey: true,
+    deltaY: -100,
+    preventDefault() {
+      prevented = true
+    },
+    stopPropagation() {},
+  })
+
+  tree = render(client.NovelPane, props)
+
+  assert.equal(prevented, true, '灵台里的 Ctrl+滚轮没有被拦下')
+  // 用 CSS zoom（重排版）而不是 transform: scale（位图放大，文字会糊）
+  assert.equal(findByClass(tree, 'dshnp_frame').props.style.zoom, 1.1, 'Ctrl+滚轮没有缩放灵台 iframe')
+  assert.equal(
+    findByClass(tree, 'dshnp_frame').props.style.transform,
+    undefined,
+    '不该再用 transform 缩放（会把文字放大成糊的位图）',
+  )
+
+  // 松开 Ctrl：遮罩还回去，灵台自己恢复正常交互
+  fireWindow('keyup', { key: 'Control' })
+  tree = render(client.NovelPane, props)
+
+  assert.equal(findByClass(tree, 'dshnp_frameveil_on'), undefined, '松开 Ctrl 后遮罩没有撤掉')
+
+  unmount()
+})
+//#endregion
 //#endregion

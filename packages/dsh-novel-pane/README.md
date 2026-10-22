@@ -73,6 +73,24 @@
 | GET | `/dsh-novel-pane/state?rows=N&shelf=1` | 当前快照；`shelf=1` 时给目录书单 |
 | POST | `/dsh-novel-pane/move` | `open` / `close` / `mode` / `top` / `down` / `up` / `wheel` / `goto` / `open-book` / `open-path` / `browse` |
 | GET | `/dsh-novel-pane/library` | 书库索引（`?refresh=1` 绕过缓存） |
+| GET | `/dsh-novel-pane/lingtai` | 只查灵台阅读器状态：`{ok, running, url}`，**不启动任何东西** |
+| POST | `/dsh-novel-pane/lingtai` | 确保它在跑：在跑 → `{ok:true, launched:false, url}`；没在跑就 spawn 后最多等 12 秒 → `{ok:true, launched:true, url}`；超时 → `{ok:false, launched:true, code:"LINGTAI_TIMEOUT", message, url}`（200，不抛） |
+
+## 灵台阅读器（lingtai-reader）
+
+「读书」现在打开的是**灵台阅读器**——另一个独立 web app（`lingtai-reader`：
+`python server.py`，python 标准库 http.server，零第三方依赖，端口 8769，
+可用 `sys.argv[1]` 覆盖）。宿主只负责「确保它在跑」，**不改它的代码**：
+
+1. `GET/POST` 先 TCP 探测 `127.0.0.1:<port>`，单次 800ms
+2. 没在跑 → `spawn(python, ['server.py'], {cwd: dir, detached: true, stdio: 'ignore', windowsHide: true})` + `unref()`
+   （端口被配成非 8769 时把端口作为 `argv[1]` 传过去）
+3. 每 250ms 探一次，最多等 12 秒
+4. 超时 / 没配目录 / 目录里没有 `server.py` / 没有 python → 回可读 `message`，**不抛**
+
+目录**没有缺省值**：`config.lingtai.dir` > `process.env.LINGTAI_DIR`，都没有就报
+`LINGTAI_NO_DIR`（不会猜一个绝对路径）。测试里 `probe` / `spawn` 都是注入的，
+**不真起 python**。
 
 `open-path` 传绝对路径（也认 `~` 和相对上一本书目录）；打不开时 400 带
 `error: "unreadable"` 和可读的 `message`。
@@ -89,6 +107,11 @@
       #   exclude: ['简历', '_raw', '副本', '~$']
       #   python: python        # 缺省先试 python，再试 py -3
       #   pdfTimeoutMs: 120000  # 超时会杀子进程
+      #   lingtai:              # 灵台阅读器（独立 web app，默认 8769）
+      #     dir: 'D:\github_project\ZhaoWen_GitHub维护\lingtai-reader'
+      #                           # 不写就取环境变量 LINGTAI_DIR；都没有就报可读错误
+      #     port: 8769
+      #     python: python      # 用什么解释器跑 server.py
 ```
 
 ## 开发
@@ -96,7 +119,7 @@
 ```
 npm install
 npm run build      # tsc → lib/
-npm test           # 25 条纯函数 + 19 条索引 + 8 条 EPUB + 5 条 PDF + 14 条宿主冒烟
+npm test           # 25 条纯函数 + 19 条索引 + 8 条 EPUB + 5 条 PDF + 14 条宿主冒烟 + 15 条灵台阅读器
 ```
 
 测试的临时文件都落在包内 `.tmp/`（本机 OS Temp 不可写）。

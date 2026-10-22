@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node test/paging.test.ts && node test/library.test.ts && node test/epub.test.ts && node test/pdf.test.ts && node test/host.smoke.ts"
+    "test": "node test/paging.test.ts && node test/library.test.ts && node test/epub.test.ts && node test/pdf.test.ts && node test/host.smoke.ts && node test/lingtai.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

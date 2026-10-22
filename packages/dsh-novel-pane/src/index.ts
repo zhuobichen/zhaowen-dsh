@@ -9,6 +9,8 @@ import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 
 import { readEpubText } from './epub.js'
+import { ensureLingTai, lingTaiStatus } from './lingtai.js'
+import type { LingtaiConfig } from './lingtai.js'
 import { createLibraryIndex, defaultLibraryRoots, kindOf, titleOf } from './library.js'
 import type { LibraryIndexCache } from './library.js'
 import { readPdfText } from './pdf.js'
@@ -55,7 +57,16 @@ export interface Config {
   python?: string
   /** PDF 抽取超时（毫秒），超时会杀子进程。缺省 120000。 */
   pdfTimeoutMs?: number
+  /**
+   * 灵台阅读器（另一个独立 web app，`python server.py`，默认 8769）。
+   * `dir` 没有缺省值：不写就把 `process.env.LINGTAI_DIR` 当目录，再没有就报可读错误。
+   * 示例（仅注释）：`dir: 'D:\github_project\ZhaoWen_GitHub维护\lingtai-reader'`。
+   */
+  lingtai?: LingtaiConfig
 }
+
+/** 测试口：换掉灵台阅读器的探测 / spawn（测试里绝不真起 python）。 */
+export { setLingTaiProbeForTests, setLingTaiSpawnForTests } from './lingtai.js'
 
 type State = {
   /** 窗格开着吗。 */
@@ -305,6 +316,58 @@ export function apply(ctx: any, config: Config = {}): void {
                     skipped: [],
                   })
                 }
+
+                return
+              }
+
+              // 灵台阅读器（lingtai-reader，独立 web app）。
+              //   GET  /lingtai → 只查状态：{ok, running, url}，不启动任何东西
+              //   POST /lingtai → 确保在跑：{ok, launched, url}；超时 / 没配目录给可读错误，不抛
+              if (path === '/lingtai') {
+                if (req.method === 'GET') {
+                  try {
+                    json(200, await lingTaiStatus(config.lingtai))
+                  } catch (error) {
+                    json(500, {
+                      ok: false,
+                      running: false,
+                      url: '',
+                      code: 'LINGTAI_PROBE_FAILED',
+                      message: String((error as Error)?.message ?? error),
+                    })
+                  }
+
+                  return
+                }
+
+                if (req.method === 'POST') {
+                  let result
+
+                  try {
+                    result = await ensureLingTai(config.lingtai)
+                  } catch (error) {
+                    // ensureLingTai 自己不该抛；兜底成 JSON，别把宿主 web 服务打挂
+                    result = {
+                      ok: false,
+                      launched: false,
+                      code: 'LINGTAI_FAILED',
+                      message: String((error as Error)?.message ?? error),
+                    }
+                  }
+
+                  // 配置类错误用 400（照着改配置就能好）；启动超时是正常的业务结果，仍给 200
+                  const configError = [
+                    'LINGTAI_NO_DIR',
+                    'LINGTAI_BAD_DIR',
+                    'LINGTAI_NO_SERVER',
+                  ].includes(String((result as { code?: string }).code ?? ''))
+
+                  json(configError ? 400 : 200, result)
+
+                  return
+                }
+
+                json(405, { error: 'method not allowed' })
 
                 return
               }
