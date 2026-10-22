@@ -14,7 +14,7 @@
 // 跑：node test/reading-mode.test.ts
 // （Node 24 原生剥类型，不需要编译。）
 
-import { afterEach, test } from 'node:test'
+import { afterEach, beforeEach, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -389,6 +389,14 @@ const buttonWithText = (node: any, text: string): any => {
 assert.notEqual(registration, undefined, 'client.js 没有调用 window.__ModuleLoader__.load')
 
 const client = registration!.factory(requireStub)
+
+// 面板开合/视图是模块级状态（为了切会话不收起），用例之间必须复位，
+// 否则上一个用例留下的 open=true 会污染下一个。
+beforeEach(() => {
+  client.panelState.open = false
+  client.panelState.view = 'shelf'
+  client.panelState.liteUrl = ''
+})
 
 /**
  * 渲染 -> 让 promise 落地 -> 再渲染，直到树稳定。
@@ -1179,6 +1187,45 @@ test('灵台面板：Ctrl+滚轮缩放 iframe，按住 Ctrl 时遮罩把事件�
   tree = render(client.NovelPane, props)
 
   assert.equal(findByClass(tree, 'dshnp_frameveil_on'), undefined, '松开 Ctrl 后遮罩没有撤掉')
+
+  unmount()
+})
+
+test('切换会话（组件重挂）后面板保持展开，灵台地址还在', async () => {
+  resetHooks()
+  classSet.clear()
+  cssVars.clear()
+  storageMap.clear()
+  windowListeners.clear()
+
+  installFetch((url) => {
+    if (url.includes('/lingtai')) {
+      return { body: { ok: true, launched: true, url: 'http://127.0.0.1:8769' } }
+    }
+
+    if (url.includes('/state')) return { body: url.includes('shelf=1') ? SHELF : BOOK }
+
+    return { body: BOOK }
+  })
+
+  const props = {}
+  let tree = render(client.NovelPane, props)
+
+  findByClass(tree, 'dshnp_launch').props.onClick()
+  tree = await flush(props)
+
+  assert.notEqual(findByClass(tree, 'dshnp_frame'), undefined, '没进灵台面板')
+
+  // 模拟切会话：卸载 + 用全新的 hook 单元重挂
+  unmount()
+  resetHooks()
+
+  tree = render(client.NovelPane, props)
+
+  const frame = findByClass(tree, 'dshnp_frame')
+
+  assert.notEqual(frame, undefined, '重挂之后面板被收起了（应该保持展开）')
+  assert.equal(frame.props.src, 'http://127.0.0.1:8769', '重挂后灵台地址丢了')
 
   unmount()
 })

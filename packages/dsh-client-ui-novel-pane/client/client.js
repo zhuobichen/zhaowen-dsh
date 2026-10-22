@@ -434,6 +434,15 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		//#endregion
 
 		/**
+		 * 面板的跨会话状态。
+		 *
+		 * 这个组件挂在会话作用域的 `conversation.input.dock` 上：**切换会话会把它卸载重挂**，
+		 * 组件内的 `useState` 因此清零（表现就是"一换会话读书面板就收起"）。
+		 * 把开合/视图/灵台地址放在模块作用域，重挂时从这里恢复；页面刷新才丢。
+		 */
+		const panelState = { open: false, view: "shelf", liteUrl: "" };
+
+		/**
 		 * 窗格本体。
 		 *
 		 * `open` 是右侧阅读区；`view` 是它里面的两页：`shelf`（书库）和 `read`
@@ -441,8 +450,10 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		 */
 		function NovelPane() {
 			const [snap, setSnap] = react.useState(null);
-			const [open, setOpen] = react.useState(false);
-			const [view, setView] = react.useState("shelf");
+			// 面板状态挂在模块级：切换会话时这个组件会被卸载重挂，放组件 state 里
+			// 会"一换会话就收起"。模块级只在页面刷新时丢，恰好是我们想要的粒度。
+			const [open, setOpen] = react.useState(() => panelState.open);
+			const [view, setView] = react.useState(() => panelState.view);
 			// failed：连不上宿主且手里还什么都没有。这时不缩 #root —— 没有内容可看，
 			// 就别白缩一块布局。
 			const [failed, setFailed] = react.useState(false);
@@ -454,7 +465,7 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 			// starting → dock 那行「正在启动…」；liteUrl → iframe 的 src；
 			// liteError → 面板里那句可读错误（超时 / 没配目录）；dockNote → dock 下方的行内提示。
 			const [starting, setStarting] = react.useState(false);
-			const [liteUrl, setLiteUrl] = react.useState("");
+			const [liteUrl, setLiteUrl] = react.useState(() => panelState.liteUrl);
 			const [liteError, setLiteError] = react.useState("");
 			const [dockNote, setDockNote] = react.useState("");
 			// window.open 被浏览器拦截时的兜底：这条提示自己可点（走 location.href）
@@ -492,6 +503,10 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 
 			snapRef.current = snap;
 			paneWRef.current = paneW;
+			// 每次渲染把这三个写回模块级：下次重挂（切会话）从这里恢复
+			panelState.open = open;
+			panelState.view = view;
+			panelState.liteUrl = liteUrl;
 
 			const reading = open && !failed;
 
@@ -1611,6 +1626,8 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 		exports.clampWidth = clampWidth;
 		// 给测试用：缩放倍数夹取，同样只测边界
 		exports.clampZoom = clampZoom;
+		// 给测试用：跨会话状态要能在用例之间复位
+		exports.panelState = panelState;
 
 		return module.exports;
 	},
