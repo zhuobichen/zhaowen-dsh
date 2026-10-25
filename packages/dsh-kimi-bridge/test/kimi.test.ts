@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, appendFileSync, write
 import { dirname, join } from "node:path";
 
 import {
+  buildWire,
   extractConversation,
   listSessions,
   parseWire,
@@ -21,7 +22,7 @@ import {
 } from "../kimi.js";
 import { buildSeed, readDshSession, sessionHeader, writeSessionFile } from "../dsh.js";
 import { apply, createBridge, stableSessionId } from "../index.js";
-import { callRoute, copyKimiSessions, copyTree, freshDir, makeCtx, realKimiSessions, tmpRoot } from "./helpers.ts";
+import { callRoute, copyKimiSessions, copyKimiSessionsTo, copyTree, freshDir, makeCtx, realKimiSessions, tmpRoot } from "./helpers.ts";
 
 const SENTINEL_ASSISTANT = "你好！有什么需要我帮你处理的吗？";
 const SENTINEL_INJECTION = "Auto permission mode is active";
@@ -53,7 +54,7 @@ function syntheticIr() {
 function setupExport(name, id = `session-synthetic-${name}`) {
   const dir = freshDir(name);
   const kimiRoot = join(dir, "sessions");
-  copyTree(realKimiSessions, kimiRoot);
+  copyKimiSessionsTo(kimiRoot);
   const dshRoot = join(dir, "dsh-sessions");
   mkdirSync(dshRoot, { recursive: true });
   const header = sessionHeader(id, { cwd: "D:\\", createdAt: 1792774655000 });
@@ -307,4 +308,71 @@ test("5 幂等：再导出 409；force:true 旧目录变 .bak-* 且新目录可�
   assert.equal(custom.body.target.sessionId, customId);
   assert.equal(custom.body.workspace.matchedBy, "explicit");
   assert.equal(existsSync(join(parent, customId, "agents", "main", "wire.jsonl")), true);
+});
+
+test("9 工具迁移：includeTools 生成原生 loop 事件（step.begin/tool.call/tool.result/step.end）", () => {
+  const templateWire = join(
+    realKimiSessions,
+    "wd_d_4eac808749fa",
+    "session_465a214d-fb62-442d-8681-22706ef4ffa7",
+    "agents",
+    "main",
+    "wire.jsonl",
+  );
+  assert.equal(existsSync(templateWire), true, "需要真实模板会话当夹具");
+  const templateRows = readWire(templateWire).rows;
+
+  // 文本模式：不该出现 loop 事件
+  const textMode = buildWire({
+    templateRows,
+    conversation: syntheticIr().messages,
+    workspaceKey: "wd_d_4eac808749fa",
+    cwd: "D:\\",
+    startTime: 1792774656000,
+  });
+  assert.equal(
+    textMode.rows.filter((r) => r.type === "context.append_loop_event").length,
+    0,
+    "默认（文本）模式不应产生 loop 事件",
+  );
+
+  // 工具模式：应产生完整事件链
+  const withTools = buildWire({
+    templateRows,
+    conversation: syntheticIr().messages,
+    workspaceKey: "wd_d_4eac808749fa",
+    cwd: "D:\\",
+    startTime: 1792774656000,
+    includeTools: true,
+  });
+
+  const events = withTools.rows
+    .filter((r) => r.type === "context.append_loop_event")
+    .map((r) => r.event);
+  const types = events.map((e) => e.type);
+  console.log("[tools] loop 事件类型 =", JSON.stringify(types));
+
+  assert.ok(types.includes("step.begin"), "应有 step.begin");
+  assert.ok(types.includes("tool.call"), "应有 tool.call");
+  assert.ok(types.includes("tool.result"), "应有 tool.result");
+  assert.ok(types.includes("step.end"), "应有 step.end");
+
+  const call = events.find((e) => e.type === "tool.call");
+  assert.equal(call.name, "Read", "tool.call.name 必须是工具名");
+  assert.equal(call.args.path, "README.md", "args 应是解析后的对象");
+  assert.equal(typeof call.toolCallId, "string");
+  assert.equal(typeof call.stepUuid, "string");
+  assert.equal(typeof call.step, "number");
+
+  const result = events.find((e) => e.type === "tool.result");
+  assert.equal(result.parentUuid, call.uuid, "tool.result 必须指向 tool.call 的 uuid");
+  assert.equal(result.toolCallId, call.toolCallId, "toolCallId 必须一致");
+  assert.ok(String(result.result.output).includes("README"), "结果文本应保留");
+
+  // 无论哪种模式，message.toolCalls 都必须存在且为空数组
+  const withCalls = withTools.rows.filter((r) => {
+    const msg = r.message?.message ?? r.message;
+    return msg && Object.prototype.hasOwnProperty.call(msg, "toolCalls") && msg.toolCalls.length > 0;
+  });
+  assert.equal(withCalls.length, 0, "不应再往 context.append_message 里塞 toolCalls");
 });

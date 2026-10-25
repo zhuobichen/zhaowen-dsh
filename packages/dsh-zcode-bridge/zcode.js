@@ -461,6 +461,63 @@ export function inferDefaults(db) {
  *
  * @returns {{session: object, messages: object[], parts: object[], counts: object, warnings: string[]}}
  */
+/**
+ * 把 DSH IR 归一化成 planExport 期望的 parts 形状。
+ *
+ * DSH 侧（dsh-kimi-bridge/dsh.js）给的是：
+ *   { role:'assistant', text, reasoning?, toolCalls:[{id,name,arguments}] }
+ *   { role:'tool', text, toolCallId }        ← 工具结果单独一条
+ * 而 planExport 按 ZCode 的 part 模型消费：parts[{kind:'tool', callId, name, input, output}]。
+ * 这里把两者接上：工具结果按 callId 折回调用里，role:'tool' 消息不再单独成 message。
+ */
+function normalizeIrMessages(messages) {
+  const results = new Map()
+  for (const m of messages ?? []) {
+    if (m.role !== 'tool') continue
+    const key = m.toolCallId ?? m.callId ?? m.id
+    if (key !== undefined) results.set(key, m)
+  }
+
+  const out = []
+  for (const m of messages ?? []) {
+    if (m.role === 'tool') continue
+    if (m.role !== 'assistant' && m.role !== 'user') {
+      out.push(m)
+      continue
+    }
+    if (Array.isArray(m.parts) && m.parts.length > 0) {
+      out.push(m)
+      continue
+    }
+    const parts = []
+    if (typeof m.reasoning === 'string' && m.reasoning !== '') {
+      parts.push({ kind: 'reasoning', text: m.reasoning })
+    }
+    if (typeof m.text === 'string' && m.text !== '') {
+      parts.push({ kind: 'text', text: m.text })
+    }
+    for (const call of m.toolCalls ?? []) {
+      const result = results.get(call.id) ?? results.get(call.callId)
+      let input = {}
+      try {
+        input = typeof call.arguments === 'string' ? JSON.parse(call.arguments) : (call.arguments ?? {})
+      } catch {
+        input = { _raw: String(call.arguments ?? '') }
+      }
+      parts.push({
+        kind: 'tool',
+        callId: call.id ?? call.callId,
+        name: call.name ?? 'tool',
+        input,
+        output: result?.text ?? '',
+        isError: result?.isError === true,
+      })
+    }
+    out.push({ ...m, parts })
+  }
+  return out
+}
+
 export function planExport(ir, options = {}) {
   const directory = options.directory ?? ir.cwd
   if (typeof directory !== 'string' || directory.trim() === '') {
@@ -476,29 +533,29 @@ export function planExport(ir, options = {}) {
   const providerId = options.providerId ?? firstAssistant(ir)?.provider ?? 'dsh'
   const modelId = options.modelId ?? firstAssistant(ir)?.model ?? 'dsh-import'
   const warnings = []
+  const irMessages = normalizeIrMessages(ir.messages)
 
   let sequence = 0
   const messages = []
   const parts = []
-  const idMap = new Map()
 
   // 会话级 orderedMessageIds：真实样本里 assistant 消息的 anchor 会带它。
   const orderedIds = []
-  for (const message of ir.messages ?? []) {
+  for (const message of irMessages) {
     const id = newMessageId(Number.isFinite(message.at) ? message.at : createdAt)
-    idMap.set(message.id, id)
     orderedIds.push(id)
   }
 
   let lastUserId
   let turnIndex = 0
   const turnIndices = new Map()
-  for (const message of ir.messages ?? []) {
+  for (const message of irMessages) {
     const key = message.turnId ?? 'turn-1'
     if (!turnIndices.has(key)) turnIndices.set(key, ++turnIndex)
   }
-  for (const message of ir.messages ?? []) {
-    const id = idMap.get(message.id)
+  for (let messageIndex = 0; messageIndex < irMessages.length; messageIndex += 1) {
+    const message = irMessages[messageIndex]
+    const id = orderedIds[messageIndex]
     const at = Number.isFinite(message.at) ? Math.trunc(message.at) : createdAt
     const completed = Number.isFinite(message.completedAt) ? Math.trunc(message.completedAt) : at
     const turnId = message.turnId ?? `turn-${sequence}`
@@ -736,6 +793,10 @@ export function findExistingSession(db, plan) {
 }
 
 /** 备份库文件；返回路径。失败抛 BACKUP_FAILED（调用方此时还没写任何一行）。 */
+function normalizePath(p) {
+  return String(p).replace(/[\\\\/]+/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
 export function backupDatabase(dbPath, options = {}) {
   const stat = statSync(dbPath)
   const ts = options.timestamp ?? timestampText(new Date())
@@ -787,14 +848,18 @@ const insertSql = (table, columns) =>
 export function applyExport(dbPath, plan, options = {}) {
   const force = options.force === true
   const detect = options.detectRunning ?? detectZCodeRunning
-  const status = detect()
-  if (status.running === true) {
-    throw new ZcodeError('ZCODE_RUNNING', 'ZCode 正在运行，请先退出 ZCode 再导入（不硬写别人的库）。', {
-      processes: status.processes,
-    })
-  }
-  if (status.checked === false && options.allowUnchecked !== true) {
-    throw new ZcodeError('ZCODE_STATE_UNKNOWN', '检测不到 ZCode 进程状态，为安全起见不写库。', { error: status.error })
+  // 默认一律检查（真库和副本都拦）；只有显式 allowWhileRunning 才放开。
+  // 测试/离线演练请传 allowWhileRunning:true —— 那意味着"我确认没在用这个库"。
+  if (options.allowWhileRunning !== true) {
+    const status = detect()
+    if (status.running === true) {
+      throw new ZcodeError('ZCODE_RUNNING', 'ZCode 正在运行，请先退出 ZCode 再导入（不硬写别人的库）。', {
+        processes: status.processes,
+      })
+    }
+    if (status.checked === false && options.allowUnchecked !== true) {
+      throw new ZcodeError('ZCODE_STATE_UNKNOWN', '检测不到 ZCode 进程状态，为安全起见不写库。', { error: status.error })
+    }
   }
 
   const backup = backupDatabase(dbPath, options.backup ?? {})

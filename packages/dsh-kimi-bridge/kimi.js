@@ -655,8 +655,9 @@ export function buildWire(options) {
 
   /* 2) 会话内容：按 turn 重写 */
   const turns = groupTurns(conversation);
+  const render = options.includeTools === true ? renderTurnWithTools : renderTurn;
   turns.forEach((turn, index) => {
-    rows.push(...renderTurn(turn, index, clock));
+    rows.push(...render(turn, index, clock));
   });
 
   return { rows, turns: turns.length, envTypes: [...emittedEnv] };
@@ -701,6 +702,172 @@ function wireToolCalls() {
 }
 
 /** 一个 turn 的完整行序列（用户 → 助手 → 工具结果）。 */
+/**
+ * 带工具调用的 turn —— 严格照 Kimi 原生样本（实测 session_cf179288）：
+ *
+ *   context.append_loop_event { event:{type:"step.begin", uuid, turnId, step} }
+ *   ... content.part { part:{type:"think"|"text", ...} }
+ *   ... tool.call    { toolCallId, name, args, display:{kind:"command",command,cwd,language} }
+ *   ... tool.result  { parentUuid:<tool.call 的 uuid>, toolCallId, result:{output,durationMs} }
+ *   ... step.end     { finishReason:"tool_use"|"end_turn", usage, messageId, providerFinishReason }
+ *
+ * 一个 assistant 消息 = 一个 step；它后面的 tool 结果并进同一个 step。
+ * 原生这条通路里助手内容**不走** context.append_message，只走 loop 事件。
+ */
+function renderTurnWithTools(turn, index, clock) {
+  const rows = [];
+  const turnId = String(index);
+  const promptId = newMessageId();
+  const userText = turn.user?.text ?? "";
+  const userTime = clock.next();
+
+  rows.push({
+    message: {
+      message: { role: "user", content: userContent(userText) },
+      meta: {
+        source: "input",
+        promptId,
+        origin: { kind: "user" },
+        tracked: true,
+        createdAt: isoOf(userTime),
+        userMessageId: promptId,
+      },
+    },
+    type: "agent.message.appended",
+    time: userTime,
+    kind: "event",
+  });
+  rows.push({ turnId: index, queueItemId: promptId, type: "agent.turn.started", time: clock.next(), kind: "event" });
+  rows.push({
+    type: "turn.prompt",
+    agentId: "main",
+    input: userContent(userText),
+    origin: { kind: "user" },
+    promptId,
+    turnId: index,
+    time: clock.next(),
+  });
+  rows.push({
+    type: "context.append_message",
+    agentId: "main",
+    message: { role: "user", content: userContent(userText), id: promptId, toolCalls: [], origin: { kind: "user" } },
+    time: clock.next(),
+  });
+
+  const loop = (event) => rows.push({ type: "context.append_loop_event", agentId: "main", event, time: clock.next() });
+  let step = 0;
+  let current = null;
+
+  const beginStep = () => {
+    step += 1;
+    current = { uuid: randomUUID(), step, calls: [] };
+    loop({ type: "step.begin", uuid: current.uuid, turnId, step });
+  };
+  const endStep = (finishReason) => {
+    if (!current) return;
+    loop({
+      type: "step.end",
+      uuid: current.uuid,
+      turnId,
+      step: current.step,
+      finishReason,
+      usage: { inputOther: 0, output: 0, inputCacheRead: 0, inputCacheCreation: 0 },
+      messageId: "chatcmpl-" + randomUUID().replace(/-/g, "").slice(0, 24),
+      providerFinishReason: finishReason === "tool_use" ? "tool_calls" : "completed",
+      rawFinishReason: finishReason === "tool_use" ? "tool_calls" : "stop",
+    });
+    current = null;
+  };
+
+  for (const part of turn.parts) {
+    if (part.role === "assistant") {
+      if (current) endStep(current.calls.length > 0 ? "tool_use" : "end_turn");
+      beginStep();
+      if (typeof part.reasoning === "string" && part.reasoning) {
+        loop({
+          type: "content.part",
+          uuid: randomUUID(),
+          turnId,
+          step: current.step,
+          stepUuid: current.uuid,
+          part: { type: "think", think: part.reasoning, reasoningKey: "reasoning_content" },
+        });
+      }
+      if (part.text) {
+        loop({
+          type: "content.part",
+          uuid: randomUUID(),
+          turnId,
+          step: current.step,
+          stepUuid: current.uuid,
+          part: { type: "text", text: part.text },
+        });
+      }
+      for (const call of part.toolCalls ?? []) {
+        const uuid = randomUUID();
+        let args = {};
+        try {
+          args = typeof call.arguments === "string" ? JSON.parse(call.arguments) : (call.arguments ?? {});
+        } catch {
+          args = { _raw: String(call.arguments ?? "") };
+        }
+        const toolCallId = call.id || "tool_" + uuid.replace(/-/g, "").slice(0, 20);
+        const event = {
+          type: "tool.call",
+          uuid,
+          turnId,
+          step: current.step,
+          stepUuid: current.uuid,
+          toolCallId,
+          name: call.name || "tool",
+          args,
+        };
+        if (typeof args?.command === "string") {
+          event.display = {
+            kind: "command",
+            command: args.command,
+            ...(typeof args.cwd === "string" ? { cwd: args.cwd } : {}),
+            language: "bash",
+          };
+        }
+        loop(event);
+        current.calls.push({ uuid, toolCallId, done: false });
+      }
+      continue;
+    }
+
+    if (part.role === "tool" && current) {
+      const match =
+        current.calls.find((c) => c.toolCallId === part.toolCallId && !c.done) ??
+        current.calls.find((c) => !c.done);
+      if (match) {
+        match.done = true;
+        loop({
+          type: "tool.result",
+          parentUuid: match.uuid,
+          toolCallId: part.toolCallId || match.toolCallId,
+          result: { output: String(part.text ?? ""), durationMs: 0 },
+        });
+      }
+    }
+  }
+
+  if (current) endStep(current.calls.length > 0 ? "tool_use" : "end_turn");
+
+  rows.push({ turnId: index, outcome: "done", type: "agent.turn.ended", time: clock.next(), kind: "event" });
+  const lastTime = rows[rows.length - 1].time;
+  rows.push({
+    type: "turn.ended",
+    agentId: "main",
+    turnId: index,
+    reason: "completed",
+    durationMs: lastTime - userTime,
+    traceId: newTraceId(),
+    time: clock.next(),
+  });
+  return rows;
+}
+
 function renderTurn(turn, index, clock) {
   const rows = [];
   const turnId = index;

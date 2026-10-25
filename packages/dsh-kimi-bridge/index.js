@@ -268,6 +268,7 @@ export function createBridge(options = {}) {
       workspaceKey: target.workspaceKey,
       cwd: ir.cwd,
       startTime,
+      includeTools: body.includeTools === true,
     });
     const title = asText(body.title ?? ir.title ?? conversation.find((m) => m.role === "user")?.text ?? "").slice(0, 60);
     const lastUser = [...conversation].reverse().find((m) => m.role === "user");
@@ -374,6 +375,7 @@ async function hijackNative(body = {}) {
     conversation,
     workspaceKey: target.workspaceKey,
     cwd: target.cwd ?? loaded.ir.cwd,
+    includeTools: body.includeTools === true,
     startTime,
   });
 

@@ -194,3 +194,26 @@ node --test "test/*.test.ts"     # 13 个用例，全部只对 .tmp/ 里的副�
 - 目标 workspaceKey 必须已经在 `workspaces.json` + `sessions/` 里存在（插件不新建工作区）。
 - 建议先 `GET /dsh-kimi/export-preview` 看 `target`、`counts`、`sample`，再 `POST` 带 `apply:true`。
 - 写入后由 Kimi 自己重建 `.index-cache` / `session_index.jsonl`；如果侧栏没出现，先完全退出再启动一次。
+
+---
+
+## 工具调用迁移（已真机验证，2026-10-25）
+
+默认只迁**对话文本**；传 `includeTools: true` 则连同工具调用一起迁。
+
+真机结论（Kimi Code 1.1.2，样本：`session_cf179288`）：
+
+- 工具调用**不走** `context.append_message`，走 `context.append_loop_event` 事件流：
+  `step.begin` → `content.part`(think/text) → `tool.call` → `tool.result` → `step.end`；
+- `tool.call` 必须带 `toolCallId / name / args`，命令类工具还要 `display:{kind:"command",command,cwd,language}`；
+- `tool.result` 用 `parentUuid` 指回对应 `tool.call` 的 `uuid`；
+- 每条 `message` 的 `toolCalls` **必须存在**（空数组即可）：加载器会遍历它，缺了报
+  `e.toolCalls is not iterable`；
+- 把工具塞进 `message.toolCalls` 会触发 `ZodError: items[].steps[].frames[].name`。
+
+用法：
+
+    POST /dsh-kimi/export { dshSessionId, apply: true, includeTools: true }
+    POST /dsh-kimi/hijack-native { dshSessionId, targetSessionId, apply: true, includeTools: true }
+
+体积参考：同一会话文本版 1.0 MB / 1837 行；带工具版 6.7 MB / 10892 行。

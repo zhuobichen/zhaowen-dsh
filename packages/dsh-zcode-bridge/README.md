@@ -290,3 +290,27 @@ dsh-zcode-bridge/
 5. 打开 ZCode，看那条会话能不能正常显示、能不能继续聊；不行就用 `backup.path` 换回去（`copyFile` 覆盖 `db.sqlite`，同时删掉 `-wal`/`-shm`）。
 
 反向（ZCode → DSH）风险小得多：DSH 的 v4 日志在测试里已经用 **DSH 自己的还原器**验过（`dsh.test.ts` 的 3/4、4/4 两段），但"DSH 界面里看起来对不对"（标题、工具块折叠、token 统计）仍属于没验证的部分。
+
+---
+
+## 真库验证记录（2026-10-25，对 `db.sqlite` 的副本）
+
+```
+写入   1 session / 2524 message / 8111 part   1.2 s   自动备份 21.8 MB
+回读   tool 1933 · reasoning 550 · text 916 · step-start 2356 · step-finish 2356
+首个 tool part  PowerShell / {"command":"git ls-remote …"} / 输出 835 字符
+pragma integrity_check = ok
+```
+
+这轮修的三个问题：
+
+1. **工具调用全丢**：DSH IR 给的是 `toolCalls` + 独立 `role:'tool'` 消息，而 `planExport`
+   按 ZCode 的 part 模型消费。加了 `normalizeIrMessages()`：工具结果按 `callId` 折回调用，
+   `role:'tool'` 不再单独成 message。
+2. **`UNIQUE constraint failed: message.id`**：DSH 侧多条消息共用一个 `id`，按 `idMap` 取会
+   复用同一个新 id。改成**按位置**分配（`orderedIds[messageIndex]`）。
+3. **进程守卫太宽**：原来连"库的副本"也拦，导致不关 ZCode 就没法演练。现在默认仍检查，
+   显式传 `allowWhileRunning:true` 才放开（意味着"我确认没在用这个库"）。
+
+**未验证**：`project_id` 含中文（`proj_d-github_project-zhaowen_github维护`）时 ZCode 认不认。
+真库现有 id 全是 ASCII（从 `~/.zcode/workspace/draft-*` 派生）。这是真写时唯一需要人眼确认的点。

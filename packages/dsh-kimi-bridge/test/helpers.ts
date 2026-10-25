@@ -175,3 +175,13 @@ export async function loadDshSessionModule() {
   if (!path) return undefined;
   return import("file:///" + path.replace(/\\/g, "/"));
 }
+
+/** 把白名单会话复制到已存在的目标目录（setupExport 用）。 */
+export function copyKimiSessionsTo(dest, only = FIXTURE_SESSIONS) {
+  mkdirSync(dest, { recursive: true });
+  for (const rel of only) {
+    const src = join(realKimiSessions, rel);
+    if (!existsSync(src)) continue;
+    copyTree(src, join(dest, rel));
+  }
+}
