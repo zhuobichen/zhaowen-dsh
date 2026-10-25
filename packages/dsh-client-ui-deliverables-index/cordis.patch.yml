@@ -1,0 +1,10 @@
+# dsh-client-ui-deliverables-index 的 bundle patch。
+#
+# 浏览器那半靠 `dsh.client.platform: web` + `exports["./client"]` 被发现；
+# 这里插的是让包在宿主组合树里占一行的宿主半身（它自己什么都不做）。
+#
+# 面板里的数据来自 @zhuobichen/dsh-deliverables-index 的 `GET /dsh-deliverables/list`，
+# 所以那个宿主插件也要装，否则面板只会显示「连不上文档索引服务」。
+- insert:
+    - id: deliverables-index-ui
+      name: '@zhuobichen/dsh-client-ui-deliverables-index'

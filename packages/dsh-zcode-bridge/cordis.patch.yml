@@ -1,0 +1,4 @@
+# dsh-zcode-bridge 的 bundle patch：把「DSH ↔ ZCode 迁移」插件条目插进 profile。
+- insert:
+    - id: dsh-zcode-bridge
+      name: '@zhuobichen/dsh-zcode-bridge'

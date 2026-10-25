@@ -1,0 +1,16 @@
+# dsh-deliverables-index 的 bundle patch：把「文档总览」的宿主半身插进 profile。
+#
+# 这一行挂上之后，插件会注册：
+#   GET  /dsh-deliverables/list   最近 N 个会话各自呈现过的文件（含 exists 真实探测）
+#   POST /dsh-deliverables/open   {sessionId, seq, index, action?} → 宿主原生打开 / 在文件夹里显示
+# 画面板的是配套的客户端插件 @zhuobichen/dsh-client-ui-deliverables-index（两个都装才看得到）。
+#
+# 可选配置（缺省值就在下面，不写也行）：
+#   config:
+#     limit: 50          # 最多列最近多少个会话（1-500）
+#     ttlMs: 20000       # 列表 + 每会话折叠结果的进程内缓存（毫秒，0 = 不缓存）
+#     skipBlank: true    # 跳过 seq 为 0 的空白会话（它们不可能有 present）
+#     web: true          # 关掉就只加载不注册路由（排错用）
+- insert:
+    - id: deliverables-index
+      name: '@zhuobichen/dsh-deliverables-index'

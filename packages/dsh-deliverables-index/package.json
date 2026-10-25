@@ -1,0 +1,38 @@
+{
+  "name": "@zhuobichen/dsh-deliverables-index",
+  "version": "0.1.0",
+  "description": "Document overview for DSH: list the files each Session presented (host half; GET /dsh-deliverables/list)",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./catalog": "./catalog.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "catalog.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node test/host.test.ts"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deliverables",
+    "documents",
+    "present"
+  ],
+  "license": "MIT",
+  "engines": {
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  }
+}

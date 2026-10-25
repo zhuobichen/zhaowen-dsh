@@ -1,0 +1,39 @@
+{
+  "name": "@zhuobichen/dsh-kimi-bridge",
+  "version": "0.1.0",
+  "description": "DSH ↔ Kimi Code 会话迁移：列 Kimi 会话、DSH→Kimi 克隆模板导出、Kimi→DSH 导入（纯 ESM，无构建）",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./kimi": "./kimi.js",
+    "./dsh": "./dsh.js"
+  },
+  "files": [
+    "index.js",
+    "kimi.js",
+    "dsh.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "kimi-code",
+    "session-migration"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.15.0",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  }
+}

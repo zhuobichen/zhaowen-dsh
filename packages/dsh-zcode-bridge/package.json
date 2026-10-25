@@ -1,0 +1,45 @@
+{
+  "name": "@zhuobichen/dsh-zcode-bridge",
+  "version": "0.1.0",
+  "description": "DSH ↔ ZCode 双向会话迁移：把 DSH 会话导进 ZCode，也把 ZCode 会话导进 DSH。写库默认 dry-run，写前自动备份、单事务、ZCode 在跑就拒绝。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./dsh": "./dsh.js",
+    "./zcode": "./zcode.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "dsh.js",
+    "zcode.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test test/zcode.test.ts test/dsh.test.ts test/route.test.ts"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "zcode",
+    "session-migration",
+    "zstd",
+    "sqlite"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.6",
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+  }
+}

@@ -1,0 +1,4 @@
+# dsh-kimi-bridge 的 bundle patch：把「Kimi Code 会话迁移」插件条目插进 profile。
+- insert:
+    - id: dsh-kimi-bridge
+      name: '@zhuobichen/dsh-kimi-bridge'
