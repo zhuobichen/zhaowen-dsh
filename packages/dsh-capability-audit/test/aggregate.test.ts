@@ -224,3 +224,52 @@ test('12 skill 的成本与 token 进入报告；按画像拆分', () => {
   assert.equal(watch.byProfile.code.opportunities, 1)
   assert.equal(r.totals.tokens, 5000)
 })
+
+test('13 上下文成本在"最后一次出现在清单"处停止累加', () => {
+  const s = session('s1', {
+    availableSkills: new Map([['watch', t0]]),
+    lastSeenSkills: new Map([['watch', t0 + 10 * HOUR]]),
+    skillChars: new Map([['watch', { sum: 250, n: 1 }]]),
+    msgs: [
+      { time: t0 + HOUR, text: '随便聊聊' }, // 窗口内
+      { time: t0 + 20 * HOUR, text: '卸载之后的消息' }, // 窗口外，不计成本
+    ],
+  })
+  const r = aggregate([s], { installedSkills: [] })
+  const watch = r.skills.find((x) => x.name === 'watch')
+  assert.equal(watch.contextCost.turns, 1, '卸载后不应继续计费')
+  assert.equal(watch.lastAvailableAt, t0 + 10 * HOUR)
+})
+
+test('14 失败样本随工具一起返回', () => {
+  const s = session('s1', {
+    calls: [{ time: t0, name: 'web_fetch', callId: 'f1', args: {}, turn: 1, step: 1 }],
+    results: [{ time: t0 + 100, callId: 'f1', ok: false, text: 'Unable to verify if domain example.com is safe to fetch' }],
+  })
+  const r = aggregate([s])
+  const web = r.tools.find((x) => x.key === 'web_fetch')
+  assert.equal(web.failed, 1)
+  assert.equal(web.failureSamples.length, 1)
+  assert.ok(web.failureSamples[0].excerpt.includes('Unable to verify'))
+})
+
+test('15 examples 只按需返回，且只给"没触发"的会话', () => {
+  const s1 = session('s1', {
+    availableSkills: new Map([['zhihu', t0]]),
+    msgs: [{ time: t0 + HOUR, text: '去知乎看看这个问题怎么答' }],
+  })
+  const s2 = session('s2', {
+    availableSkills: new Map([['zhihu', t0]]),
+    msgs: [{ time: t0 + HOUR, text: '知乎那个回答不错' }],
+    calls: [{ time: t0 + 2 * HOUR, name: 'skill', callId: 'z1', args: { name: 'zhihu' }, turn: 1, step: 1 }],
+    results: [{ time: t0 + 2 * HOUR + 10, callId: 'z1', ok: true, text: '' }],
+  })
+  const without = aggregate([s1, s2], { installedSkills: ['zhihu'] })
+  assert.equal(without.skills.find((x) => x.name === 'zhihu').examples, undefined, '默认不返回例句')
+
+  const withEx = aggregate([s1, s2], { installedSkills: ['zhihu'], examples: true })
+  const zhihu = withEx.skills.find((x) => x.name === 'zhihu')
+  assert.equal(zhihu.examples.length, 1)
+  assert.equal(zhihu.examples[0].sessionId, 's1')
+  assert.ok(zhihu.examples[0].text.includes('知乎'))
+})

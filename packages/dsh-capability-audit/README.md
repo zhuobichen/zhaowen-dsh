@@ -35,7 +35,20 @@
 dsh_capability_audit({ format: "text" })
 dsh_capability_audit({ format: "json", refresh: true })
 dsh_capability_audit({ staleDays: 30, slowMs: 120000 })
+dsh_capability_audit({ examples: true })
 ```
+
+### 三个新字段
+
+| 字段 | 说明 |
+|---|---|
+| `lastAvailableAt` | 该 skill 最后一次出现在清单里的时间。**成本窗口在它处停止**——卸载后不该继续计费 |
+| `examples` | 每个 skill 最多 5 条"命中但没调用"的用户原话，**截取命中词附近**（不是句首），用来判断是关键词太宽还是真漏触发 |
+| `failureSamples` | 每个工具/MCP 最多 3 条失败原文 + 分类；光有分类看不出该修哪里 |
+
+### 系统消息已排除
+
+`background job ...`、`<task-notification>`、`<goal_round>`、`This session is being continued...` 这类**不是用户意图**的消息会被过滤，否则机会数系统性虚高（实测虚高 30–60%）。清单块仍照常读取——那是安装事实，不是意图。
 
 ## 判定规则
 

@@ -95,6 +95,7 @@ const bucket = (map, key) => {
       fail: 0,
       durations: [],
       errorTypes: new Map(),
+      failures: [],
       sessions: new Set(),
       families: new Map(),
       first: Infinity,
@@ -168,6 +169,7 @@ export function aggregate(sessions, options = {}) {
   const mcp = new Map()
   const skillCalls = new Map()
   const skillSeen = new Map()
+  const skillLastSeen = new Map()
   const attribution = new Map()
   const profileOfSession = new Map()
   const tokensBySession = new Map()
@@ -180,6 +182,10 @@ export function aggregate(sessions, options = {}) {
     for (const [name, t] of s.availableSkills ?? []) {
       const prev = skillSeen.get(name)
       if (prev === undefined || t < prev) skillSeen.set(name, t)
+    }
+    for (const [name, t] of s.lastSeenSkills ?? []) {
+      const prev = skillLastSeen.get(name)
+      if (prev === undefined || t > prev) skillLastSeen.set(name, t)
     }
 
     profileOfSession.set(s.sessionId, profileOf(s.calls))
@@ -242,13 +248,27 @@ export function aggregate(sessions, options = {}) {
         b.fail++
         const kind = classifyError(r.text)
         b.errorTypes.set(kind, (b.errorTypes.get(kind) ?? 0) + 1)
+        // 只留 3 条原文：光有分类看不出该修哪里
+        if (b.failures.length < 3) {
+          b.failures.push({ kind, excerpt: String(r.text ?? '').slice(0, 200) })
+        }
       }
       if (r.time && p.time) b.durations.push(Math.max(0, r.time - p.time))
       pending.delete(r.callId)
     }
   }
 
-  const skills = buildSkillRows(sessions, skillCalls, skillSeen, alias, options.installedSkills, attribution, profileOfSession)
+  const skills = buildSkillRows(
+    sessions,
+    skillCalls,
+    skillSeen,
+    skillLastSeen,
+    alias,
+    options.installedSkills,
+    attribution,
+    profileOfSession,
+    options.examples === true,
+  )
 
   return {
     totals: {
@@ -286,7 +306,7 @@ function summarizeProfiles(sessions, profileOfSession, tokensBySession) {
   return [...map.entries()].map(([profile, v]) => ({ profile, ...v })).sort((a, b) => b.sessions - a.sessions)
 }
 
-function buildSkillRows(sessions, skillCalls, skillSeen, alias, installedSkills, attribution, profileOfSession) {
+function buildSkillRows(sessions, skillCalls, skillSeen, skillLastSeen, alias, installedSkills, attribution, profileOfSession, withExamples) {
   const names = new Set([...skillSeen.keys(), ...skillCalls.keys(), ...(installedSkills ?? [])])
 
   const charsByName = new Map()
@@ -302,21 +322,40 @@ function buildSkillRows(sessions, skillCalls, skillSeen, alias, installedSkills,
   const rows = []
   for (const name of names) {
     const birth = skillSeen.get(name) ?? 0
+    // 成本窗口的终点：最后一次出现在清单里的时间（卸载之后不该继续计费）
+    const retiredAt = skillLastSeen.get(name) ?? Infinity
     const words = [name, ...(alias[name] ?? [])].map((w) => String(w).toLowerCase())
 
     let turnsAfterBirth = 0
     const oppByProfile = new Map()
     const trigByProfile = new Map()
+    const examples = []
     for (const s of sessions) {
       const profile = profileOfSession.get(s.sessionId) ?? 'empty'
       let hit = false
+      let sample = null
+      const calledHere = skillCalls.get(name)?.sessions.has(s.sessionId) === true
       for (const m of s.msgs ?? []) {
         if (m.time < birth) continue
-        turnsAfterBirth++
-        if (!hit && words.some((w) => w && stripCatalogs(m.text).toLowerCase().includes(w))) hit = true
+        if (m.time <= retiredAt) turnsAfterBirth++
+        if (!hit && words.some((w) => w && stripCatalogs(m.text).toLowerCase().includes(w))) {
+          hit = true
+          if (!calledHere) {
+            // 截取命中词附近，而不是句首——否则看不出为什么被匹配上
+            const cleaned = stripCatalogs(m.text).replace(/\s+/g, ' ').trim()
+            const lower = cleaned.toLowerCase()
+            const hitWord = words.find((w) => w && lower.includes(w)) ?? ''
+            const at = hitWord === '' ? 0 : lower.indexOf(hitWord)
+            const from = Math.max(0, at - 40)
+            sample = (from > 0 ? '…' : '') + cleaned.slice(from, from + 160)
+          }
+        }
       }
       if (hit) oppByProfile.set(profile, (oppByProfile.get(profile) ?? 0) + 1)
-      if (skillCalls.get(name)?.sessions.has(s.sessionId) === true) {
+      if (hit && !calledHere && sample !== null && examples.length < 5) {
+        examples.push({ sessionId: s.sessionId, text: sample })
+      }
+      if (calledHere) {
         trigByProfile.set(profile, (trigByProfile.get(profile) ?? 0) + 1)
       }
     }
@@ -342,8 +381,10 @@ function buildSkillRows(sessions, skillCalls, skillSeen, alias, installedSkills,
       missed: Math.max(0, opp - trig),
       triggerRate: opp === 0 ? null : round(trig / opp),
       lastUsedAt: skillCalls.get(name)?.last || undefined,
+      lastAvailableAt: Number.isFinite(retiredAt) ? retiredAt : undefined,
       installed: (installedSkills ?? []).includes(name),
       byProfile,
+      ...(withExamples ? { examples } : {}),
       attribution: attribution.get(name) ?? { loadedTurns: 0, callsAfterLoad: 0, tokensAfterLoad: 0 },
       contextCost:
         tokensPerTurn === null
@@ -373,6 +414,7 @@ function tableOf(map) {
       p50Ms: percentile(v.durations, 0.5),
       p95Ms: percentile(v.durations, 0.95),
       errorTypes: Object.fromEntries([...v.errorTypes.entries()].sort((a, b) => b[1] - a[1])),
+      failureSamples: v.failures,
       sessions: v.sessions.size,
       families: Object.fromEntries(v.families),
       firstUsedAt: Number.isFinite(v.first) ? v.first : undefined,

@@ -83,6 +83,23 @@ function parseArgs(raw) {
   }
 }
 
+/** 判断一条 user/message 是不是系统注入的（作业通知、压缩摘要、goal 轮次等），
+ *  这些不是"用户意图"，拿去算 skill 机会会系统性虚高。 */
+export function isSystemInjected(body) {
+  const t = String(body ?? '').trimStart()
+  if (t === '') return true
+  const markers = [
+    '<task-notification>',
+    '<system-reminder>',
+    '<goal_round>',
+    '<available_skills>',
+    'background job ',
+    'This session is being continued from a previous conversation',
+    'The conversation below is a summary',
+  ]
+  return markers.some((m) => t.startsWith(m) || t.includes(m))
+}
+
 /** 解析一条会话文本 → 紧凑结构 */
 export function parseSession(text) {
   const msgs = []
@@ -90,6 +107,7 @@ export function parseSession(text) {
   const results = []
   const usages = [] // 每步 token 用量：{time,turn,step,total}
   const availableSkills = new Map() // name -> first seen ms
+  const lastSeenSkills = new Map() // name -> 最后一次出现在清单里的 ms（卸载后成本应停止累加）
   const skillChars = new Map() // name -> { sum, n }（清单里那一行的字符数）
 
   for (const line of text.split('\n')) {
@@ -107,7 +125,9 @@ export function parseSession(text) {
       const body = Array.isArray(row.data?.content)
         ? row.data.content.map((c) => c?.text ?? '').join('')
         : ''
-      if (body) msgs.push({ time, text: body })
+      // 仍然读清单（那是安装事实），但只把真人消息算进"机会"
+      const realUser = !isSystemInjected(body)
+      if (body && realUser) msgs.push({ time, text: body })
       const block = body.match(/<available_skills>([\s\S]*?)<\/available_skills>/)
       if (block) {
         for (const line of block[1].split('\n')) {
@@ -116,6 +136,8 @@ export function parseSession(text) {
           const name = m[1]
           const prev = availableSkills.get(name)
           if (prev === undefined || time < prev) availableSkills.set(name, time)
+          const last = lastSeenSkills.get(name)
+          if (last === undefined || time > last) lastSeenSkills.set(name, time)
           // 这一行就是每轮要重复出现的成本（描述越长越贵）
           const rec = skillChars.get(name) ?? { sum: 0, n: 0 }
           rec.sum += line.trim().length
@@ -142,7 +164,7 @@ export function parseSession(text) {
     }
   }
 
-  return { msgs, calls, results, usages, availableSkills, skillChars }
+  return { msgs, calls, results, usages, availableSkills, lastSeenSkills, skillChars }
 }
 
 /** 扫全部会话 */

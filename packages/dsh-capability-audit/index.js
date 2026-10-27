@@ -57,14 +57,14 @@ function installedSkills() {
   return [...new Set(names)]
 }
 
-function buildReport(root, refresh) {
+function buildReport(root, refresh, withExamples = false) {
   const now = Date.now()
   if (!refresh && cache.report !== undefined && cache.root === root && now - cache.at < CACHE_TTL_MS) {
     return { report: cache.report, cached: true }
   }
   const scanned = scanSessions(root)
   const skills = installedSkills()
-  const report = aggregate(scanned.sessions, { installedSkills: skills })
+  const report = aggregate(scanned.sessions, { installedSkills: skills, examples: withExamples })
   report.health = {
     scannedFiles: scanned.totalFiles,
     parseFailures: scanned.failed,
@@ -158,6 +158,10 @@ export function apply(ctx) {
         staleDays: { type: 'number', description: '可选：MCP 多久没用算"停用"（默认 21 天）' },
         slowMs: { type: 'number', description: '可选：MCP 均耗时超过多少算慢（默认 60000ms）' },
         topSkills: { type: 'number', description: '可选：skills 表最多返回多少条（默认 50）' },
+        examples: {
+          type: 'boolean',
+          description: '可选：为"有机会但没触发"的 skill 附最多 5 条用户原话（判断是关键词太宽还是真漏触发）',
+        },
       },
       output: {
         schema: {
@@ -174,7 +178,7 @@ export function apply(ctx) {
         }
         let built
         try {
-          built = buildReport(root, args?.refresh === true)
+          built = buildReport(root, args?.refresh === true, args?.examples === true)
         } catch (error) {
           return { ok: false, error: `扫描失败：${error?.message ?? error}` }
         }
