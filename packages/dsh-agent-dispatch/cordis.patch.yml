@@ -1,0 +1,4 @@
+# dsh-agent-dispatch 的 bundle patch：把「任务派发决策」插件条目插进 profile。
+- insert:
+    - id: dsh-agent-dispatch
+      name: '@zhuobichen/dsh-agent-dispatch'

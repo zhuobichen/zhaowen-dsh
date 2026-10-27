@@ -1,0 +1,40 @@
+{
+  "name": "@zhuobichen/dsh-capability-audit",
+  "version": "0.1.0",
+  "description": "能力体检：skill 触发率、MCP 健康度、工具成功率，附建议（DSH 宿主插件，纯 ESM 无构建）",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./scan": "./scan.js",
+    "./aggregate": "./aggregate.js"
+  },
+  "files": [
+    "index.js",
+    "scan.js",
+    "aggregate.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "observability",
+    "skill-audit",
+    "mcp"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.15.0",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  }
+}

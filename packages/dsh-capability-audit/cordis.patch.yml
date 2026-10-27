@@ -1,0 +1,4 @@
+# dsh-capability-audit 的 bundle patch：把「能力体检」插件条目插进 profile。
+- insert:
+    - id: dsh-capability-audit
+      name: '@zhuobichen/dsh-capability-audit'

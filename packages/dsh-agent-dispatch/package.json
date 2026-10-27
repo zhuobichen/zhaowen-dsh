@@ -1,0 +1,38 @@
+{
+  "name": "@zhuobichen/dsh-agent-dispatch",
+  "version": "0.1.0",
+  "description": "决定任务该单 Agent 做还是派子 Agent：带成本量级与渐进式披露路线（DSH 宿主插件，纯 ESM 无构建）",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./decide": "./decide.js"
+  },
+  "files": [
+    "index.js",
+    "decide.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "subagent",
+    "dispatch",
+    "context-engineering"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.15.0",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
+  }
+}
