@@ -26,26 +26,26 @@ const OUTPUT = {
 	schema: {
 		type: 'object',
 		additionalProperties: true,
-		properties: {
-			ok: { type: 'boolean', required: true },
-			mode: { type: 'string', description: 'single | single+progressive | subagents' },
-			confidence: { type: 'number' },
-			summary: { type: 'string' },
-			gates: { type: 'array', description: '三个门槛各自的判定与原因' },
-			reasons: { type: 'array' },
-			risks: { type: 'array' },
-			plan: { type: 'object' },
-			estimates: { type: 'object' },
-			signals: { type: 'object' },
-			error: { type: 'string' },
-		},
+		properties: { ok: { type: 'boolean', required: true } },
 	},
+	render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
 }
 
 const MODE_TEXT = {
 	[MODES.SINGLE]: '单 Agent 直接做',
 	[MODES.PROGRESSIVE]: '单 Agent + 渐进式披露（按需检索，别一次灌全文）',
 	[MODES.SUBAGENTS]: '拆给多个子 Agent（门槛成立，注意交接有损）',
+}
+
+/** 工具输出必须是无损 JSON：丢掉 undefined，非有限数换成 null */
+function toPlain(value) {
+	return JSON.parse(
+		JSON.stringify(value, (_k, v) => {
+			if (typeof v === 'number' && !Number.isFinite(v)) return null
+			if (typeof v === 'undefined') return undefined
+			return v
+		}) ?? 'null',
+	)
 }
 
 function toAnswerBody(result) {
@@ -96,6 +96,7 @@ export function apply(ctx) {
 				task: { type: 'string', required: true, description: '任务原话或你的复述：做什么、涉及多少处材料、要交付什么。' },
 				signals: {
 					type: 'object',
+					additionalProperties: true,
 					description:
 						'可选：显式覆盖推断信号。' +
 						'measuredDegradation(布尔,门槛①的证据) / independentTargets(数) / concurrency(布尔) / wallClockPressure(布尔) / ' +
@@ -103,7 +104,7 @@ export function apply(ctx) {
 						"detailSensitive('low'|'medium'|'high') / sequential(布尔) / sharedContext(布尔) / interactive(布尔) / " +
 						'breadth(数) / contextLoad(预估 tokens) / summaryOnly(布尔)。',
 				},
-				cost: { type: 'object', description: '可选：parentOverhead / childOverhead / summaryRatio / latencyPenalty。' },
+				cost: { type: 'object', additionalProperties: true, description: '可选：parentOverhead / childOverhead / summaryRatio / latencyPenalty。' },
 			},
 			output: OUTPUT,
 			execute: async (args) => {
@@ -116,12 +117,12 @@ export function apply(ctx) {
 					return { ok: false, mode: MODES.SINGLE, error: `决策失败：${failure?.message ?? failure}` }
 				}
 				const top = result.reasons.slice(0, 2).map((r) => r.detail).join('；')
-				return {
+				return toPlain({
 					ok: true,
 					...result,
 					summary: top === '' ? MODE_TEXT[result.mode] : `${MODE_TEXT[result.mode]} —— ${top}`,
 					answer: toAnswerBody(result),
-				}
+				})
 			},
 		}),
 	)
@@ -133,8 +134,11 @@ export function apply(ctx) {
 				'返回派发判定表：保留子 Agent 的三个门槛、单 Agent/渐进式披露的适用面、五大失败模式、反模式、四步迁移路径。' +
 				'不想调用决策工具时照这张表判断。',
 			parameters: {},
-			output: { schema: { type: 'object', additionalProperties: true, properties: { ok: { type: 'boolean', required: true } } } },
-			execute: async () => ({ ok: true, ...rubric() }),
+			output: {
+				schema: { type: 'object', additionalProperties: true, properties: { ok: { type: 'boolean', required: true } } },
+				render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+			},
+			execute: async () => toPlain({ ok: true, ...rubric() }),
 		}),
 	)
 }

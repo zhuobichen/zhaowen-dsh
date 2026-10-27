@@ -159,6 +159,14 @@ export function apply(ctx) {
         slowMs: { type: 'number', description: '可选：MCP 均耗时超过多少算慢（默认 60000ms）' },
         topSkills: { type: 'number', description: '可选：skills 表最多返回多少条（默认 50）' },
       },
+      output: {
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+          properties: { ok: { type: 'boolean', required: true } },
+        },
+  render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+      },
       execute: async (args) => {
         const root = sessionsRoot(args?.root)
         if (!existsSync(root)) {
