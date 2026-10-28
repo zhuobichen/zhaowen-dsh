@@ -1517,7 +1517,41 @@ export function apply(ctx, config = {}) {
 			return { status: 200, body: { ok: true, sessionId, ...(typeof target.title === 'string' ? { title: target.title } : {}) } }
 		}
 
-		if (op === 'createSession') {
+		if (op === 'tail') {
+		const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : ''
+		const limit = Number.isFinite(Number(body.limit)) ? Math.min(Math.max(Math.trunc(Number(body.limit)), 1), 60) : 20
+
+		if (sessionId === '') {
+			return { status: 400, body: { ok: false, code: 'MISSING_SESSION_ID', message: 'sessionId 必填。' } }
+		}
+
+		const target = await findSession(ctx, sessionId, signal)
+
+		if (!target.found) {
+			return {
+				status: 404,
+				body: { ok: false, code: target.checked ? 'SESSION_NOT_FOUND' : 'SESSION_LOOKUP_UNAVAILABLE', sessionId },
+			}
+		}
+
+		const events = await chatEventsOf(ctx, sessionId, signal)
+
+		if (events === undefined) {
+			return { status: 502, body: { ok: false, code: 'TRANSCRIPT_UNAVAILABLE', sessionId, message: '读不到该会话的消息。' } }
+		}
+
+		return {
+			status: 200,
+			body: {
+				ok: true,
+				sessionId,
+				...(typeof target.title === 'string' ? { title: target.title } : {}),
+				messages: messagesOfEvents(events, limit),
+			},
+		}
+	}
+
+	if (op === 'createSession') {
 		if (typeof controller.create !== 'function') {
 			return { status: 503, body: { ok: false, code: 'CREATE_UNAVAILABLE', message: '当前部署没有 sessionController.create。' } }
 		}
@@ -1582,9 +1616,10 @@ export function apply(ctx, config = {}) {
 			return { status: 502, body: { ok: false, code: 'WORKSPACE_CREATE_FAILED', message: messageOf(failure) } }
 		}
 
+		// create 的返回是 { workspace: { workspaceId, ... }, created: boolean }
 		const workspaceId =
 			created !== null && typeof created === 'object'
-				? created.workspaceId ?? created.id ?? (typeof created.workspace === 'object' ? created.workspace?.id : undefined)
+				? created.workspace?.workspaceId ?? created.workspaceId ?? created.id
 				: undefined
 
 		if (typeof workspaceId !== 'string' || workspaceId === '') {
