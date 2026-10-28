@@ -1517,7 +1517,96 @@ export function apply(ctx, config = {}) {
 			return { status: 200, body: { ok: true, sessionId, ...(typeof target.title === 'string' ? { title: target.title } : {}) } }
 		}
 
-		return { status: 400, body: { ok: false, code: 'UNKNOWN_OP', message: 'op 只支持 list / start / send。', op } }
+		if (op === 'createSession') {
+		if (typeof controller.create !== 'function') {
+			return { status: 503, body: { ok: false, code: 'CREATE_UNAVAILABLE', message: '当前部署没有 sessionController.create。' } }
+		}
+
+		const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId.trim() : ''
+		const cwd = typeof body.cwd === 'string' ? body.cwd.trim() : ''
+		const agentPreset = typeof body.agentPreset === 'string' ? body.agentPreset.trim() : ''
+		const request = {}
+
+		if (workspaceId !== '') request.workspaceId = workspaceId
+		else if (cwd !== '') request.cwd = cwd
+		if (agentPreset !== '') request.agentPreset = agentPreset
+
+		let created
+
+		try {
+			created = await controller.create(request)
+		} catch (failure) {
+			return { status: 502, body: { ok: false, code: 'CREATE_FAILED', message: messageOf(failure) } }
+		}
+
+		const sessionId = created === null || typeof created !== 'object' ? undefined : created.sessionId
+
+		if (typeof sessionId !== 'string' || sessionId === '') {
+			return { status: 502, body: { ok: false, code: 'CREATE_FAILED', message: 'create 没有返回 sessionId。' } }
+		}
+
+		let title
+		const wantedTitle = typeof body.title === 'string' ? body.title.trim() : ''
+
+		if (wantedTitle !== '' && typeof controller.rename === 'function') {
+			try {
+				const renamed = await controller.rename({ sessionId, title: wantedTitle })
+
+				title = renamed !== null && typeof renamed === 'object' && typeof renamed.title === 'string' ? renamed.title : wantedTitle
+			} catch {
+				// 改名失败不影响会话本身
+			}
+		}
+
+		return { status: 200, body: { ok: true, sessionId, ...(title === undefined ? {} : { title }) } }
+	}
+
+	if (op === 'createWorkspace') {
+		const targetPath = typeof body.path === 'string' ? body.path.trim() : ''
+
+		if (targetPath === '') {
+			return { status: 400, body: { ok: false, code: 'MISSING_PATH', message: 'path 必填。' } }
+		}
+
+		const workspaceController = serviceOf(ctx, 'workspaceController')
+
+		if (workspaceController === undefined || typeof workspaceController.create !== 'function') {
+			return { status: 503, body: { ok: false, code: 'WORKSPACE_UNAVAILABLE', message: '当前部署没有 workspaceController.create。' } }
+		}
+
+		let created
+
+		try {
+			created = await workspaceController.create({ path: targetPath })
+		} catch (failure) {
+			return { status: 502, body: { ok: false, code: 'WORKSPACE_CREATE_FAILED', message: messageOf(failure) } }
+		}
+
+		const workspaceId =
+			created !== null && typeof created === 'object'
+				? created.workspaceId ?? created.id ?? (typeof created.workspace === 'object' ? created.workspace?.id : undefined)
+				: undefined
+
+		if (typeof workspaceId !== 'string' || workspaceId === '') {
+			return { status: 502, body: { ok: false, code: 'WORKSPACE_CREATE_FAILED', message: 'create 没有返回 workspaceId。' } }
+		}
+
+		let title
+		const wanted = typeof body.title === 'string' ? body.title.trim() : ''
+
+		if (wanted !== '' && typeof workspaceController.rename === 'function') {
+			try {
+				await workspaceController.rename({ workspaceId, title: wanted })
+				title = wanted
+			} catch {
+				// 改名失败不影响工作区创建
+			}
+		}
+
+		return { status: 200, body: { ok: true, workspaceId, ...(title === undefined ? {} : { title }) } }
+	}
+
+	return { status: 400, body: { ok: false, code: 'UNKNOWN_OP', message: 'op 只支持 list / start / send / createSession / createWorkspace。', op } }
 	}
 
 	/** `/command` 的可选共享密钥：设了环境变量才校验，没设就只靠「仅回环可访问」。 */
