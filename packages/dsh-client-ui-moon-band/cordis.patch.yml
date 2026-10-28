@@ -1,7 +1,0 @@
-# dsh-client-ui-moon-band 的 bundle patch。
-#
-# 客户端那半由 `dsh.client.platform: web` + `exports["./client"]` 声明，不需要
-# 额外的注册行；这里插的是让包在宿主组合树里占一行的宿主半身。
-- insert:
-    - id: moon-band-ui
-      name: '@zhuobichen/dsh-client-ui-moon-band'

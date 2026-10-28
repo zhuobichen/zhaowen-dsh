@@ -1,7 +1,0 @@
-# dsh-client-ui-novel-pane 的 bundle patch。
-#
-# 浏览器那半靠 `dsh.client.platform: web` + `exports["./client"]` 被发现；
-# 这里插的是让包在宿主组合树里占一行的宿主半身。
-- insert:
-    - id: novel-pane-ui
-      name: '@zhuobichen/dsh-client-ui-novel-pane'

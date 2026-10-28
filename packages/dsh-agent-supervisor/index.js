@@ -1393,6 +1393,136 @@ export function apply(ctx, config = {}) {
 	// 为什么是路由而不是工具：面板是浏览器里的东西，它没法「调用工具」——
 	// 要走 HTTP。这两条路由都只碰管理Bot会话本身：GET 读转录、POST 往队列里塞一句话，
 	// 都不删、不取消、不改会话内容以外的状态。
+	/**
+	 * `POST /command` 的实现：绕过模型，直接调 sessionController。
+	 *
+	 * 给桥接用，让手机端能列会话 / 新建会话 / 往指定会话投递任务，
+	 * 不经过「管理Bot」那层自然语言理解。op 只支持 list / start / send。
+	 *
+	 * @returns `{ status, body }`，由调用方写回 HTTP。
+	 */
+	const runCommand = async (ctx, body, signal) => {
+		const op = typeof body.op === 'string' ? body.op.trim() : ''
+		const controller = serviceOf(ctx, 'sessionController')
+
+		if (controller === undefined) {
+			return { status: 503, body: { ok: false, code: 'SESSION_CONTROLLER_UNAVAILABLE', message: '当前部署没有 sessionController。' } }
+		}
+
+		if (op === 'list') {
+			let rows
+
+			try {
+				rows = await listRowsOf(ctx, signal)
+			} catch (failure) {
+				return { status: 502, body: { ok: false, code: 'LIST_FAILED', message: messageOf(failure) } }
+			}
+
+			const sessions = []
+
+			for (const row of rows === undefined ? [] : rows) {
+				if (row === null || typeof row !== 'object' || typeof row.sessionId !== 'string') continue
+
+				const title =
+					row.title !== undefined && typeof row.title === 'string'
+						? row.title
+						: titleOfValues(row.projections === undefined ? undefined : row.projections.values)
+				const updatedAt = isoOf(row.updatedAt)
+
+				sessions.push({
+					sessionId: row.sessionId,
+					...(typeof title === 'string' && title !== '' ? { title } : {}),
+					...(updatedAt === undefined ? {} : { updatedAt }),
+					running: row.running === true,
+				})
+			}
+
+			return { status: 200, body: { ok: true, count: sessions.length, sessions } }
+		}
+
+		if (op === 'start') {
+			const text = typeof body.text === 'string' ? body.text : ''
+
+			if (text.trim() === '') {
+				return { status: 400, body: { ok: false, code: 'EMPTY_TEXT', message: 'text 不能是空的。' } }
+			}
+
+			if (typeof controller.create !== 'function') {
+				return { status: 503, body: { ok: false, code: 'CREATE_UNAVAILABLE', message: '当前部署没有 sessionController.create。' } }
+			}
+
+			let sessionId
+
+			try {
+				const created = await controller.create(typeof body.cwd === 'string' && body.cwd !== '' ? { cwd: body.cwd } : {})
+
+				sessionId = created === null || typeof created !== 'object' ? undefined : created.sessionId
+			} catch (failure) {
+				return { status: 502, body: { ok: false, code: 'CREATE_FAILED', message: messageOf(failure) } }
+			}
+
+			if (typeof sessionId !== 'string' || sessionId === '') {
+				return { status: 502, body: { ok: false, code: 'CREATE_FAILED', message: 'create 没有返回 sessionId。' } }
+			}
+
+			let title
+			const wanted = typeof body.title === 'string' ? body.title.trim() : ''
+
+			if (wanted !== '' && typeof controller.rename === 'function') {
+				try {
+					const renamed = await controller.rename({ sessionId, title: wanted })
+
+					title = renamed !== null && typeof renamed === 'object' && typeof renamed.title === 'string' ? renamed.title : wanted
+				} catch {
+					// 改名失败不影响任务投递
+				}
+			}
+
+			try {
+				await controller.prompt({ requestId: randomUUID(), sessionId, mode: 'queue', content: [{ type: 'text', text }] }, signal)
+			} catch (failure) {
+				return { status: 502, body: { ok: false, code: 'PROMPT_FAILED', sessionId, message: messageOf(failure) } }
+			}
+
+			return { status: 200, body: { ok: true, sessionId, ...(title === undefined ? {} : { title }) } }
+		}
+
+		if (op === 'send') {
+			const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : ''
+			const text = typeof body.text === 'string' ? body.text : ''
+
+			if (sessionId === '') {
+				return { status: 400, body: { ok: false, code: 'MISSING_SESSION_ID', message: 'sessionId 必填。' } }
+			}
+
+			if (text.trim() === '') {
+				return { status: 400, body: { ok: false, code: 'EMPTY_TEXT', message: 'text 不能是空的。' } }
+			}
+
+			const target = await findSession(ctx, sessionId, signal)
+
+			if (!target.found) {
+				return {
+					status: 404,
+					body: { ok: false, code: target.checked ? 'SESSION_NOT_FOUND' : 'SESSION_LOOKUP_UNAVAILABLE', sessionId },
+				}
+			}
+
+			try {
+				await controller.prompt({ requestId: randomUUID(), sessionId, mode: 'queue', content: [{ type: 'text', text }] }, signal)
+			} catch (failure) {
+				return { status: 502, body: { ok: false, code: 'PROMPT_FAILED', sessionId, message: messageOf(failure) } }
+			}
+
+			return { status: 200, body: { ok: true, sessionId, ...(typeof target.title === 'string' ? { title: target.title } : {}) } }
+		}
+
+		return { status: 400, body: { ok: false, code: 'UNKNOWN_OP', message: 'op 只支持 list / start / send。', op } }
+	}
+
+	/** `/command` 的可选共享密钥：设了环境变量才校验，没设就只靠「仅回环可访问」。 */
+	const commandKeyOf = () => (typeof process.env.DSH_SUPERVISOR_KEY === 'string' ? process.env.DSH_SUPERVISOR_KEY.trim() : '')
+
 	if (settings.web !== false && typeof ctx.inject === 'function') {
 		ctx.inject(['webServer'], (webCtx) => {
 			webCtx.effect(() =>
@@ -1414,6 +1544,48 @@ export function apply(ctx, config = {}) {
 							path = new URL(String(req.url === undefined || req.url === null ? '/' : req.url), 'http://localhost').pathname.replace(ROUTE, '') || '/'
 						} catch {
 							path = '/'
+						}
+
+						if (path === '/command') {
+							const cmdMethod = String(req.method === undefined || req.method === null ? 'GET' : req.method).toUpperCase()
+
+							if (cmdMethod !== 'POST') {
+								json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: '/command 只支持 POST。' })
+
+								return
+							}
+
+							const required = commandKeyOf()
+
+							if (required !== '' && String(req.headers['x-supervisor-key'] === undefined ? '' : req.headers['x-supervisor-key']) !== required) {
+								json(401, { ok: false, code: 'UNAUTHORIZED', message: '缺少或错误的 x-supervisor-key。' })
+
+								return
+							}
+
+							let payload
+
+							try {
+								const raw = await readRequestBody(req)
+
+								payload = raw === '' ? {} : JSON.parse(raw)
+							} catch {
+								json(400, { ok: false, code: 'BAD_JSON', message: 'body 必须是 JSON。' })
+
+								return
+							}
+
+							let outcome
+
+							try {
+								outcome = await runCommand(ctx, payload === null || typeof payload !== 'object' ? {} : payload, new AbortController().signal)
+							} catch (failure) {
+								outcome = { status: 500, body: { ok: false, code: 'COMMAND_FAILED', message: messageOf(failure) } }
+							}
+
+							json(outcome.status === undefined ? 200 : outcome.status, outcome.body)
+
+							return
 						}
 
 						if (path !== '/chat') {
