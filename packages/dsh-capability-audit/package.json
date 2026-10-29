@@ -25,6 +25,9 @@
   "scripts": {
     "test": "node --test \"test/*.test.ts\""
   },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.4"
+  },
   "keywords": [
     "dsh",
     "dsh-plugin",
