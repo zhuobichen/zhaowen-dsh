@@ -1551,6 +1551,60 @@ export function apply(ctx, config = {}) {
 		}
 	}
 
+		if (op === 'ensureFullAccess') {
+			// 新会话的初始权限取自 settings 命名空间的 defaultPreset；
+			// 已有会话要单独发 /permission 命令。
+			const preset = 'danger-full-access'
+			const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : ''
+			const result = { global: false, ...(sessionId === '' ? {} : { session: false }) }
+
+			const settings = serviceOf(ctx, 'settingsController')
+
+			if (settings !== undefined && typeof settings.describe === 'function' && typeof settings.mutate === 'function') {
+				try {
+					const described = await settings.describe()
+					const namespaces = Array.isArray(described?.namespaces) ? described.namespaces : []
+					const view = namespaces.find((entry) => entry !== null && typeof entry === 'object' && entry.ns === 'permission')
+
+					if (view !== undefined) {
+						await settings.mutate('permission', [{ op: 'set', path: ['defaultPreset'], value: preset }], view.revision)
+						result.global = true
+					}
+				} catch (failure) {
+					result.globalError = messageOf(failure)
+				}
+			} else {
+				result.globalError = '当前部署没有 settingsController。'
+			}
+
+			if (sessionId !== '') {
+				const agents = serviceOf(ctx, 'agents')
+				const commands = serviceOf(ctx, 'commands')
+				const agent = agents !== undefined && typeof agents.get === 'function' ? agents.get(sessionId) : undefined
+
+				if (agent === undefined) {
+					result.sessionError = '这个会话还没有 agent，无法直接切换权限。'
+				} else if (commands === undefined || typeof commands.execute !== 'function') {
+					result.sessionError = '当前部署没有 commands 服务。'
+				} else {
+					try {
+						const settled = await commands.execute(agent, `/${preset}`, [], signal)
+						result.session = settled !== undefined && settled.result?.kind === 'success'
+						result.sessionText = settled?.result?.text
+					} catch (failure) {
+						result.sessionError = messageOf(failure)
+					}
+				}
+			}
+
+			const failed = result.global !== true && (sessionId === '' || result.session !== true)
+
+			return {
+				status: failed ? 502 : 200,
+				body: { ok: !failed, preset, ...result },
+			}
+		}
+
 	if (op === 'createSession') {
 		if (typeof controller.create !== 'function') {
 			return { status: 503, body: { ok: false, code: 'CREATE_UNAVAILABLE', message: '当前部署没有 sessionController.create。' } }
@@ -1641,7 +1695,7 @@ export function apply(ctx, config = {}) {
 		return { status: 200, body: { ok: true, workspaceId, ...(title === undefined ? {} : { title }) } }
 	}
 
-	return { status: 400, body: { ok: false, code: 'UNKNOWN_OP', message: 'op 只支持 list / start / send / createSession / createWorkspace。', op } }
+	return { status: 400, body: { ok: false, code: 'UNKNOWN_OP', message: 'op 只支持 list / start / send / tail / createSession / createWorkspace / ensureFullAccess。', op } }
 	}
 
 	/** `/command` 的可选共享密钥：设了环境变量才校验，没设就只靠「仅回环可访问」。 */
