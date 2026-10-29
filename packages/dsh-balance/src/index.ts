@@ -53,6 +53,27 @@ import type { Reading, Sample } from './types.js'
 /** 路由前缀；客户端那半（本包内的 `client/client.js`）写死了同一个串。 */
 const ROUTE = '/dsh-balance'
 
+/**
+ * 第一次采样的延迟。
+ *
+ * 凭据等待已移进 `keyOf()`（轮询到凭据服务把值准备好），不再需要这里猜一个
+ * 固定时长——保留 0 即可，启动就采样，keyOf 自己等。
+ */
+const BOOT_DELAY_MS = 0
+
+/**
+ * 凭据等待窗口（毫秒）。
+ *
+ * `dsh-credentials-local` 的 `loadInitial()` 是异步的，插件没法 await 它。
+ * 启动瞬间 `resolve()` 只能看到空 refs，于是去读进程环境变量——而用户环境里
+ * 往往有一把 `ANTHROPIC_AUTH_TOKEN`（本地 Claude 中转的 relay token）。
+ * 那把 token 打 `api.deepseek.com` 只会 401。
+ *
+ * 所以这段时间里反复问凭据服务，直到它把文件里的值准备好。
+ * 正常情况下文件读取 <100ms；5 秒是给冷启动/磁盘繁忙留的保底。
+ */
+const CRED_WAIT_MS = 5000
+
 export const name = 'balance'
 
 /** 可调项；都有缺省值，不配也能跑。 */
@@ -166,7 +187,20 @@ export function apply(ctx: any, config: Config = {}): void {
   // 重启之后先把落盘的读数摆到 TUI 那一行上（Web 那边自己拉，不用管）。
   if (state !== null) showInTui(currentReading())
 
-  /** 这条会话的密钥：先问 DSH 的凭据服务，再退回进程环境变量。 */
+  /**
+   * 这条会话的密钥：问凭据服务，再退回进程环境变量。不阻塞——拿不到就
+   * 返回 null，让采样记成 no-key；启动重试会再追一次。
+   *
+   * 为什么不再轮询？
+   *
+   * `dsh-credentials-local` 的 `loadInitial()` 是异步的，插件没法 await 它。
+   * 启动瞬间 `resolve()` 看到空 refs，于是走 `inherited()` 去读进程环境变量——
+   * 如果 `KEY_VARS` 里混进了 `ANTHROPIC_AUTH_TOKEN`（Claude 中转的 relay token），
+   * 它就会被打发给 `api.deepseek.com` → 401。
+   *
+   * 现在 `KEY_VARS` 只有 `DEEPSEEK_API_KEY`（见 balance.ts），所以最坏情况是
+   * 「暂时没有 key」（no-key）而不是「拿错 key」。文件加载完后启动重试会补上。
+   */
   const keyOf = async (): Promise<string | null> => {
     const credentials = ctx.get?.('credentials', false)
 
@@ -182,11 +216,12 @@ export function apply(ctx: any, config: Config = {}): void {
       }
     }
 
-    for (const variable of KEY_VARS) {
-      const value = process.env[variable]
+    // env 退路：也只认 DEEPSEEK_API_KEY。
+    // 用户级 ANTHROPIC_AUTH_TOKEN 通常是本地 Claude 中转的 relay token，
+    // 绝不是 DeepSeek 官方 key，发给 api.deepseek.com 只会 401。
+    const envKey = process.env.DEEPSEEK_API_KEY
 
-      if (typeof value === 'string' && value !== '') return value
-    }
+    if (typeof envKey === 'string' && envKey !== '') return envKey
 
     return null
   }
@@ -353,7 +388,40 @@ export function apply(ctx: any, config: Config = {}): void {
 
   // ---- 定时器 ----------------------------------------------------------
   // 启动就先读一次：新对话／新标签页一打开就有数，不用等满一个 refreshMs。
-  kick()
+  //
+  // `dsh-credentials-local` 的 `loadInitial()` 是异步的，插件没法 await 它。
+  // 启动瞬间可能拿到 no-key（凭据文件还没读进来），所以紧接着补几拍「追读」：
+  // 250ms 一拍，最多 10 拍（2.5 秒），哪一拍拿到 key 就停——文件加载完之后自然
+  // 就有了。追读只覆盖启动这一段，稳定运行靠下面的 refreshMs 定时器。
+
+  /** 启动后追读几拍，直到凭据加载完。 */
+  const bootRetry = (): void => {
+    let attempts = 0
+
+    const timer = setInterval(() => {
+      attempts += 1
+
+      // 拿到了好读数 / 已经试够 10 拍 / 当前有采样在跑 → 不再追
+      if (state?.reading.kind === 'ok' || attempts >= 10 || isSampling) {
+        clearInterval(timer)
+
+        return
+      }
+
+      void sample().catch(() => {})
+    }, 250)
+
+    ;(timer as any).unref?.()
+  }
+
+  const boot = setTimeout(kick, BOOT_DELAY_MS)
+
+  ;(boot as any).unref?.()
+
+  // 紧跟一拍追读：第一拍大概率踩在凭据还没加载好的窗口上。
+  const bootFollowup = setTimeout(bootRetry, 500)
+
+  ;(bootFollowup as any).unref?.()
 
   // 之后按 refreshMs 重读。手动 setInterval 而不是 @cordisjs/plugin-timer：
   // 少一个依赖，卸载时 effect 自己清掉。

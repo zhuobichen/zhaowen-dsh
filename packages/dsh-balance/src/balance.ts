@@ -14,12 +14,18 @@ import type { Reading, Sample } from './types.js'
 export const BALANCE_URL = 'https://api.deepseek.com/user/balance'
 
 /**
- * Where the key is looked for, in order. The session's own key is the one this
- * bills, so it comes first: a session pointed at DeepSeek keeps it in
- * `ANTHROPIC_AUTH_TOKEN` (Claude Code's variable, set in settings `env`), and
- * `DEEPSEEK_API_KEY` is the fallback for when only that one is set.
+ * Where the key is looked for, in order.
+ *
+ * `DEEPSEEK_API_KEY` 是语义上正确的名字，也是 DSH Models 页写进
+ * `$DSH_HOME/.credentials.yaml` 的 ref。
+ *
+ * `ANTHROPIC_AUTH_TOKEN` **已从本列表移除**：
+ * 这个名字在用户环境里往往是 Claude 中转（local relay）的 token，
+ * 指向 `http://127.0.0.1:40004` 之类的代理，发给 `api.deepseek.com`
+ * 只会拿到 401。真正想把 DeepSeek key 叫这个名字的用户极少，
+ * 误伤（中转 token 作为候补 key）代价更高。
  */
-export const KEY_VARS = ['ANTHROPIC_AUTH_TOKEN', 'DEEPSEEK_API_KEY'] as const
+export const KEY_VARS = ['DEEPSEEK_API_KEY'] as const
 
 /** How long between refreshes: the balance moves slowly, and each one is a request. */
 export const REFRESH_MS = 5 * 60 * 1000

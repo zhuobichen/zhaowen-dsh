@@ -542,12 +542,60 @@ describe('/bal 命令', () => {
     const result = await captured.command.handler({})
 
     assert.match(result.text, /DEEPSEEK_API_KEY/)
-    assert.match(result.text, /ANTHROPIC_AUTH_TOKEN/)
+
+    // ANTHROPIC_AUTH_TOKEN 已经不在候选名单里了：用户环境里它往往是
+    // 本地 Claude 中转的 relay token，发给 api.deepseek.com 只会 401。
+    assert.doesNotMatch(result.text, /ANTHROPIC_AUTH_TOKEN/)
 
     const body = bodyOf(await callRoute(captured.route))
 
     assert.equal(body.kind, 'no-key')
     assert.equal(body.amount, null)
+  })
+
+  test('env 里有 ANTHROPIC_AUTH_TOKEN（本地中转的 relay token）时也不拿它当 DeepSeek key', async () => {
+    freshHome()
+
+    const { ctx, captured, setCredential } = makeCtx()
+
+    // 用户环境里就是这么配置的：一把中转 token 挂在 ANTHROPIC_AUTH_TOKEN 上
+    process.env.ANTHROPIC_AUTH_TOKEN = 'sk-local-relay-token'
+    delete process.env.DEEPSEEK_API_KEY
+    setCredential(undefined)
+
+    let asked = 0
+
+    try {
+      await withFetch(
+        async () => {
+          asked += 1
+
+          return answering(ANSWER)
+        },
+        async () => {
+          apply(ctx, { refreshMs: 3_600_000 })
+          await until(() => captured.command !== undefined, '命令注册')
+          await awaitFirstReading(captured.route)
+
+          const result = await captured.command.handler({})
+
+          // 没有真 key → no-key，不是拿中转 token 去打 401
+          assert.match(result.text, /no key/i)
+          assert.doesNotMatch(result.text, /¥16\.65/)
+
+          const body = bodyOf(await callRoute(captured.route))
+
+          assert.equal(body.kind, 'no-key')
+          assert.equal(body.amount, null)
+        },
+      )
+    } finally {
+      if (SAVED_TOKEN === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN
+      else process.env.ANTHROPIC_AUTH_TOKEN = SAVED_TOKEN
+    }
+
+    // 压根没拿这把 token 去请求余额接口
+    assert.equal(asked, 0)
   })
 
   test('HTTP 失败时说状态码，不编一个数字', async () => {

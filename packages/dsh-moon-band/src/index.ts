@@ -35,6 +35,18 @@ export interface Config {
   model?: string
   /** 一次详解的超时，毫秒。缺省 60 秒。 */
   aboutTimeoutMs?: number
+  /**
+   * 推理档位。缺省 `off`。
+   *
+   * 必须显式关掉：deepseek-flash 是**推理模型**，不传档位时默认 `high`，它会
+   * 把整个 token 预算烧在 `reasoning_content` 上，正文 `content` 是空字符串，
+   * 于是「模型没答出东西」→ 502。这个坑踩过一次。
+   */
+  reasoningEffort?: 'off' | 'low' | 'high' | 'max'
+  /** 单次请求的 token 预算。缺省 2000（700 太小，正文常常被推理挤掉）。 */
+  maxTokens?: number
+  /** 失败重试次数。缺省 2。 */
+  retries?: number
 }
 
 type Snapshot = {
@@ -97,6 +109,9 @@ export function apply(ctx: any, config: Config = {}): void {
   const provider = config.provider ?? 'deepseek-official'
   const model = config.model ?? 'deepseek-flash'
   const aboutTimeoutMs = config.aboutTimeoutMs ?? 60_000
+  const reasoningEffort = config.reasoningEffort ?? 'off'
+  const maxTokens = config.maxTokens ?? 2000
+  const retries = config.retries ?? 2
 
   const cache = new PoemCache(cacheFileOf())
   void cache.load()
@@ -158,62 +173,123 @@ export function apply(ctx: any, config: Config = {}): void {
   }
 
   /** 一次进行中的生成：同一句诗并发点两次只问一次 AI。 */
-  const inFlight = new Map<string, Promise<PoemAbout | null>>()
+  const inFlight = new Map<string, Promise<{ about: PoemAbout | null; reason: string }>>()
 
-  const aboutOf = async (poem: Poem): Promise<PoemAbout | null> => {
+  /**
+   * 问一次模型：返回 `{ about, reason }`。
+   * - about 不为 null 表示成功；null 表示失败。
+   * - reason 给调用方拼 502 错误信息用。
+   */
+  const askOnce = async (
+    poem: Poem,
+    effort: string | undefined,
+    tokens: number,
+    signal: AbortSignal,
+  ): Promise<{ about: PoemAbout | null; reason: string }> => {
+    const llm = ctx.get?.('llm', false)
+
+    if (llm === undefined || llm === null) {
+      return { about: null, reason: 'LLM 服务不可用（插件未加载或尚未初始化）' }
+    }
+
+    const { system, user } = aboutPromptOf(poem.line, poem.from)
+    let text = ''
+    let reasoningText = ''
+
+    try {
+      const options: any = {
+        provider,
+        model,
+        system,
+        messages: [
+          {
+            id: `moon-band-${Date.now()}`,
+            role: 'user',
+            content: [{ type: 'text', text: user }],
+            source: { kind: 'user' },
+          },
+        ],
+        maxTokens: tokens,
+        signal,
+      }
+
+      if (effort !== undefined) options.reasoningEffort = effort
+
+      const stream = llm.stream(options)
+
+      for await (const chunk of stream) {
+        if (chunk?.type === 'text-delta' && typeof chunk.text === 'string') text += chunk.text
+        if (chunk?.type === 'reasoning-delta' && typeof chunk.text === 'string') reasoningText += chunk.text
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+
+      return { about: null, reason: `流式请求失败：${msg}` }
+    }
+
+    // 典型失败：推理模型把 token 全用在 reasoning_content 上，正文是空字符串
+    if (text === '') {
+      const hint =
+        reasoningText !== ''
+          ? `正文空（reasoning ${reasoningText.length} 字符），可能 maxTokens 不够或 reasoningEffort 过高`
+          : '正文空，模型未返回任何内容'
+
+      return { about: null, reason: hint }
+    }
+
+    const about = aboutParse(text, Date.now())
+
+    if (about === null) {
+      const preview = text.length > 120 ? `${text.slice(0, 120)}…` : text
+
+      return { about: null, reason: `解析 JSON 失败，原文：${preview}` }
+    }
+
+    return { about, reason: '' }
+  }
+
+  const aboutOf = async (poem: Poem): Promise<{ about: PoemAbout | null; reason: string }> => {
     const hit = cache.get(poem.line)
 
-    if (hit !== undefined) return hit
+    if (hit !== undefined) return { about: hit, reason: '' }
 
     const running = inFlight.get(poem.line)
 
     if (running !== undefined) return running
 
-    const job = (async (): Promise<PoemAbout | null> => {
-      const llm = ctx.get?.('llm', false)
+    const job: Promise<{ about: PoemAbout | null; reason: string }> = (async () => {
+      // 重试策略：
+      //   第 1 次：用户配置的档位（缺省 off）+ 配置的 maxTokens
+      //   第 2 次及以后：始终用 off + 4x maxTokens（确保推理不会挤掉正文）
+      const attempts = retries < 1 ? 1 : retries
+      let lastReason = '未知错误'
 
-      if (llm === undefined) return null
+      for (let i = 0; i < attempts; i += 1) {
+        const isFirst = i === 0
+        const effort = isFirst ? reasoningEffort : 'off'
+        const tokens = isFirst ? maxTokens : maxTokens * 4
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), aboutTimeoutMs)
 
-      const { system, user } = aboutPromptOf(poem.line, poem.from)
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), aboutTimeoutMs)
+        try {
+          const { about, reason } = await askOnce(poem, effort, tokens, controller.signal)
 
-      try {
-        // 只累加 text-delta：一次性纯文本生成不需要完整的块装配器，
-        // 也就不必为它多引一个 @deepseek-ai/dsh-llm 依赖。
-        let text = ''
-        const stream = llm.stream({
-          provider,
-          model,
-          system,
-          messages: [
-            {
-              id: `moon-band-${Date.now()}`,
-              role: 'user',
-              content: [{ type: 'text', text: user }],
-              source: { kind: 'user' },
-            },
-          ],
-          maxTokens: 700,
-          signal: controller.signal,
-        })
+          if (about !== null) {
+            await cache.put(poem.line, about)
 
-        for await (const chunk of stream) {
-          if (chunk?.type === 'text-delta' && typeof chunk.text === 'string') text += chunk.text
+            return { about, reason: '' }
+          }
+
+          lastReason = reason
+          console.warn(`moon-band: 详解第 ${i + 1} 次失败（${reason}）；还剩 ${attempts - 1 - i} 次`)
+        } finally {
+          clearTimeout(timer)
         }
-
-        const about = aboutParse(text, Date.now())
-
-        if (about === null) return null
-
-        await cache.put(poem.line, about)
-
-        return about
-      } catch {
-        return null
-      } finally {
-        clearTimeout(timer)
       }
+
+      console.warn(`moon-band: 所有 ${attempts} 次尝试都失败，最后原因：${lastReason}`)
+
+      return { about: null, reason: lastReason }
     })()
 
     inFlight.set(poem.line, job)
@@ -282,10 +358,10 @@ export function apply(ctx: any, config: Config = {}): void {
                   return
                 }
 
-                const about = await aboutOf(poem)
+                const { about, reason } = await aboutOf(poem)
 
                 if (about === null) {
-                  send(res, 502, { error: 'the model did not answer with a usable explanation' })
+                  send(res, 502, { error: 'the model did not answer with a usable explanation', reason })
 
                   return
                 }
