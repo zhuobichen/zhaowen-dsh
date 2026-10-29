@@ -1561,17 +1561,33 @@ export function apply(ctx, config = {}) {
 			const settings = serviceOf(ctx, 'settingsController')
 
 			if (settings !== undefined && typeof settings.describe === 'function' && typeof settings.mutate === 'function') {
-				try {
-					const described = await settings.describe()
-					const namespaces = Array.isArray(described?.namespaces) ? described.namespaces : []
-					const view = namespaces.find((entry) => entry !== null && typeof entry === 'object' && entry.ns === 'permission')
+				// revision 冲突很常见（设置页/其它插件也在写），重新读一次再写，最多试 4 次
+				for (let attempt = 0; attempt < 4 && result.global !== true; attempt++) {
+					try {
+						const described = await settings.describe()
+						const namespaces = Array.isArray(described?.namespaces) ? described.namespaces : []
+						const view = namespaces.find((entry) => entry !== null && typeof entry === 'object' && entry.ns === 'permission')
 
-					if (view !== undefined) {
-						await settings.mutate('permission', [{ op: 'set', path: ['defaultPreset'], value: preset }], view.revision)
+						if (view === undefined) {
+							result.globalError = '设置里没有 permission 命名空间。'
+							break
+						}
+
+						const current = view.value?.defaultPreset
+
+						if (current === preset) {
+							result.global = true
+							result.alreadySet = true
+							break
+						}
+
+						// 不传 revision = 无条件写（该 API 的文档语义），
+						// 否则会被并发写入者的修订号变化反复拒绝。
+						await settings.mutate('permission', [{ op: 'set', path: ['defaultPreset'], value: preset }], undefined)
 						result.global = true
+					} catch (failure) {
+						result.globalError = messageOf(failure)
 					}
-				} catch (failure) {
-					result.globalError = messageOf(failure)
 				}
 			} else {
 				result.globalError = '当前部署没有 settingsController。'
