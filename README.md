@@ -24,6 +24,14 @@
 
 ## 安装
 
+> ⚠️ **`lib/` 不在仓库里**（`.gitignore` 忽略，`src/` 才是源码）。
+> 带 `src/` 的包必须先构建一次才能加载，否则 `main` 指向的文件不存在。
+> 完整说明见 **[BUILD.md](BUILD.md)**，一键构建：
+>
+> ```powershell
+> powershell -File scripts\build-all.ps1
+> ```
+
 ```sh
 # 插件装到本地 DSH profile（link 安装，改动即时生效）
 dsh plugin --profile web add ./packages/dsh-team

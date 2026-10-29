@@ -7,3 +7,8 @@ lib/
 .tmp/
 *.bak
 *.bak-*
+
+# 例外：这个包的 lib/ 是手写源码（没有 src/、没有 build 脚本），
+# 不提交的话别人 clone 下来包是坏的。详见 BUILD.md。
+!/packages/dsh-web-search-yuanbao/lib/
+!/packages/dsh-web-search-yuanbao/lib/**
