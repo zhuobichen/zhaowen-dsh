@@ -7,9 +7,9 @@
 1. 列最近 N 个会话（默认 50）；
 2. 读每个会话的事件、折出所有 `deliverables/presented`；
 3. 把日志里的路径按**会话 cwd** 解析成绝对路径，并且**真查一次文件在不在**；
-4. 把这份清单通过 `GET /dsh-deliverables/list` 交给浏览器那半（配套包 [`@zhuobichen/dsh-client-ui-deliverables-index`](../dsh-client-ui-deliverables-index)）。
+4. 把这份清单通过 `GET /dsh-deliverables/list` 交给浏览器那半（**本包内的客户端半身** `client/client.js`）。
 
-**两个包都装**才看得到面板。
+宿主半身和客户端半身在同一个包里，**装一次就够**。
 
 ---
 
@@ -17,10 +17,9 @@
 
 ```sh
 dsh plugin --profile web add ./packages/dsh-deliverables-index
-dsh plugin --profile web add ./packages/dsh-client-ui-deliverables-index
 ```
 
-或者（发布后）从 npm 装同名的两个包。装完刷新页面，右下角会出现一个文件图标。
+或者（发布后）从 npm 装。装完重启 `dsh web` 并刷新页面，右下角会出现一个文件图标。
 
 ---
 

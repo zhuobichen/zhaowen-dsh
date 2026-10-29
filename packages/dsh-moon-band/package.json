@@ -8,11 +8,15 @@
     "lib",
     "data",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "client"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
     }
   },
   "scripts": {
@@ -36,6 +40,7 @@
   },
   "exports": {
     ".": "./lib/index.js",
+    "./client": "./client/client.js",
     "./package.json": "./package.json"
   }
 }

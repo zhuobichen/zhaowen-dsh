@@ -1,0 +1,13 @@
+# dsh-remote-exec 的 bundle patch：把「远端执行」插件条目插进 profile。
+#
+# 这一行挂上之后，插件会注册 5 个工具（主机没配好时只注册 remote_doctor）：
+#   remote_exec     在云端跑一条命令（前台 / 后台）
+#   remote_job      管后台作业：list / status / logs / wait / kill
+#   remote_upload   本机 → 云端（tar over ssh，可排除）
+#   remote_download 云端 → 本机
+#   remote_doctor   连通性 / 系统信息 / 工具链体检
+#
+# 主机配置写在 config 里，或用 $DSH_HOME/.env 的 DSH_REMOTE_* 变量。
+- insert:
+    - id: remote-exec
+      name: '@zhuobichen/dsh-remote-exec'

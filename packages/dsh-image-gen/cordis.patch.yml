@@ -1,0 +1,10 @@
+# dsh-image-gen 的 bundle patch：注册三个 agent 工具。
+#
+#   generate_image   文字 → 图片
+#   edit_image       参考图 + 指令
+#   image_gen_status 只读诊断
+#
+# 画面这一行的是本包内的客户端半身（exports["./client"], dsh.client.platform=web）。
+- insert:
+    - id: image-gen
+      name: '@zhuobichen/dsh-image-gen'

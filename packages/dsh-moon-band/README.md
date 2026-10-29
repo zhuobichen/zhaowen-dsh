@@ -16,8 +16,8 @@
 （这次没问 AI，读的是缓存）
 ```
 
-移植自 Claude Code 的 `moon-band` 插件；画那一行的是
-[`@zhuobichen/dsh-client-ui-moon-band`](../dsh-client-ui-moon-band)。
+移植自 Claude Code 的 `moon-band` 插件；画那一行的是**本包内的客户端半身**
+（`client/client.js`，`exports["./client"]` + `dsh.client.platform=web`），装本包就够。
 
 ## 两半是怎么分工的
 

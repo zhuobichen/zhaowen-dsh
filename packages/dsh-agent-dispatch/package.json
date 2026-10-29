@@ -6,7 +6,8 @@
   "main": "index.js",
   "exports": {
     ".": "./index.js",
-    "./decide": "./decide.js"
+    "./decide": "./decide.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "index.js",

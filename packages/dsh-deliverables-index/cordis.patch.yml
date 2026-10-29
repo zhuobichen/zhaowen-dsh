@@ -3,7 +3,7 @@
 # 这一行挂上之后，插件会注册：
 #   GET  /dsh-deliverables/list   最近 N 个会话各自呈现过的文件（含 exists 真实探测）
 #   POST /dsh-deliverables/open   {sessionId, seq, index, action?} → 宿主原生打开 / 在文件夹里显示
-# 画面板的是配套的客户端插件 @zhuobichen/dsh-client-ui-deliverables-index（两个都装才看得到）。
+# 画面这一行的是本包内的客户端半身（exports["./client"], dsh.client.platform=web）。（两个都装才看得到）。
 #
 # 可选配置（缺省值就在下面，不写也行）：
 #   config:

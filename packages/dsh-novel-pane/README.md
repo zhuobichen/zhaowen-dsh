@@ -11,8 +11,8 @@
 └───────────────────────────────────────────┘
 ```
 
-移植自 Claude Code 的 `novel-pane` mod；画窗格的是
-[`@zhuobichen/dsh-client-ui-novel-pane`](../dsh-client-ui-novel-pane)。
+移植自 Claude Code 的 `novel-pane` mod；画窗格的是**本包内的客户端半身**
+（`client/client.js`，`exports["./client"]` + `dsh.client.platform=web`），装本包就够。
 
 ## 能读什么
 

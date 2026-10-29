@@ -6,7 +6,7 @@
 #   - `GET /dsh-novel-pane/library`（书库索引）
 #   - `GET /dsh-novel-pane/lingtai`（只查灵台阅读器在不在跑，不启动任何东西）
 #   - `POST /dsh-novel-pane/lingtai`（没在跑就 `python server.py` 拉起来，最多等 12 秒）
-# 画窗格的是配套的客户端插件 @zhuobichen/dsh-client-ui-novel-pane。
+# 画面这一行的是本包内的客户端半身（exports["./client"], dsh.client.platform=web）。
 #
 # 可选配置（缺省值就在下面，不写也行）：
 #   config:

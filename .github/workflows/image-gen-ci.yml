@@ -1,0 +1,32 @@
+name: CI · dsh-image-gen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/dsh-image-gen/**'
+      - '.github/workflows/image-gen-ci.yml'
+  pull_request:
+    paths:
+      - 'packages/dsh-image-gen/**'
+      - '.github/workflows/image-gen-ci.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: packages/dsh-image-gen
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+
+      - name: 客户端 bundle 语法检查
+        working-directory: packages/dsh-image-gen
+        run: node --check client/client.js

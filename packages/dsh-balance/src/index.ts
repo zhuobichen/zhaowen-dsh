@@ -50,7 +50,7 @@ import {
 } from './balance.js'
 import type { Reading, Sample } from './types.js'
 
-/** 路由前缀；客户端那半（`dsh-client-ui-balance/client/client.js`）写死了同一个串。 */
+/** 路由前缀；客户端那半（本包内的 `client/client.js`）写死了同一个串。 */
 const ROUTE = '/dsh-balance'
 
 export const name = 'balance'

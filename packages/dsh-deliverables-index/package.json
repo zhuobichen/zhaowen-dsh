@@ -7,17 +7,22 @@
   "exports": {
     ".": "./index.js",
     "./catalog": "./catalog.js",
+    "./client": "./client/client.js",
     "./package.json": "./package.json"
   },
   "files": [
     "index.js",
     "catalog.js",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "client"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
     }
   },
   "scripts": {

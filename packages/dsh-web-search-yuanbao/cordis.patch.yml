@@ -1,0 +1,13 @@
+# dsh-web-search-yuanbao 的 bundle patch：把「元宝搜索」提供方插进 profile。
+#
+# 这一行只注册提供方（id = yuanbao），**不**改 `web.searchProvider`：
+# 选哪个提供方是用户自己的决定，写在 profile 的 cordis.patch.yml 里（或设置页里）。
+# 想让 web_search 走元宝，就在 profile 里覆盖 web 行：
+#
+#   - id: web
+#     config:
+#       searchProvider: yuanbao
+#       fetchProvider: http
+- insert:
+    - id: web-search-yuanbao
+      name: '@zhuobichen/dsh-web-search-yuanbao'

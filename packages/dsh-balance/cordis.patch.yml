@@ -4,6 +4,8 @@
 #   - 只读路由 `GET /dsh-balance/current`（Web 客户端插件拉它，宿主只有一份状态）
 #   - TUI 的 `${balance}` 提示槽位（有 TUI 才生效）
 #   - `/bal` 斜杠命令
+# 客户端半身在本包内：exports["./client"] + dsh.client.platform=web，
+# 不需要单独一行注册（已不再是独立的 @zhuobichen/dsh-client-ui-balance）。
 - insert:
     - id: balance
       name: '@zhuobichen/dsh-balance'

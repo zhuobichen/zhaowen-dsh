@@ -12,7 +12,7 @@ DeepSeek ¥16.65 · 3m ago · 5h ? 0.34 0.00 ? 5.00
 
 | 在哪儿 | 长什么样 |
 |---|---|
-| **Web GUI** | 输入框上沿一行 12px 灰字（靠 `@zhuobichen/dsh-client-ui-balance` 那半画） |
+| **Web GUI** | 输入框上沿一行 12px 灰字（本包内的客户端半身 `client/client.js` 画） |
 | **`/bal`** | 立刻重读一次，把结果作为命令输出吐出来 |
 | **TUI** | 有 `dsh-tui` 时注册 `${balance}` 提示槽位，加进 `theme.leftPrompt` 就能看到 |
 
@@ -23,14 +23,14 @@ DeepSeek ¥16.65 · 3m ago · 5h ? 0.34 0.00 ? 5.00
 ```sh
 # 从本仓库本地装（link 安装，改完立刻生效）
 dsh plugin --profile web add ./packages/dsh-balance
-dsh plugin --profile web add ./packages/dsh-client-ui-balance
 
 # 或从 npm（发版后）
-dsh plugin --profile web add @zhuobichen/dsh-balance @zhuobichen/dsh-client-ui-balance
+dsh plugin --profile web add @zhuobichen/dsh-balance
 ```
 
 > **要重启 `dsh web`**：插件集合的变化只在重启后生效（客户端包元数据按名字缓存，永不过期）。
-> 装好之后可以在 Web GUI 的**设置 → 插件列表**里看到这两行，`fiberPhase` 应该是 `active`。
+> 装好之后可以在 Web GUI 的**设置 → 插件列表**里看到这一行，`fiberPhase` 应该是 `active`；
+> 宿主半身和客户端半身都在这个包里，**只装一次**。
 
 ### 密钥
 

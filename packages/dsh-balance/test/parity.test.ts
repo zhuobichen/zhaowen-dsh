@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url'
 import { INITIAL, lineOf as hostLineOf, readingOf } from '../src/balance.ts'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
-const CLIENT_FILE = join(HERE, '..', '..', 'dsh-client-ui-balance', 'client', 'client.js')
+const CLIENT_FILE = join(HERE, '..', 'client', 'client.js')
 
 /** 客户端信封要求的那层窗口对象；这一句必须在 import 之前挂上。 */
 type Registration = { id: string; factory: (require: (name: string) => unknown) => any }
@@ -46,7 +46,7 @@ const loadEnvelope = async (): Promise<Registration> => {
   assert.notEqual(registration, undefined, '客户端的 client.js 没有调用 window.__ModuleLoader__.load')
 
   // 信封的 id 必须等于包名，否则宿主那边的模块图对不上。
-  assert.equal(registration!.id, '@zhuobichen/dsh-client-ui-balance', '客户端信封的 id 要等于包名')
+  assert.equal(registration!.id, '@zhuobichen/dsh-balance', '客户端信封的 id 要等于包名')
 
   return registration!
 }

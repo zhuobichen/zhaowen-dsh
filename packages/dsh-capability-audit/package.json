@@ -7,7 +7,8 @@
   "exports": {
     ".": "./index.js",
     "./scan": "./scan.js",
-    "./aggregate": "./aggregate.js"
+    "./aggregate": "./aggregate.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "index.js",
