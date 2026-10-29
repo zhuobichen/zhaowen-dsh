@@ -681,12 +681,32 @@ const chatEventsOf = async (ctx, sessionId, signal) => {
  *
  * @returns 最近 `limit` 条 `{ id, role, text, atMs }`。
  */
-const messagesOfEvents = (events, limit) => {
+const messagesOfEvents = (events, limit, options = {}) => {
 	const rows = []
 
 	for (const event of events) {
 		if (event === null || typeof event !== 'object') continue
 
+
+		if (options.includeTools === true && event.type === 'tool/call') {
+			const call = event.data
+
+			if (call !== null && typeof call === 'object' && typeof call.name === 'string' && call.name !== '') {
+				const rawArguments = typeof call.arguments === 'string' ? call.arguments : ''
+				let brief = rawArguments.replace(/\s+/g, ' ').trim()
+
+				if (brief.length > 70) brief = brief.slice(0, 70) + '…'
+
+				rows.push({
+					id: 'seq-' + String(event.seq),
+					role: 'tool',
+					text: brief === '' ? call.name : call.name + ' ' + brief,
+					atMs: event.time,
+				})
+			}
+
+			continue
+		}
 		if (event.type === 'user/message') {
 			const data = event.data
 
@@ -1546,7 +1566,7 @@ export function apply(ctx, config = {}) {
 				ok: true,
 				sessionId,
 				...(typeof target.title === 'string' ? { title: target.title } : {}),
-				messages: messagesOfEvents(events, limit),
+				messages: messagesOfEvents(events, limit, { includeTools: body.includeTools === true }),
 			},
 		}
 	}
