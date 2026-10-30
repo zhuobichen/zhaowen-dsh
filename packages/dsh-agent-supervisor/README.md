@@ -56,11 +56,30 @@ config:
   onlySupervisor: true   # 默认 true
 ```
 
-`onlySupervisor: true` 时，每个工具的执行都会先回答一个问题：**调用方会话的标题是不是「管理Bot」**。
+`onlySupervisor: true` 时，每个工具的执行都会先回答一个问题：**调用方会话的标题在不在白名单里**。
 
 - 是 → 放行；
 - 不是 → 返回 `{ ok:false, code:'FORBIDDEN', error:'...' }`（不是抛异常，模型能读懂并停手）；
 - 拿不到调用方会话（没有绑定 agent/session）→ 同样 `FORBIDDEN`。
+
+### 标题白名单：不只「管理Bot」一个会话能用
+
+白名单默认只有 `管理Bot` 一项。想让别的会话（例如你自己常用的那一个）也能派活，
+在插件配置里追加标题即可——**只增不减**，`管理Bot` 永远在、并且排第一：
+
+```yaml
+- id: agent-supervisor
+  name: '@zhuobichen/dsh-agent-supervisor'
+  config:
+    supervisorTitles:
+      - '管理Bot'
+      - '豆包'
+```
+
+- 也接受单个字符串：`supervisorTitles: 豆包`；
+- 前后空白会被 `trim`，空白项 / 非字符串 / 重复项静默跳过——配置写错最差退化成默认白名单，不会抛；
+- **两个标题同时存在时**，客户端右下角面板和 `/chat` 路由仍然优先找「管理Bot」那个会话
+  （按白名单顺序取第一个命中），所以多一个白名单标题不会让面板换目标。
 
 判定只看**标题**，因为标题是用户唯一改得动、也唯一看得见的那个标签：
 
@@ -116,7 +135,10 @@ config:
 - id: agent-supervisor
   name: '@zhuobichen/dsh-agent-supervisor'
   config:
-    onlySupervisor: true      # 默认 true：只有标题为「管理Bot」的会话能执行工具
+    onlySupervisor: true      # 默认 true：只有标题在白名单里的会话能执行工具
+    supervisorTitles:         # 默认 ['管理Bot']；只增不减，管理Bot 永远在且排第一
+      - '管理Bot'
+      - '豆包'
     web: true                 # 默认 true：开 /dsh-agent-supervisor/* 两条路由
     memoryDir: ''             # 可选：覆盖记忆落盘目录（测试用它指到包内 .tmp/）
 ```
@@ -237,7 +259,8 @@ Node 24 直接跑（原生剥类型，不需要编译）。它加载的是**真�
 | 宿主 | `dsh_session_rename` 只改标题，返回旧标题 |
 | 宿主 | `dsh_memory` put → get 回同值；`facts.jsonl` / `notes.md` 真落盘在包内 `.tmp/` |
 | 宿主 | `dsh_memory` 写不进目录时**不抛**（只报 `MEMORY_WRITE_FAILED`） |
-| 宿主 | `onlySupervisor`：非管理Bot会话调用 6 个工具全部 `FORBIDDEN`，且没有任何副作用；关掉开关就通 |
+| 宿主 | `onlySupervisor`：非白名单会话调用 6 个工具全部 `FORBIDDEN`，且没有任何副作用；关掉开关就通 |
+| 宿主 | `supervisorTitles`：白名单里的标题（含脏配置 `'  豆包  '` / `''` / `42`）能执行工具，名单外仍 `FORBIDDEN`；不写这项时只有「管理Bot」 |
 | 宿主 | 没有 `sessionTitle` 服务时，标题仍能从日志折出来 |
 | 路由 | `GET /chat` 回消息；`POST /chat` 的 body 里带 text；没有管理Bot / 读不到时如实报 |
 | 客户端 | `shell.overlay` 注册、组件是函数；图标是 `<img>` 且 `src` 以 `data:image/png;base64,` 开头（还会解回 PNG 比对大小） |

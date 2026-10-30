@@ -665,6 +665,43 @@ test('宿主：标题走日志折叠也能认出管理Bot（会话上没有 sess
 
   assert.equal(value.ok, true)
 })
+
+test('宿主：supervisorTitles 白名单——追加的标题也能执行工具，名单外仍然 FORBIDDEN', async () => {
+  const { host, tools } = await bootHost({
+    memoryDir: join(PACKAGE_ROOT, '.tmp', 'memory-whitelist'),
+    // 故意的脏配置：前后空白、空串、重复项都要被清洗掉，且不能抛
+    supervisorTitles: ['豆包', '  豆包  ', '', 42],
+  })
+
+  // 一个标题叫「豆包」的会话：不在 world 里，靠 fold 日志拿标题（和线上冷/活会话同一条路）
+  const doubaoSession = {
+    id: 'session-doubao',
+    header: { id: 'session-doubao', cwd: 'D:\\work', createdAt: 1_700_000_000_000 },
+    seq: 1,
+    snapshotEvents: () => host.eventsOf('豆包', []),
+  }
+  const asDoubao = { agent: { session: doubaoSession }, signal: new AbortController().signal }
+
+  const allowed = await runTool(tools.get('dsh_sessions_list'), {}, asDoubao)
+
+  assert.equal(allowed.ok, true, '白名单里的标题应该放行')
+  assert.equal(allowed.current_session_id, 'session-doubao')
+
+  // 名单外的会话（写周报）依旧被拦，且报错里会列出允许的标题
+  const other = host.ctx.sessions.get('session-report')
+  const denied = await runTool(tools.get('dsh_sessions_list'), {}, { agent: { session: other }, signal: new AbortController().signal })
+
+  assert.equal(denied.ok, false)
+  assert.equal(denied.code, 'FORBIDDEN')
+  assert.match(denied.error, /豆包/)
+
+  // 默认配置（不写 supervisorTitles）只认 管理Bot：同一个「豆包」会话被拦
+  const plain = await bootHost({ memoryDir: join(PACKAGE_ROOT, '.tmp', 'memory-whitelist-default') })
+  const byDefault = await runTool(plain.tools.get('dsh_memory'), { op: 'list' }, asDoubao)
+
+  assert.equal(byDefault.ok, false)
+  assert.equal(byDefault.code, 'FORBIDDEN')
+})
 //#endregion
 
 //#region 3. 宿主路由：GET / POST /chat

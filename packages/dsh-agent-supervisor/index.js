@@ -25,8 +25,16 @@ export const name = 'agent-supervisor'
 /** 宿主半身只依赖工具注册表；其余服务在调用时用 ctx.get 现取，缺了要能报错而不是崩。 */
 export const inject = ['tools']
 
-/** 只有标题是这个的会话才算「管理Bot」——客户端的悬浮球也认同一个字面量。 */
+/** 「管理Bot」的标题——客户端的悬浮球也认同这一个字面量，所以它永远排白名单第一项。 */
 const SUPERVISOR_TITLE = '管理Bot'
+
+/**
+ * 标题白名单的默认值：只有「管理Bot」。
+ *
+ * 想让别的会话也派活，在插件配置里写 `supervisorTitles: ['豆包']`（宿主侧见
+ * `supervisorTitlesOf`）。`管理Bot` 永远排第一：客户端面板和 `/chat` 路由按它找会话。
+ */
+const DEFAULT_SUPERVISOR_TITLES = [SUPERVISOR_TITLE]
 
 /** 落盘目录名（$DSH_HOME/plugins/dsh-agent-supervisor/memory）。 */
 const PLUGIN_DIRNAME = 'dsh-agent-supervisor'
@@ -154,6 +162,34 @@ const clip = (text, max) => {
 	if (flat.length <= max) return flat
 
 	return flat.slice(0, max) + '…'
+}
+
+/**
+ * 配置 → 允许执行 dsh_* 工具的会话标题白名单。
+ *
+ * 规则只有三条：
+ *   1. `管理Bot` 永远排第一、永远在名单里（客户端面板和 `/chat` 路由按它找会话）；
+ *   2. `config.supervisorTitles` 里的标题追加在后面，字符串和字符串数组都收；
+ *   3. 空白项、非字符串、重复项静默跳过——配置写错最差退化成默认白名单，不抛。
+ *
+ * @returns 至少有一项（`['管理Bot']`）。
+ */
+const supervisorTitlesOf = (settings) => {
+	const raw = settings.supervisorTitles
+	const extras = typeof raw === 'string' ? [raw] : Array.isArray(raw) ? raw : []
+	const titles = [...DEFAULT_SUPERVISOR_TITLES]
+
+	for (const candidate of extras) {
+		if (typeof candidate !== 'string') continue
+
+		const title = candidate.trim()
+
+		if (title === '' || titles.includes(title)) continue
+
+		titles.push(title)
+	}
+
+	return titles
 }
 //#endregion
 
@@ -572,12 +608,22 @@ const latestFact = (facts, key, scope) => {
 
 //#region 管理Bot会话 + 聊天转录（客户端面板的数据源）
 /**
- * 标题等于「管理Bot」的那个会话。
+ * 标题落在白名单里的那个会话。
  *
- * 先看活会话（内存里就有，最省），再看宿主列表（覆盖冷会话）。找不到就是找不到，
- * 不拿「最后活跃的那个」顶替。
+ * 先看活会话（内存里就有，最省），再看宿主列表（覆盖冷会话）。多命中时按
+ * 白名单顺序取——`管理Bot` 永远优先，所以面板不会因为多了一个「豆包」会话就换目标。
+ * 都找不到就是找不到，不拿「最后活跃的那个」顶替。
  */
-const findSupervisorSession = async (ctx, signal) => {
+const findSupervisorSession = async (ctx, signal, titles = DEFAULT_SUPERVISOR_TITLES) => {
+	const rankOf = (title) => (typeof title === 'string' ? titles.indexOf(title.trim()) : -1)
+
+	let best
+
+	const consider = (rank, candidate) => {
+		if (rank < 0) return
+		if (best === undefined || rank < best.rank) best = { rank, value: candidate }
+	}
+
 	const sessions = serviceOf(ctx, 'sessions')
 
 	if (sessions !== undefined && typeof sessions.list === 'function') {
@@ -595,9 +641,7 @@ const findSupervisorSession = async (ctx, signal) => {
 
 				const title = titleOfSession(ctx, session)
 
-				if (typeof title === 'string' && title.trim() === SUPERVISOR_TITLE) {
-					return { id: session.id, title, live: true, session }
-				}
+				consider(rankOf(title), { id: session.id, title, live: true, session })
 			}
 		}
 	}
@@ -616,13 +660,11 @@ const findSupervisorSession = async (ctx, signal) => {
 
 			const title = titleOfValues(row.projections === undefined ? undefined : row.projections.values)
 
-			if (typeof title === 'string' && title.trim() === SUPERVISOR_TITLE) {
-				return { id: row.sessionId, title, live: false, row }
-			}
+			consider(rankOf(title), { id: row.sessionId, title, live: false, row })
 		}
 	}
 
-	return undefined
+	return best === undefined ? undefined : best.value
 }
 
 /**
@@ -745,11 +787,11 @@ const messagesOfEvents = (events, limit, options = {}) => {
 }
 
 /** GET /chat 的载荷。读不到就如实说，不编。 */
-const chatPayload = async (ctx, signal) => {
+const chatPayload = async (ctx, signal, titles = DEFAULT_SUPERVISOR_TITLES) => {
 	let supervisor
 
 	try {
-		supervisor = await findSupervisorSession(ctx, signal)
+		supervisor = await findSupervisorSession(ctx, signal, titles)
 	} catch (failure) {
 		return {
 			ok: false,
@@ -794,8 +836,8 @@ const chatPayload = async (ctx, signal) => {
 }
 
 /** POST /chat：把一句话发进管理Bot会话的队列。 */
-const chatPost = async (ctx, text, signal) => {
-	const supervisor = await findSupervisorSession(ctx, signal)
+const chatPost = async (ctx, text, signal, titles = DEFAULT_SUPERVISOR_TITLES) => {
+	const supervisor = await findSupervisorSession(ctx, signal, titles)
 
 	if (supervisor === undefined) {
 		return { ok: false, code: 'NO_SUPERVISOR', message: '还没有「管理Bot」会话，这句没发出去。', sessionId: null }
@@ -863,21 +905,24 @@ const readRequestBody = (req) =>
  * 装配插件。
  *
  * @param ctx - 宿主 Cordis 上下文。
- * @param config - `{ onlySupervisor?: boolean, memoryDir?: string }`。
- *   `onlySupervisor` 默认 **true**：只有标题是「管理Bot」的会话能执行这些工具。
+ * @param config - `{ onlySupervisor?: boolean, supervisorTitles?: string | string[], memoryDir?: string }`。
+ *   `onlySupervisor` 默认 **true**：只有标题落在 `supervisorTitles` 白名单里的会话能执行这些工具。
+ *   `supervisorTitles` 默认 **['管理Bot']**；追加的标题只增不减，`管理Bot` 永远在且排第一。
  */
 export function apply(ctx, config = {}) {
 	const settings = config === null || typeof config !== 'object' ? {} : config
 	const onlySupervisor = settings.onlySupervisor !== false
+	const supervisorTitles = supervisorTitlesOf(settings)
+	const supervisorTitleLabel = supervisorTitles.map((title) => '「' + title + '」').join('、')
 	const memoryDir =
 		typeof settings.memoryDir === 'string' && settings.memoryDir !== '' ? settings.memoryDir : defaultMemoryDir()
 
 	/**
-	 * 调用方是不是「管理Bot」。
+	 * 调用方是不是白名单里的「管理Bot」。
 	 *
-	 * 判据只有一个：**调用方自己的会话标题**（exec.agent.session）规范化后等于「管理Bot」。
-	 * 不是 id 白名单、不是 cwd、不是「最后一个会话」——标题是用户唯一改得动、
-	 * 也唯一看得见的那个标签。
+	 * 判据只有一个：**调用方自己的会话标题**（exec.agent.session）规范化后落在
+	 * `supervisorTitles` 里。不是 id 白名单、不是 cwd、不是「最后一个会话」——
+	 * 标题是用户唯一改得动、也唯一看得见的那个标签。
 	 */
 	const supervisorDenial = (exec) => {
 		if (!onlySupervisor) return undefined
@@ -890,21 +935,25 @@ export function apply(ctx, config = {}) {
 				code: 'FORBIDDEN',
 				error:
 					'无法确认调用方会话（这次工具调用没有绑定 agent/session）。' +
-					'本插件只允许标题为「管理Bot」的会话执行；把 config.onlySupervisor 设为 false 可关闭这条限制。',
+					'本插件只允许标题为 ' +
+					supervisorTitleLabel +
+					' 的会话执行；把 config.onlySupervisor 设为 false 可关闭这条限制。',
 			}
 		}
 
 		const title = titleOfSession(ctx, session)
 
-		if (typeof title === 'string' && title.trim() === SUPERVISOR_TITLE) return undefined
+		if (typeof title === 'string' && supervisorTitles.includes(title.trim())) return undefined
 
 		const denial = {
 			ok: false,
 			code: 'FORBIDDEN',
 			error:
-				'只有标题为「管理Bot」的会话可以执行 dsh_* 工具。当前调用方会话标题是 ' +
+				'只有标题为 ' +
+				supervisorTitleLabel +
+				' 的会话可以执行 dsh_* 工具。当前调用方会话标题是 ' +
 				(typeof title === 'string' ? '「' + title + '」' : '（还没有标题）') +
-				'。把这个会话改名成 管理Bot 后重试，或者把插件配置的 onlySupervisor 设为 false。',
+				'。把这个会话改名成其中之一后重试，或者把插件配置的 onlySupervisor 设为 false。',
 		}
 
 		if (typeof session.id === 'string' && session.id !== '') denial.session_id = session.id
@@ -1814,7 +1863,7 @@ export function apply(ctx, config = {}) {
 
 						try {
 							if (method === 'GET') {
-								json(200, await chatPayload(ctx, signal))
+								json(200, await chatPayload(ctx, signal, supervisorTitles))
 
 								return
 							}
@@ -1839,7 +1888,7 @@ export function apply(ctx, config = {}) {
 									return
 								}
 
-								json(200, await chatPost(ctx, text, signal))
+								json(200, await chatPost(ctx, text, signal, supervisorTitles))
 
 								return
 							}
