@@ -814,6 +814,10 @@ const makeClientHarness = (options: any = {}) => {
   const registered: Array<{ definition: any; component: any }> = []
   const waits: string[] = []
 
+  // 头像默认是**关**的（没开关过的浏览器里不显示）。这些用例要测头像本身，
+  // 所以先把它打开；「默认不显示」的用例在下面单独把开关关掉再断言。
+  client.setSupervisorVisible(true)
+
   const snapshot = options.snapshot ?? {
     ids: ['session-sup'],
     byId: {
@@ -862,16 +866,30 @@ const makeClientHarness = (options: any = {}) => {
   return { ctx, opened, created, registered, waits }
 }
 
-/** 走一遍 apply，拿到「已经带好 bridge 的内层组件 + props」。 */
+/**
+ * 走一遍 apply，拿到「已经带好 bridge 的内层组件 + props」。
+ *
+ * 注册的组件有两层：外层 `(props) => jsx(SupervisorGate, {...bridge})`，
+ * 闸门 `SupervisorGate` 自己再按开关决定是否 `jsx(AgentBubble, ...)`。
+ * 所以这里要解开两次；闸门关着的时候第二层直接是 null。
+ */
 const mountClient = (harness: any) => {
   client.apply(harness.ctx)
 
   const entry = harness.registered[0]
-  const outer = entry.component({}) // apply 里那层包：jsx(AgentBubble, {...props, bridge})
+  const gateElement = renderComponent(entry.component, {}) // 外层包：jsx(SupervisorGate, {...props, bridge})
 
-  assert.equal(typeof outer.type, 'function', '注册的组件不是函数')
+  assert.equal(typeof gateElement.type, 'function', '注册的组件不是函数')
 
-  return { entry, component: outer.type, props: outer.props }
+  const bubbleElement = renderComponent(gateElement.type, gateElement.props) // 闸门：关着就是 null
+
+  if (bubbleElement === null || bubbleElement === undefined) {
+    return { entry, component: null as any, props: null as any }
+  }
+
+  assert.equal(typeof bubbleElement.type, 'function', '闸门后面不是组件')
+
+  return { entry, component: bubbleElement.type, props: bubbleElement.props }
 }
 
 const openPanel = async (harness: any) => {
@@ -882,16 +900,69 @@ const openPanel = async (harness: any) => {
   return { ...mounted, first, avatar }
 }
 
-test('客户端：挂在 shell.overlay，组件是函数', () => {
+test('客户端：挂在 shell.overlay（头像）+ conversation.input.left（开关）', () => {
   const harness = makeClientHarness()
 
   client.apply(harness.ctx)
 
-  assert.deepEqual(harness.waits, ['shell.overlay'])
-  assert.equal(harness.registered.length, 1)
+  assert.deepEqual(harness.waits, ['shell.overlay', 'conversation.input.left'])
+  assert.equal(harness.registered.length, 2)
   assert.equal(harness.registered[0].definition.name, 'shell.overlay')
   assert.equal(harness.registered[0].definition.id, 'agent-supervisor')
   assert.equal(typeof harness.registered[0].component, 'function')
+  assert.equal(harness.registered[1].definition.name, 'conversation.input.left')
+  assert.equal(harness.registered[1].definition.id, 'agent-supervisor-toggle')
+  assert.equal(typeof harness.registered[1].component, 'function')
+})
+
+test('客户端：头像默认不显示，开了才渲染', () => {
+  const harness = makeClientHarness()
+  client.apply(harness.ctx)
+
+  // 默认关：闸门返回 null，AgentBubble 不挂载（因此也不会建 bridge 去轮询）。
+  client.setSupervisorVisible(false)
+  assert.equal(client.isSupervisorVisible(), false)
+
+  const hidden = mountClient(harness)
+  assert.equal(hidden.component, null, '默认状态下不该渲染头像')
+
+  // 打开后渲染出头像。
+  client.setSupervisorVisible(true)
+  assert.equal(client.isSupervisorVisible(), true)
+
+  const shown = mountClient(harness)
+  assert.notEqual(shown.component, null, '打开后应该渲染头像')
+  const element = renderComponent(shown.component, shown.props)
+  assert.notEqual(findAll(element, (node) => node.type === 'img')[0], undefined, '打开后应该有头像 <img>')
+
+  // 收尾：别让开关状态漏到后面的用例。
+  client.setSupervisorVisible(true)
+})
+
+test('客户端：开关按钮带 on/off 状态与可访问标签', () => {
+  const harness = makeClientHarness()
+  client.apply(harness.ctx)
+
+  const renderToggle = () => {
+    const wrapper = harness.registered[1].component
+    const toggleElement = renderComponent(wrapper, {})
+    assert.equal(typeof toggleElement.type, 'function', '开关槽位注册的不是组件')
+
+    return renderComponent(toggleElement.type, toggleElement.props)
+  }
+
+  client.setSupervisorVisible(false)
+  const off = renderToggle()
+  assert.equal(off.props['data-agent-supervisor-toggle'], 'off')
+  assert.equal(off.props['aria-pressed'], false)
+  assert.equal(off.props['aria-label'], '显示管理Bot头像')
+  assert.equal(typeof off.props.onClick, 'function')
+
+  client.setSupervisorVisible(true)
+  const on = renderToggle()
+  assert.equal(on.props['data-agent-supervisor-toggle'], 'on')
+  assert.equal(on.props['aria-pressed'], true)
+  assert.equal(on.props['aria-label'], '隐藏管理Bot头像')
 })
 
 test('客户端：头像是 <img>，src 以 data:image/png;base64, 开头（图标内联成功）', () => {

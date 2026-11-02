@@ -1,0 +1,28 @@
+# 会话级插件闸门：把这一行插到 profile 组合里。
+#
+# ⚠ 顺序有意义：本行必须排在其他插件行之前，才能在它们注册工具之前包住
+#   `tools.register` 并记下归属。把本插件加进 profile 的 `dsh.profile.bundles`
+#   时放在**列表最前面**，否则已注册的工具会被归到 `unknown`。
+- insert:
+    - id: plugin-gate
+      name: '@zhuobichen/dsh-plugin-gate'
+      config:
+        # off = 完全不影响（默认，行为同没装这个插件）
+        defaultMode: off
+        # 命名能力集：名字 → 插件/工具匹配串
+        profiles:
+          writing:
+            - '@zhuobichen/dsh-novel-pane'
+            - '@zhuobichen/dsh-image-gen'
+          reverse:
+            - dsh-infinite-gen-5
+            - dsh-ops
+        # 本身就是全局插件的，永远放行、不可取消
+        alwaysOn:
+          - dsh-ops
+        # 额外始终保留的工具（名字，或 `blender_*` 这种前缀）
+        keepTools: []
+        # 归属认不出来的工具怎么办：hide（默认，严格）| keep（宽松）
+        unattributed: hide
+        # 在系统提示里告诉模型「本会话被限制成什么」
+        notice: true

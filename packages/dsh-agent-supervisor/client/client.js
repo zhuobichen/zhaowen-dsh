@@ -1164,12 +1164,119 @@ window.__ModuleLoader__.load({
 		/** 槽位注入：overlay 要 root 作用域，只需要 slots；会话与导航走 inject 后的 ctx。 */
 		const inject = ["slots", "sessions", "uiWorkspace"];
 
+		//#region 头像显隐开关
+		//
+		// 头像默认**不显示**：没开关过的浏览器里，shell.overlay 那一块返回 null，
+		// AgentBubble 根本不挂载，因此也不会建 bridge、不会轮询 /chat。想用的时候点
+		// 输入框工具行左端的小按钮，选择写 localStorage，刷新后保留。
+
+		const VISIBLE_KEY = "dsh-agent-supervisor.visible";
+		const visibilityListeners = new Set();
+
+		function readVisible() {
+			try {
+				return localStorage.getItem(VISIBLE_KEY) === "true";
+			} catch {
+				// 隐私模式 / 存储被禁：按未开启处理，绝不默认弹出头像。
+				return false;
+			}
+		}
+
+		let visible = readVisible();
+
+		function setSupervisorVisible(next) {
+			const value = next === true;
+			if (value === visible) return;
+			visible = value;
+			try {
+				localStorage.setItem(VISIBLE_KEY, String(value));
+			} catch {
+				// 存不下来只影响「下次刷新还记得吗」。
+			}
+			for (const listener of Array.from(visibilityListeners)) listener();
+		}
+
+		function toggleSupervisorVisible() {
+			setSupervisorVisible(!visible);
+		}
+
+		function subscribeVisible(listener) {
+			visibilityListeners.add(listener);
+
+			return () => {
+				visibilityListeners.delete(listener);
+			};
+		}
+
+		function useVisible() {
+			const [shown, setShown] = react.useState(visible);
+
+			react.useEffect(() => subscribeVisible(() => setShown(visible)), []);
+
+			return shown;
+		}
+
+		/** 头像闸门：开关关着就什么都不渲染（连 AgentBubble 都不挂载）。 */
+		function SupervisorGate(props) {
+			const shown = useVisible();
+
+			if (!shown) return null;
+
+			return jsx(AgentBubble, props || {});
+		}
+
+		/** 输入框工具行左端的小开关：显示 / 隐藏管理Bot头像。 */
+		function SupervisorToggle() {
+			const shown = useVisible();
+			const [hover, setHover] = react.useState(false);
+
+			const style = {
+				display: "inline-flex",
+				alignItems: "center",
+				justifyContent: "center",
+				width: "28px",
+				height: "28px",
+				padding: 0,
+				border: "none",
+				borderRadius: "8px",
+				background: shown || hover ? "var(--dsw-alias-bg-transparent-hover, rgba(127,127,127,.12))" : "transparent",
+				color: shown ? "var(--dsw-alias-brand-primary, #4d6bfe)" : "var(--dsw-alias-label-tertiary, #8a8a8a)",
+				cursor: "pointer",
+				transition: "background 120ms ease, color 120ms ease",
+			};
+
+			return jsx(
+				"button",
+				{
+					type: "button",
+					style,
+					"data-agent-supervisor-toggle": shown ? "on" : "off",
+					"aria-label": shown ? "隐藏管理Bot头像" : "显示管理Bot头像",
+					"aria-pressed": shown,
+					title: shown ? "隐藏管理Bot头像" : "显示管理Bot头像",
+					onClick: toggleSupervisorVisible,
+					onMouseEnter: () => setHover(true),
+					onMouseLeave: () => setHover(false),
+				},
+				jsx(
+					"svg",
+					{ viewBox: "0 0 24 24", width: 16, height: 16, "aria-hidden": true },
+					jsx("path", {
+						fill: "currentColor",
+						d: "M12 3a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3h1V7a4 4 0 0 1 4-4Zm-3 9a1.4 1.4 0 1 0 0 2.8A1.4 1.4 0 0 0 9 12Zm6 0a1.4 1.4 0 1 0 0 2.8A1.4 1.4 0 0 0 15 12Z",
+					}),
+				),
+			);
+		}
+		//#endregion
+
 		/**
 		 * @param ctx - 客户端根上下文。
 		 */
 		function apply(ctx) {
 			// shell.overlay：整帧之上的浮层（点击穿透，条目自己开 pointer-events）。
 			// order 定在 880：排在 qwen 那个球（900）下面一点，两个都在时不会互相盖。
+			// 组件是 SupervisorGate：开关没开就返回 null，头像不挂载。
 			ctx.slots.inject("shell.overlay", () =>
 				ctx.slots.register(
 					{
@@ -1178,7 +1285,20 @@ window.__ModuleLoader__.load({
 						order: 880,
 						label: "管理Bot Agent",
 					},
-					(props) => jsx(AgentBubble, Object.assign({}, props || {}, { bridge: makeBridge(ctx) })),
+					(props) => jsx(SupervisorGate, Object.assign({}, props || {}, { bridge: makeBridge(ctx) })),
+				),
+			);
+
+			// 开启入口：输入框工具行左端的小按钮（order 53 让开自带语音按钮的 50 与 qwen 的 52）。
+			ctx.slots.inject("conversation.input.left", () =>
+				ctx.slots.register(
+					{
+						name: "conversation.input.left",
+						id: "agent-supervisor-toggle",
+						order: 53,
+						label: "管理Bot Agent",
+					},
+					() => jsx(SupervisorToggle, {}),
 				),
 			);
 		}
@@ -1202,6 +1322,13 @@ window.__ModuleLoader__.load({
 		exports.POS_KEY = POS_KEY;
 		exports.DRAG_THRESHOLD = DRAG_THRESHOLD;
 		exports.AVATAR = AVATAR;
+		// 头像显隐（测试与本文件内共用）：默认 false。
+		exports.VISIBLE_KEY = VISIBLE_KEY;
+		exports.readVisible = readVisible;
+		exports.setSupervisorVisible = setSupervisorVisible;
+		exports.isSupervisorVisible = () => visible;
+		exports.SupervisorGate = SupervisorGate;
+		exports.SupervisorToggle = SupervisorToggle;
 
 		return module.exports;
 	},
