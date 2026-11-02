@@ -24,9 +24,9 @@ cd packages/dsh-import && npm pack
 dsh plugin --profile web add ./zhuobichen-dsh-import-0.1.0.tgz
 ```
 
-装完重启 `dsh web`，agent 的工具列表里会出现 `agent_sessions_scan` 和 `agent_sessions_import`。
+装完重启 `dsh web`，agent 的工具列表里会出现 `agent_sessions_scan`、`agent_sessions_import` 和 `agent_sessions_fork`。
 
-## 两个工具
+## 三个工具
 
 ### `agent_sessions_scan`（只读）
 
@@ -55,6 +55,31 @@ dsh plugin --profile web add ./zhuobichen-dsh-import-0.1.0.tgz
 | `out` | 覆盖目标 sessions 根目录 |
 
 返回 `{ applied, written, reports[] }`，`reports[i]` 带 `turns / events / estimatedTokens / file / verified / skipped`。
+
+### `agent_sessions_fork`
+
+从**已有的 DSH 会话**往上分叉一个新会话，语义与 DSH 自己的 `fork` 一致：
+
+```
+子会话 = 源事件 [0..boundary]
+       + session/end-seed {seq: boundary+1, data:{inherited:true}}
+       + session/title    {seq: boundary+2}
+header.parentSession = 源 id, isSeeded = true
+```
+
+`boundary` 缺省取**最后一个完整 turn**（`latestCompletedPrefixBoundary`：最后一个 `turn/end` 之后、
+遇到 `turn/start` / `user/message(append)` / `agent/inbox/spliced` 为止）。未完成的 turn 不会被带过去。
+
+| 参数 | 说明 |
+|---|---|
+| `sessionId` | 源会话 id，支持前缀 |
+| `title` | 新会话标题；缺省 `fork-<源id前8位>` |
+| `atSeq` | 指定 fork 到哪个事件 seq（含） |
+| `apply` | true 才真写；缺省空跑 |
+| `out` | sessions 根目录 |
+
+和 `import` 一样优先走宿主桥（`sessions.create + flush + workspace.attachSession`），
+失败才回退写文件；返回的 `runtime` 标明 `live` / `file`。
 
 ### 长会话一定要裁
 
@@ -89,6 +114,27 @@ DSH 的 v4 还原会校验**工具生命周期**，不满足直接拒收：
 
 本插件对应的处理：Codex 的独立 `function_call` → 合成公示消息；被中断的调用 → 补 `TOOL_OUTCOME_UNKNOWN` 结果；同一 call id 的第二条结果（Claude 会先写 interrupted 再补真实输出）→ 并入上一条而不是新造调用。
 
+### 首帧必须恰好只有 header 一行（实测会让会话「消失」）
+
+zstd 日志是**一串独立帧**，DSH 读首行时只解压**第一帧**并断言：
+
+```js
+// assertZstdHeaderFrame
+if (plaintext.length === 0 || plaintext.indexOf(10) !== plaintext.length - 1)
+  throw new Error("first frame is not exactly one header line");
+```
+
+所以物理编码必须是「**header 单独一帧** + 之后每帧一批事件」。正常会话的首帧解压后只有 **200–300 字节**。
+
+如果把整个会话压成**单个帧**（首帧解压 = 全量几十 MB），后果是连锁的：
+
+1. `readFirstZstdLine` 抛 `SessionPersistenceCorruptionError`；
+2. `listArtifacts` 静默跳过该会话 → 侧栏不显示；
+3. DSH 启动时按「会话不可读」把它从 `workspace.json` 的 `sessionIds` 里**自动剔除**——表现为「会话莫名消失」，手改登记表也救不回来。
+
+诊断一句话：`首帧解压大小 >> 1 KB` 就是单帧损坏。修复就是把首行拆出来单独压一帧，事件部分另压。
+2026-11-02 实测：一个 10.6 MB 的论文会话正是这样丢的，拆帧后立刻恢复。
+
 ## 导入是即时的（走 DSH 自己的 API）
 
 插件在 DSH 进程内运行时，导入走 `ctx.sessions.create(seed)` → `ctx.sessions.flush()` → `workspace.attachSession()`：
@@ -99,6 +145,7 @@ DSH 的 v4 还原会校验**工具生命周期**，不满足直接拒收：
 
 ## 已知行为
 
+- **会话从侧栏消失先查首帧**：解压第一帧，若大小远大于 1 KB 就是被压成了单帧，按上文拆帧即可恢复；只改 `workspace.json` 没用——下次启动会被再次剔除。
 - **侧栏标题来自投影缓存**：冷导入的会话没有缓存，刚导入时可能显示「未命名」，打开一次即恢复；想批量预置标题可以给 `storages/session_projcache/sessions/<id>.json` 写一条只含 `title` 行的记录。
 - **工作区分组按 cwd**：DSH 要求 `workspace.path === realpath(该会话 header.cwd)`，所以同一目录下的 Claude 和 Codex 会话无法拆进两个工作区。
 - **大文件**：几百 MB 的会话会产生十几到几十 MB 的 DSH 日志，先 `keepTools:false` 或加 `maxMb` 更稳。

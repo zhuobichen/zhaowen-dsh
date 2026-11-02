@@ -10,7 +10,8 @@
  *   - tool/result 必须在本 step 内有对应 call
  *   - turn/step 编号从 1 连续；时间戳必须是非负安全整数
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { zstdCompressSync, zstdDecompressSync } from "node:zlib";
@@ -395,6 +396,155 @@ export function writeSession(
   mkdirSync(dir, { recursive: true });
   if (existsSync(file) && !options.overwrite) throw new Error(`refusing to overwrite ${file}`);
   const buffer = builder.toBuffer();
+  writeFileSync(file, buffer);
+  return { file, bytes: buffer.length };
+}
+
+/* ------------------------------------------------------------------ *
+ * fork —— 从既有会话的最后一个完整 turn 分叉出一个新会话
+ *
+ * 语义与 DSH 自己的 `SessionCommandController.fork` 一致：
+ *   子会话 = 源事件前缀 [0..boundary] + `session/end-seed` + 未闭合 turn 的 forked 收尾
+ * boundary 取最后一个 `turn/end`（`latestCompletedPrefixBoundary`），
+ * 新 header 用 `parentSession` 指向源、`isSeeded: true`。
+ *
+ * 会话文件必须仍是「header 单独一帧 + 事件分批帧」：DSH 读首行时要求
+ * 首帧解压后**恰好只有一行 header**（`assertZstdHeaderFrame`），
+ * 否则会判为损坏、跳过该会话，并在启动时把它从 workspace 里剔除。
+ * ------------------------------------------------------------------ */
+
+/** 最后一个完整 turn 的边界下标；语义与 DSH 的 latestCompletedPrefixBoundary 一致。 */
+export function latestCompletedPrefixBoundary(events: DshEvent[]): number | undefined {
+  let index = -1;
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    if (events[i].type === "turn/end") {
+      index = i;
+      break;
+    }
+  }
+  if (index < 0) return undefined;
+  let cut = index;
+  for (let i = index + 1; i < events.length; i += 1) {
+    const event = events[i];
+    if (
+      event.type === "turn/start" ||
+      (event.type === "user/message" && event.surfaceOp === "append") ||
+      event.type === "agent/inbox/spliced"
+    ) {
+      break;
+    }
+    cut = i;
+  }
+  return cut;
+}
+
+/** 在 sessions 根目录下按 id 完整值或前缀找会话日志。 */
+export function findSessionFile(root: string, idPattern: string): string | undefined {
+  if (!existsSync(root)) return undefined;
+  const needle = idPattern.replace(/^session-/, "").toLowerCase();
+  if (!needle) return undefined;
+  for (const project of readdirSync(root, { withFileTypes: true })) {
+    if (!project.isDirectory()) continue;
+    const projectPath = join(root, project.name);
+    for (const entry of readdirSync(projectPath, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const bare = entry.name.replace(/^session-/, "").toLowerCase();
+      if (!bare.startsWith(needle)) continue;
+      const file = join(projectPath, entry.name, `session.v${FORMAT_VERSION}.jsonl.zstd`);
+      if (existsSync(file)) return file;
+    }
+  }
+  return undefined;
+}
+
+export interface ForkPlan {
+  id: string;
+  title: string;
+  header: Record<string, any>;
+  events: DshEvent[];
+  boundary: number;
+  sourceId: string;
+  cwd?: string;
+  createdAt: number;
+}
+
+/** 计算 fork 计划（不写盘）。`atSeq` 缺省取最后一个完整 turn。 */
+export function planFork(
+  sourceFile: string,
+  options: { title?: string; atSeq?: number } = {},
+): ForkPlan {
+  const rows = readRows(sourceFile);
+  const [header, ...rest] = rows;
+  if (!header || header.type !== "session" || header.version !== FORMAT_VERSION) {
+    throw new Error(`not a DSH v${FORMAT_VERSION} session log: ${sourceFile}`);
+  }
+  const events = rest as DshEvent[];
+  let cut: number;
+  if (options.atSeq === undefined) {
+    const index = latestCompletedPrefixBoundary(events);
+    if (index === undefined) throw new Error("source session has no completed turn to fork from");
+    cut = index;
+  } else {
+    cut = events.findIndex((event) => event.seq === options.atSeq);
+    if (cut < 0) throw new Error(`event seq ${options.atSeq} not found in source session`);
+  }
+  const last = events[cut];
+  const createdAt = Date.now();
+  const title =
+    options.title ?? `fork-${String(header.id).replace(/^session-/, "").slice(0, 8)}`;
+  const forkEvents: DshEvent[] = events.slice(0, cut + 1).map((event) => ({ ...event }));
+  forkEvents.push({
+    type: "session/end-seed",
+    seq: last.seq + 1,
+    time: last.time,
+    data: { inherited: true },
+  });
+  forkEvents.push({
+    type: "session/title",
+    seq: last.seq + 2,
+    time: createdAt,
+    data: { title, messageSeqs: [], source: { kind: "user" } },
+  });
+  const id = `session-${randomUUID()}`;
+  return {
+    id,
+    title,
+    header: {
+      type: "session",
+      version: FORMAT_VERSION,
+      id,
+      createdAt,
+      ...(header.cwd === undefined ? {} : { cwd: header.cwd }),
+      parentSession: header.id,
+      isSeeded: true,
+      delegationDepth: 0,
+      ...(header.agentPreset === undefined ? {} : { agentPreset: header.agentPreset }),
+    },
+    events: forkEvents,
+    boundary: last.seq,
+    sourceId: String(header.id),
+    cwd: header.cwd,
+    createdAt,
+  };
+}
+
+/** 把 fork 计划写成「header 单独一帧 + 每 500 条事件一帧」的会话日志。 */
+export function writeFork(plan: ForkPlan, root: string): { file: string; bytes: number } {
+  const file = logPath(root, plan.cwd, plan.id);
+  const dir = sessionDir(root, plan.cwd, plan.id);
+  mkdirSync(dir, { recursive: true });
+  if (existsSync(file)) throw new Error(`refusing to overwrite ${file}`);
+  const frames: Buffer[] = [
+    zstdCompressSync(Buffer.from(JSON.stringify(plan.header) + "\n", "utf8")),
+  ];
+  for (let i = 0; i < plan.events.length; i += 500) {
+    const text = plan.events
+      .slice(i, i + 500)
+      .map((event) => JSON.stringify(event) + "\n")
+      .join("");
+    frames.push(zstdCompressSync(Buffer.from(text, "utf8")));
+  }
+  const buffer = Buffer.concat(frames);
   writeFileSync(file, buffer);
   return { file, bytes: buffer.length };
 }

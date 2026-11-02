@@ -1,14 +1,18 @@
 /**
  * dsh-import —— 把 Claude Code / Codex 的本地会话导入 DeepSeek Harness。
  *
- * 两个工具：
+ * 三个工具：
  *   agent_sessions_scan    列出本机可导入的会话（只读，不写任何东西）
  *   agent_sessions_import  导入（默认空跑；apply=true 才写）
+ *   agent_sessions_fork    从既有 DSH 会话 fork 一个新会话（默认空跑；apply=true 才写）
  *
  * 写入的是 DSH 自己的 v4 会话日志（`<root>/--<cwd>--/<session-id>/session.v4.jsonl.zstd`），
  * 写完用 DSH 的 format catalog 还原校验：PASS 就代表 DSH 一定读得动。
  * 绝不修改 `~/.claude` / `~/.codex` 下的原始记录。
  */
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { findSessionFile, planFork, writeFork } from "./dsh_format.js";
 import { exportToDsh, listAgentSessions, type AgentKind } from "./importer.js";
 
 export const name = "dsh-import";
@@ -22,6 +26,11 @@ export interface Config {
 }
 
 const SOURCE_ENUM = ["claude", "codex", "all"];
+
+/** DSH sessions 根目录：$DSH_HOME/sessions（缺省 ~/.dsh/sessions）。 */
+function defaultRoot(): string {
+  return join(process.env.DSH_HOME ?? join(homedir(), ".dsh"), "sessions");
+}
 
 const render = (_args: unknown, value: unknown) =>
   [{ type: "text" as const, text: JSON.stringify(value, null, 1) }];
@@ -169,6 +178,103 @@ export function apply(ctx: any, config: Config = {}): void {
         written: reports.filter((r) => r.file && !r.skipped).length,
         reports,
       };
+    },
+  });
+
+  ctx.tools.register({
+    name: "agent_sessions_fork",
+    description:
+      "从本机已有的 DSH 会话 fork 出一个新会话（复制到最后一个完整 turn，语义与 DSH 自己的 fork 一致：源事件前缀 + session/end-seed + 标题事件，header.parentSession 指向源、isSeeded=true）。默认空跑只返回计划；apply=true 才写。写入坚持「header 单独一帧 + 事件分批帧」——单帧压缩会让 DSH 判定会话损坏、从侧栏消失并自动从 workspace 剔除。",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        sessionId: {
+          type: "string",
+          description: "源会话 id，支持前缀（可带 session- 前缀）",
+        },
+        title: { type: "string", description: "新会话标题；缺省 fork-<源id前8位>" },
+        atSeq: {
+          type: "integer",
+          description: "fork 到哪个事件 seq（含）；缺省最后一个完整 turn",
+        },
+        apply: { type: "boolean", description: "true 才真写；缺省只空跑" },
+        out: { type: "string", description: "DSH sessions 根目录；缺省用插件配置或 $DSH_HOME/sessions" },
+      },
+    },
+    output: outputSchema({
+      applied: { type: "boolean" },
+      source: { type: "string" },
+      target: { type: "string" },
+      title: { type: "string" },
+      boundary: { type: "integer" },
+      events: { type: "integer" },
+      runtime: { type: "string" },
+      file: { type: "string" },
+    }),
+    async execute(args: any) {
+      const pattern = String(args?.sessionId ?? "").trim();
+      if (!pattern) throw new Error("sessionId is required");
+      const outRoot = args?.out ? String(args.out) : (root ?? defaultRoot());
+      const sourceFile = findSessionFile(outRoot, pattern);
+      if (!sourceFile) throw new Error(`session not found under ${outRoot}: ${pattern}`);
+      const plan = planFork(sourceFile, {
+        title: args?.title ? String(args.title) : undefined,
+        atSeq: args?.atSeq === undefined ? undefined : Number(args.atSeq),
+      });
+      const report: Record<string, any> = {
+        applied: false,
+        source: plan.sourceId,
+        target: plan.id,
+        title: plan.title,
+        boundary: plan.boundary,
+        events: plan.events.length,
+        sourceFile,
+      };
+      if (args?.apply !== true) return report;
+
+      // 首选宿主桥：sessions.create + flush + 工作区 attach，立刻生效。
+      const host = sessions ? { sessions, workspaceRegistry } : undefined;
+      if (host) {
+        try {
+          const live = host.sessions.create(plan.id, {
+            seed: plan.events,
+            meta: {
+              ...(plan.cwd === undefined ? {} : { cwd: plan.cwd }),
+              createdAt: plan.createdAt,
+              parentSession: plan.sourceId,
+              isSeeded: true,
+            },
+          });
+          await host.sessions.flush(live);
+          report.runtime = "live";
+          report.applied = true;
+          if (host.workspaceRegistry && plan.cwd) {
+            try {
+              const ws =
+                (await host.workspaceRegistry.resolveByPath(plan.cwd)) ??
+                (await host.workspaceRegistry.create(plan.cwd));
+              if (ws) {
+                await ws.attachSession(plan.id);
+                report.workspace = ws.title ?? ws.path;
+              }
+            } catch (error: any) {
+              report.workspaceError = `工作区归属失败（会话已创建）: ${error?.message ?? error}`;
+            }
+          }
+          return report;
+        } catch (error: any) {
+          report.hostError = `host 路径失败，回退文件写入: ${error?.message ?? error}`;
+        }
+      }
+
+      const written = writeFork(plan, outRoot);
+      report.applied = true;
+      report.runtime = "file";
+      report.file = written.file;
+      report.bytes = written.bytes;
+      report.note = "已写入会话文件；若侧栏没出现，重启 dsh web 后打开一次该会话即可生成标题缓存。";
+      return report;
     },
   });
 }
