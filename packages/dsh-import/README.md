@@ -63,18 +63,37 @@ dsh plugin --profile web add ./zhuobichen-dsh-import-0.1.0.tgz
 ```
 子会话 = 源事件 [0..boundary]
        + session/end-seed {seq: boundary+1, data:{inherited:true}}
-       + session/title    {seq: boundary+2}
+       + 未闭合 tail 的收尾事件（见下）
+       + session/title
 header.parentSession = 源 id, isSeeded = true
 ```
 
 `boundary` 缺省取**最后一个完整 turn**（`latestCompletedPrefixBoundary`：最后一个 `turn/end` 之后、
 遇到 `turn/start` / `user/message(append)` / `agent/inbox/spliced` 为止）。未完成的 turn 不会被带过去。
 
+#### 收尾事件（与 DSH 的 `openTurnClosers` 逐字对齐）
+
+用 `atSeq` 把边界落在 **turn 中间**时，前缀里会留下未闭合的 tail。DSH 的 `buildForkSeed`
+会调用 `openTurnClosers(prefix, { kind: 'forked' })` 把它补平，本插件做同样的事：
+
+| 情况 | 补什么 |
+|---|---|
+| assistant 公示过、且有 `tool/call`、但没有 `tool/result` | `tool/result`（`isError`，`error.code = TOOL_OUTCOME_UNKNOWN`，`sourceEventSeqs` 指回 call） |
+| assistant 公示过、但连 `tool/call` 都没有 | `tool/result`（`isError`，`error.code = TOOL_NOT_STARTED`，不带 `sourceEventSeqs`） |
+| 未闭合的 step | `step/end` |
+| 未闭合的 turn | `turn/end`，`data.reason.kind = 'forked'` |
+
+补齐顺序固定为「工具结果 → step/end → turn/end」，seq 连续，时间戳复用最后一个事件的时间。
+默认边界落在一个完整 `turn/end` 上时这一步产出为空，与不带收尾事件的老行为完全一致。
+
+> 为什么要补：提供方拒收**悬空的 assistant tool-call**。少了这些事件，DSH 还原该会话时
+> 会因「有未回款的调用」拒绝加载。
+
 | 参数 | 说明 |
 |---|---|
 | `sessionId` | 源会话 id，支持前缀 |
 | `title` | 新会话标题；缺省 `fork-<源id前8位>` |
-| `atSeq` | 指定 fork 到哪个事件 seq（含） |
+| `atSeq` | 指定 fork 到哪个事件 seq（含）；落在 turn 中间会自动补收尾事件 |
 | `apply` | true 才真写；缺省空跑 |
 | `out` | sessions 根目录 |
 

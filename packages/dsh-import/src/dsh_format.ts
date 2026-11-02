@@ -468,6 +468,171 @@ export interface ForkPlan {
   createdAt: number;
 }
 
+/* ------------------------------------------------------------------ *
+ * fork 收尾事件：与 DSH 自己的 openTurnClosers 逐字对齐
+ *
+ * DSH 的 buildForkSeed 不只复制前缀 + 打 end-seed，还会调
+ * `openTurnClosers(prefix, { kind: 'forked' })` 把**未闭合的 tail**补平：
+ *   1. 前置 assistant 公示过、但没有 tool/result 回款的调用 → 补一条 error result
+ *      （提供方拒收悬空的 assistant tool-call）
+ *   2. 未闭合的 step → step/end
+ *   3. 未闭合的 turn → turn/end（reason.kind = 'forked'）
+ *
+ * 默认边界（最后一个完整 turn）本来就落在 turn/end 上，收尾事件为空；但用 atSeq
+ * 指定 turn 中间的位置 fork 时，少了这些补齐，DSH 还原会因「有未回款的调用」拒绝
+ * 加载这个会话。
+ *
+ * 不 import @deepseek-ai/dsh-session：本插件装在 profile 的 node_modules 下，
+ * 那个包只存在于 DSH 自己的 toolchain 里，宿主运行期解析不到。所以按官方实现
+ * 等价重写，常量与措辞保持逐字一致。
+ * ------------------------------------------------------------------ */
+
+export const TOOL_NOT_STARTED = "TOOL_NOT_STARTED";
+export const TOOL_OUTCOME_UNKNOWN = "TOOL_OUTCOME_UNKNOWN";
+
+/** 合成 error result 的模型可见措辞（取自 DSH repair.js 的 CLOSER_TEXT.forked）。 */
+const FORK_CLOSER_TEXT = {
+  started:
+    "The history inherited by this branch records this tool call starting but does not include its result. The parent session may have completed it after the fork point. Decide whether to retry from the tool semantics: retry only if the operation is read-only or idempotent; if it may have side effects, first verify external state or ask the user. Do not retry blindly.",
+  notStarted:
+    "The history inherited by this branch has no record of this tool call starting. The parent session may have executed it after the fork point. Decide whether to retry from the tool semantics: retry only if the operation is read-only or idempotent; if it may have side effects, first verify external state or ask the user. Do not retry blindly.",
+} as const;
+
+interface PendingCall {
+  turn: number;
+  step: number;
+  callSeq?: number;
+}
+
+/**
+ * 补齐未闭合的 tail（等价于 DSH 的 `openTurnClosers(events, { kind: "forked" })`）。
+ *
+ * `events` 应当**已经包含** `session/end-seed`：官方实现就是拿带 seed 的前缀算的，
+ * 收尾事件的 seq 从 seed 的 seq 往后接着排。
+ *
+ * @param events - 前缀事件（含 end-seed）。
+ * @returns 需要追加的收尾事件；tail 已闭合时为空数组。
+ */
+export function forkedTailClosers(events: DshEvent[]): DshEvent[] {
+  let openTurn: number | null = null;
+  let openStep: number | null = null;
+  const pending = new Map<string, PendingCall>();
+  let last: DshEvent | undefined;
+
+  for (const event of events) {
+    last = event;
+
+    switch (event.type) {
+      case "turn/start":
+        openTurn = event.data?.turn ?? null;
+        openStep = null;
+        pending.clear();
+        break;
+      case "turn/end":
+        openTurn = null;
+        openStep = null;
+        pending.clear();
+        break;
+      case "step/end":
+        openStep = null;
+        pending.clear();
+        break;
+      case "step/start":
+        openStep = event.data?.step ?? null;
+        break;
+      case "assistant/message": {
+        const blocks = event.data?.message?.content;
+        if (!Array.isArray(blocks)) break;
+        for (const block of blocks) {
+          if (block?.type === "tool-call" && typeof block.id === "string") {
+            pending.set(block.id, { turn: event.data.turn, step: event.data.step });
+          }
+        }
+        break;
+      }
+      case "tool/call": {
+        const entry = pending.get(event.data?.callId);
+        if (entry !== undefined) entry.callSeq = event.seq;
+        break;
+      }
+      case "tool/result": {
+        const callId = event.data?.message?.source?.callId;
+        const entry = callId === undefined ? undefined : pending.get(callId);
+        if (
+          event.surfaceOp === "append" &&
+          entry !== undefined &&
+          entry.turn === event.data.turn &&
+          entry.step === event.data.step
+        ) {
+          pending.delete(callId);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  if (openTurn === null || last === undefined) return [];
+
+  const closers: DshEvent[] = [];
+  let seq = last.seq + 1;
+  const time = last.time;
+
+  // 先补工具调用（Map 的插入顺序 = 转录里的顺序），再关 step、最后关 turn。
+  for (const [callId, entry] of pending) {
+    const started = entry.callSeq !== undefined;
+    // id 里的序号必须与事件本身的 seq 一致：官方实现用自增前的值，
+    // 所以这里先取出来再用，别写成 `seq: seq++` + `${seq}`（会差 1）。
+    const eventSeq = seq++;
+    closers.push({
+      type: "tool/result",
+      seq: eventSeq,
+      time,
+      data: {
+        turn: entry.turn,
+        step: entry.step,
+        message: {
+          id: `forked-tool-result-${callId}-${eventSeq}`,
+          role: "tool",
+          toolCallId: callId,
+          isError: true,
+          source: { kind: "tool", callId },
+          content: [
+            {
+              type: "text",
+              text: started ? FORK_CLOSER_TEXT.started : FORK_CLOSER_TEXT.notStarted,
+            },
+          ],
+        },
+        error: started
+          ? { name: "ToolOutcomeUnknownError", code: TOOL_OUTCOME_UNKNOWN }
+          : { name: "ToolNotStartedError", code: TOOL_NOT_STARTED },
+      },
+      surfaceOp: "append",
+      ...(started ? { sourceEventSeqs: [entry.callSeq as number] } : {}),
+    });
+  }
+
+  if (openStep !== null) {
+    closers.push({
+      type: "step/end",
+      seq: seq++,
+      time,
+      data: { turn: openTurn, step: openStep },
+    });
+  }
+
+  closers.push({
+    type: "turn/end",
+    seq: seq++,
+    time,
+    data: { turn: openTurn, reason: { kind: "forked" } },
+  });
+
+  return closers;
+}
+
 /** 计算 fork 计划（不写盘）。`atSeq` 缺省取最后一个完整 turn。 */
 export function planFork(
   sourceFile: string,
@@ -492,6 +657,7 @@ export function planFork(
   const createdAt = Date.now();
   const title =
     options.title ?? `fork-${String(header.id).replace(/^session-/, "").slice(0, 8)}`;
+  // 前缀 + end-seed，再补未闭合 tail 的收尾事件（与 DSH 的 buildForkSeed 一致）。
   const forkEvents: DshEvent[] = events.slice(0, cut + 1).map((event) => ({ ...event }));
   forkEvents.push({
     type: "session/end-seed",
@@ -499,9 +665,10 @@ export function planFork(
     time: last.time,
     data: { inherited: true },
   });
+  forkEvents.push(...forkedTailClosers(forkEvents));
   forkEvents.push({
     type: "session/title",
-    seq: last.seq + 2,
+    seq: (forkEvents[forkEvents.length - 1] as DshEvent).seq + 1,
     time: createdAt,
     data: { title, messageSeqs: [], source: { kind: "user" } },
   });

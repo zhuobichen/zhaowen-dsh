@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "test": "node --test test/fork-closers.test.mjs",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
