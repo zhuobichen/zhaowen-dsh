@@ -12,7 +12,14 @@
  */
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { findSessionFile, planFork, writeFork } from "./dsh_format.js";
+import { randomUUID } from "node:crypto";
+import {
+  findSessionFile,
+  latestCompletedPrefixBoundary,
+  planFork,
+  readSessionHeader,
+  writeFork,
+} from "./dsh_format.js";
 import { exportToDsh, listAgentSessions, type AgentKind } from "./importer.js";
 
 export const name = "dsh-import";
@@ -184,7 +191,7 @@ export function apply(ctx: any, config: Config = {}): void {
   ctx.tools.register({
     name: "agent_sessions_fork",
     description:
-      "从本机已有的 DSH 会话 fork 出一个新会话（复制到最后一个完整 turn，语义与 DSH 自己的 fork 一致：源事件前缀 + session/end-seed + 标题事件，header.parentSession 指向源、isSeeded=true）。默认空跑只返回计划；apply=true 才写。写入坚持「header 单独一帧 + 事件分批帧」——单帧压缩会让 DSH 判定会话损坏、从侧栏消失并自动从 workspace 剔除。",
+      "从本机已有的 DSH 会话 fork 出一个新会话（复制到最后一个完整 turn，语义与 DSH 自己的 fork 一致：源事件前缀 + session/end-seed + 收尾事件 + 标题，header.parentSession 指向源、isSeeded=true）。首选宿主桥 SessionStore.fork：源会话必须已在界面上打开（store 里有活实例），这样 fork 出来的会话立刻登记进会话目录、侧栏可见，且不需要把整份日志读进内存。源会话没打开时回退为写文件（大会话会占大量内存，且侧栏要重启后重新扫描才可能看到）。默认空跑只返回计划；apply=true 才写。",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -218,44 +225,54 @@ export function apply(ctx: any, config: Config = {}): void {
       const outRoot = args?.out ? String(args.out) : (root ?? defaultRoot());
       const sourceFile = findSessionFile(outRoot, pattern);
       if (!sourceFile) throw new Error(`session not found under ${outRoot}: ${pattern}`);
-      const plan = planFork(sourceFile, {
-        title: args?.title ? String(args.title) : undefined,
-        atSeq: args?.atSeq === undefined ? undefined : Number(args.atSeq),
-      });
+
+      // 只读首帧拿 id / cwd：30 MB 的会话没必要整份读进内存。
+      const header = readSessionHeader(sourceFile);
+      const sourceId = String(header.id);
+      const cwd = typeof header.cwd === "string" ? header.cwd : undefined;
+      const title =
+        args?.title === undefined || args.title === null
+          ? `fork-${sourceId.replace(/^session-/, "").slice(0, 8)}`
+          : String(args.title);
+      const childId = `session-${randomUUID()}`;
+
       const report: Record<string, any> = {
         applied: false,
-        source: plan.sourceId,
-        target: plan.id,
-        title: plan.title,
-        boundary: plan.boundary,
-        events: plan.events.length,
+        source: sourceId,
+        target: childId,
+        title,
         sourceFile,
       };
-      if (args?.apply !== true) return report;
 
-      // 首选宿主桥：sessions.create + flush + 工作区 attach，立刻生效。
-      const host = sessions ? { sessions, workspaceRegistry } : undefined;
-      if (host) {
+      // 首选：宿主自己的 fork。源会话必须是 live（在界面上打开过），
+      // 走 store.fork → 会话立刻进入宿主的会话目录，侧栏直接可见，
+      // 而且不需要把整份日志搬进内存（大会话也就不会 OOM 宿主）。
+      const live = typeof sessions?.get === "function" ? sessions.get(sourceId) : undefined;
+      if (live !== undefined && typeof sessions?.fork === "function") {
+        let boundary: number | undefined;
+        if (args?.atSeq === undefined) {
+          const computed = latestCompletedPrefixBoundary(live.snapshotEvents() as any);
+          boundary = computed;
+        } else {
+          boundary = Number(args.atSeq);
+        }
+        report.runtime = "live";
+        report.boundary = boundary;
+        report.events = boundary === undefined ? undefined : boundary + 1;
+        if (args?.apply !== true) return report;
+
         try {
-          const live = host.sessions.create(plan.id, {
-            seed: plan.events,
-            meta: {
-              ...(plan.cwd === undefined ? {} : { cwd: plan.cwd }),
-              createdAt: plan.createdAt,
-              parentSession: plan.sourceId,
-              isSeeded: true,
-            },
-          });
-          await host.sessions.flush(live);
-          report.runtime = "live";
+          const child = sessions.fork(live, boundary as any, childId as any);
+          await sessions.flush(child);
           report.applied = true;
-          if (host.workspaceRegistry && plan.cwd) {
+          report.target = String(child.id);
+
+          if (workspaceRegistry && cwd) {
             try {
               const ws =
-                (await host.workspaceRegistry.resolveByPath(plan.cwd)) ??
-                (await host.workspaceRegistry.create(plan.cwd));
+                (await workspaceRegistry.resolveByPath(cwd)) ?? (await workspaceRegistry.create(cwd));
               if (ws) {
-                await ws.attachSession(plan.id);
+                await ws.attachSession(child.id);
                 report.workspace = ws.title ?? ws.path;
               }
             } catch (error: any) {
@@ -264,16 +281,31 @@ export function apply(ctx: any, config: Config = {}): void {
           }
           return report;
         } catch (error: any) {
-          report.hostError = `host 路径失败，回退文件写入: ${error?.message ?? error}`;
+          // 边界非法（seq 不存在）等：把真实原因带回去，别静默回退。
+          report.hostError = `宿主 fork 失败: ${error?.message ?? error}`;
+          return report;
         }
       }
 
+      // 回退：源会话当前不在运行中。写文件也能用，但**不会进入宿主的会话目录**，
+      // 侧栏要等重启后重新扫描才可能看到；而且大会话要整份读进内存。
+      report.runtime = "file";
+      report.hint =
+        "源会话当前未打开（store 里没有它的活实例）。先在侧栏打开它再 fork，才会走宿主桥并立刻出现在侧栏；下面的文件写入只是兜底。";
+
+      const plan = planFork(sourceFile, {
+        title,
+        atSeq: args?.atSeq === undefined ? undefined : Number(args.atSeq),
+      });
+      report.boundary = plan.boundary;
+      report.events = plan.events.length;
+      if (args?.apply !== true) return report;
+
       const written = writeFork(plan, outRoot);
       report.applied = true;
-      report.runtime = "file";
+      report.target = plan.id;
       report.file = written.file;
       report.bytes = written.bytes;
-      report.note = "已写入会话文件；若侧栏没出现，重启 dsh web 后打开一次该会话即可生成标题缓存。";
       return report;
     },
   });

@@ -438,9 +438,33 @@ export function latestCompletedPrefixBoundary(events: DshEvent[]): number | unde
   return cut;
 }
 
+/**
+ * 只读会话日志的**首帧**（header 行）。
+ *
+ * fork 时先要知道源会话的 id 与 cwd，但没必要把整份日志读进内存——30 MB 的会话
+ * 解压后 100+ MB，一次性读会把宿主进程 OOM 掉。首帧按约定只有一行 header。
+ *
+ * @param file - 会话日志路径。
+ * @returns header 行；不是合法会话日志时抛错。
+ */
+export function readSessionHeader(file: string): Record<string, any> {
+  const buf = readFileSync(file);
+  const magic = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
+  const start = buf.indexOf(magic);
+  if (start < 0) throw new Error(`not a zstd session log: ${file}`);
+  const next = buf.indexOf(magic, start + 4);
+  const text = zstdDecompressSync(buf.subarray(start, next < 0 ? buf.length : next)).toString("utf8");
+  const line = text.split("\n").find((row) => row.trim().length > 0);
+  if (line === undefined) throw new Error(`empty first frame: ${file}`);
+  const header = JSON.parse(line);
+  if (header?.type !== "session" || header.version !== FORMAT_VERSION) {
+    throw new Error(`not a DSH v${FORMAT_VERSION} session log: ${file}`);
+  }
+  return header;
+}
+
 /** 在 sessions 根目录下按 id 完整值或前缀找会话日志。 */
-export function findSessionFile(root: string, idPattern: string): string | undefined {
-  if (!existsSync(root)) return undefined;
+export function findSessionFile(root: string, idPattern: string): string | undefined {  if (!existsSync(root)) return undefined;
   const needle = idPattern.replace(/^session-/, "").toLowerCase();
   if (!needle) return undefined;
   for (const project of readdirSync(root, { withFileTypes: true })) {

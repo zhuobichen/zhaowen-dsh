@@ -71,6 +71,20 @@ header.parentSession = 源 id, isSeeded = true
 `boundary` 缺省取**最后一个完整 turn**（`latestCompletedPrefixBoundary`：最后一个 `turn/end` 之后、
 遇到 `turn/start` / `user/message(append)` / `agent/inbox/spliced` 为止）。未完成的 turn 不会被带过去。
 
+#### 两条路径：宿主桥优先，写文件兜底
+
+| 路径 | 触发条件 | 结果 | 侧栏可见 |
+|---|---|---|---|
+| **宿主桥** `SessionStore.fork` | 源会话**已在界面上打开**（store 里有活实例） | 会话登记进宿主的会话目录，自动 `attachSession` 到对应工作区 | ✅ 立刻可见 |
+| 写文件 | 源会话没打开（只有磁盘上的日志） | 只生成 `.zstd` 日志文件 | ❌ 通常要重启后重新扫描才可能看到 |
+
+宿主桥是首选：它走 DSH 自己的 fork 实现，不把整份日志读进内存——**大会话也不会撑爆宿主**。
+写文件那条路要整份解压（30 MB 的会话解压后 100+ MB），大会话下 `planFork` 会吃掉大量内存，
+所以除非源会话确实打不开，优先用它。
+
+> 早前版本只有写文件一条路：产物本身合法（DSH 用 `--session-id` 能还原），但会话从未进过宿主的
+> 会话目录，所以侧栏看不到——绕开宿主写文件是看不到的根本原因。
+
 #### 收尾事件（与 DSH 的 `openTurnClosers` 逐字对齐）
 
 用 `atSeq` 把边界落在 **turn 中间**时，前缀里会留下未闭合的 tail。DSH 的 `buildForkSeed`
