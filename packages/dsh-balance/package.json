@@ -26,6 +26,9 @@
   "dependencies": {
     "zod": "^4.4.3"
   },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.6.0"

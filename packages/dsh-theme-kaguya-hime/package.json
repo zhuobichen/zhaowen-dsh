@@ -29,5 +29,9 @@
         "@deepseek-ai/dsh-client-ui-theme"
       ]
     }
-  }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5"
+  },
+  "license": "MIT"
 }

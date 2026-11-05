@@ -52,12 +52,29 @@ export function prepareBase(force = false) {
 
 let counter = 0
 
+/**
+ * 本次进程创建的工作副本：进程退出时删掉。
+ *
+ * 每份副本都是真库快照（十几 MB），一个测试一份；不清理的话 `.tmp/` 会按
+ * 测试次数线性膨胀（实测堆到过 3 GB）。
+ */
+const createdDbs = new Set<string>()
+
+function dropDb(file: string) {
+  for (const suffix of ['', '-wal', '-shm']) rmSync(file + suffix, { force: true })
+}
+
+process.once('exit', () => {
+  for (const file of createdDbs) dropDb(file)
+})
+
 /** 每个测试一份独立副本（绝不共享，绝不写 base）。 */
 export function freshDb(label = 'case') {
   prepareBase()
   counter += 1
   const file = join(TMP, `work-${label}-${process.pid}-${counter}.sqlite`)
   copyFileSync(join(TMP, 'base.sqlite'), file)
+  createdDbs.add(file)
   return file
 }
 

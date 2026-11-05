@@ -13,6 +13,16 @@
 | [`packages/dsh-cc-tui`](packages/dsh-cc-tui) | `dsh-cc-tui` | **DSH 插件**：Claude Code 风格的交互式 TUI 入口（基于移植的 Ink core） |
 | [`packages/dsh-term`](packages/dsh-term) | `dsh-term` | **独立的终端客户端**（不是插件）：像 Claude Code 一样住在终端的 DSH 前端 |
 | [`packages/dsh-import`](packages/dsh-import) | `@zhuobichen/dsh-import` | **DSH 插件**：把 Claude Code / Codex 的本地会话导入 DSH（扫描 + 导入 + 用 DSH 自己的还原器校验） |
+| [`packages/dsh-remote-exec`](packages/dsh-remote-exec) | `@zhuobichen/dsh-remote-exec` | **DSH 插件**：把任务推到常开的腾讯云服务器上跑——远端执行、后台作业、双向传文件 |
+| [`packages/dsh-agent-supervisor`](packages/dsh-agent-supervisor) | `@zhuobichen/dsh-agent-supervisor` | **DSH 插件**：主管 Agent，管理其它会话（派活 / 查状态 / 改名 / 记记忆），设计上没有删除能力 |
+| [`packages/dsh-agent-dispatch`](packages/dsh-agent-dispatch) | `@zhuobichen/dsh-agent-dispatch` | **DSH 插件**（纯 ESM 无构建）：判断一件事该单 Agent 做还是派子 Agent，带成本量级与渐进式披露路线 |
+| [`packages/dsh-plugin-gate`](packages/dsh-plugin-gate) | `@zhuobichen/dsh-plugin-gate` | **DSH 插件**：会话级插件闸门——默认全量注入，开闸后只注入指定插件的能力 |
+| [`packages/dsh-capability-audit`](packages/dsh-capability-audit) | `@zhuobichen/dsh-capability-audit` | **DSH 插件**（纯 ESM 无构建）：能力体检——skill 触发率、MCP 健康度、工具成功率，附建议 |
+| [`packages/dsh-kimi-bridge`](packages/dsh-kimi-bridge) | `@zhuobichen/dsh-kimi-bridge` | **DSH 插件**（纯 ESM 无构建）：DSH ↔ Kimi Code 会话迁移（列会话 / 导出 / 导入） |
+| [`packages/dsh-zcode-bridge`](packages/dsh-zcode-bridge) | `@zhuobichen/dsh-zcode-bridge` | **DSH 插件**：DSH ↔ ZCode 双向会话迁移；写库默认 dry-run、写前备份、单事务、ZCode 在跑就拒绝 |
+| [`packages/dsh-web-search-yuanbao`](packages/dsh-web-search-yuanbao) | `@zhuobichen/dsh-web-search-yuanbao` | **DSH 插件**：腾讯元宝搜索作为 `ctx.web` 的搜索提供方，可回落到 DeepSeek 搜索 |
+| [`packages/dsh-theme-kaguya-hime`](packages/dsh-theme-kaguya-hime) | `@zhuobichen/dsh-theme-kaguya-hime` | **DSH 主题**：超时空辉夜姬皮肤——蜡笔绘本背景、Q 版八千代头像、`TSUKUYOMI STAGE` 字标、冷蓝白配色（只换颜色 token，不动布局） |
+| [`packages/dsh-client-ui-voice`](packages/dsh-client-ui-voice) | `@zhuobichen/dsh-client-ui-voice` | **DSH 插件**（只有客户端半身）：输入框工具行的麦克风按钮——语音转草稿，从不自动发送 |
 
 带界面的插件是**一个包两半**：宿主半身（`main` / `exports["."]`）算数，客户端半身（`exports["./client"]` +
 `dsh.client.platform=web`）画界面。两半在同一个包里，**装一次就够**——DSH 会从同一个 manifest 里
@@ -20,7 +30,7 @@
 
 `dsh-client-ui-voice` 是唯一的例外：它只有客户端半身（麦克风按钮只需在浏览器里录音，不需要宿主做事）。
 
-本仓库只做“放在一起”，不引入 workspace 依赖提升（十个包的包管理器还不一样：`dsh-cc-tui` 用 pnpm，其余用 npm）。
+本仓库只做“放在一起”，不引入 workspace 依赖提升（各包包管理器不一样：`dsh-cc-tui` 用 pnpm，其余用 npm）。
 
 ## 安装
 

@@ -1,0 +1,36 @@
+name: plugins-ci
+
+on:
+  push:
+    paths:
+      - 'packages/**'
+      - 'scripts/check-plugins.mjs'
+      - '.github/workflows/plugins-ci.yml'
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'scripts/check-plugins.mjs'
+      - '.github/workflows/plugins-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 客户端 bundle 语法检查
+        run: |
+          set -e
+          for f in packages/*/client.js packages/*/client/*.js; do
+            [ -f "$f" ] || continue
+            echo "check $f"
+            node --check "$f"
+          done
+
+      - name: manifest / 图标 / README 体检
+        run: node scripts/check-plugins.mjs

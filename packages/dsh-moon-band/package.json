@@ -42,5 +42,8 @@
     ".": "./lib/index.js",
     "./client": "./client/client.js",
     "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5"
   }
 }

@@ -28,6 +28,9 @@
   "dependencies": {
     "@deepseek-ai/dsh-tools": "0.2.1-rc.4"
   },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5"
+  },
   "keywords": [
     "dsh",
     "dsh-plugin",
