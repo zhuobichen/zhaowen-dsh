@@ -23,6 +23,7 @@
 | [`packages/dsh-web-search-yuanbao`](packages/dsh-web-search-yuanbao) | `@zhuobichen/dsh-web-search-yuanbao` | **DSH 插件**：腾讯元宝搜索作为 `ctx.web` 的搜索提供方，可回落到 DeepSeek 搜索 |
 | [`packages/dsh-theme-kaguya-hime`](packages/dsh-theme-kaguya-hime) | `@zhuobichen/dsh-theme-kaguya-hime` | **DSH 主题**：超时空辉夜姬皮肤——蜡笔绘本背景、Q 版八千代头像、`TSUKUYOMI STAGE` 字标、冷蓝白配色（只换颜色 token，不动布局） |
 | [`packages/dsh-client-ui-voice`](packages/dsh-client-ui-voice) | `@zhuobichen/dsh-client-ui-voice` | **DSH 插件**（只有客户端半身）：输入框工具行的麦克风按钮——语音转草稿，从不自动发送 |
+| [`packages/dsh-craft-anything`](packages/dsh-craft-anything) | `@zhuobichen/dsh-craft-anything` | **DSH 插件**（配置型）：通过 MCP 接入 [Craft Anything](https://github.com/storytold/craft-anything) 的净室逆向引擎——315 个检查工具、Study→Build→Check→Ready 复刻流水线 |
 
 带界面的插件是**一个包两半**：宿主半身（`main` / `exports["."]`）算数，客户端半身（`exports["./client"]` +
 `dsh.client.platform=web`）画界面。两半在同一个包里，**装一次就够**——DSH 会从同一个 manifest 里

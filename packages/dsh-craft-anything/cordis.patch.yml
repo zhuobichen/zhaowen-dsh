@@ -1,0 +1,11 @@
+- insert:
+    - id: craft-anything-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: craft-anything
+        transport: stdio
+        command: 'D:\github_project\ZhaoWen_GitHub维护\craft-anything-plugin\vendor\craft-anything\craft-anything-0.3.0-windows-x64-portable\craft-anything-cli.exe'
+        args:
+          - mcp
+        cwd: 'D:\github_project\ZhaoWen_GitHub维护\craft-anything-plugin\vendor\craft-anything\craft-anything-0.3.0-windows-x64-portable'
+        failOnStartupError: true
