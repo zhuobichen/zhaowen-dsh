@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Chou Kaguya-hime theme">
+  <defs>
+    <radialGradient id="sky" cx="50%" cy="38%" r="72%">
+      <stop offset="0%" stop-color="#16224a"/>
+      <stop offset="60%" stop-color="#0a1024"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe9bd" stop-opacity="0.55"/>
+      <stop offset="55%" stop-color="#f0d6a0" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#f0d6a0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="moon" x1="30%" y1="10%" x2="80%" y2="95%">
+      <stop offset="0%" stop-color="#fff6e2"/>
+      <stop offset="55%" stop-color="#f6dfae"/>
+      <stop offset="100%" stop-color="#d9b36c"/>
+    </linearGradient>
+    <linearGradient id="bamboo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7fe3ff"/>
+      <stop offset="100%" stop-color="#2a7f9e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#sky)"/>
+  <circle cx="72" cy="54" r="46" fill="url(#halo)"/>
+
+  <!-- crescent moon -->
+  <path d="M72 22a32 32 0 1 0 0 64 26 26 0 1 1 0-64Z" fill="url(#moon)"/>
+
+  <!-- bamboo leaves -->
+  <g fill="none" stroke="url(#bamboo)" stroke-linecap="round" stroke-width="2.4" opacity="0.95">
+    <path d="M26 118c2-22 8-40 20-54"/>
+    <path d="M31 96c-6-4-11-4-16-2 5 1 9 4 12 8"/>
+    <path d="M38 79c-2-8-1-14 3-19 0 7 0 13-1 18"/>
+    <path d="M47 64c7-3 12-8 14-14-7 3-12 7-15 12"/>
+  </g>
+
+  <!-- stars -->
+  <g fill="#bfeeff">
+    <circle cx="28" cy="34" r="2.2" opacity="0.9"/>
+    <circle cx="42" cy="20" r="1.4" opacity="0.6"/>
+    <circle cx="98" cy="26" r="1.6" opacity="0.7"/>
+    <circle cx="108" cy="62" r="2.4" opacity="0.55"/>
+    <circle cx="88" cy="102" r="1.8" opacity="0.6"/>
+  </g>
+</svg>
