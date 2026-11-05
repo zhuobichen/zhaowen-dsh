@@ -12,15 +12,17 @@
 | 空白会话 Hero 图标 | 鲸鱼 | Q 版八千代（同一张） |
 | 整体配色 | 原生浅色 | 冷蓝白 `kaguya-sky` 主题（只换颜色 token，不动间距/字体/布局） |
 | 「新会话」按钮 | 白底描边 | 星蓝实心 + 白字 |
+| 右下角 | 无 | 「极简机器人脸」八千代从角落探出头（纯装饰、可点穿） |
 
 ## 实现方式
 
-一个纯动态 Client 插件，只做四件事：
+一个纯动态 Client 插件，只做五件事：
 
 1. 注册浅色主题 `kaguya-sky`（`ctx.theme.register`），并持续接管，保证插件开关、刷新后不会掉回深色；
 2. 在 `shell.overlay` 放一张固定定位、`pointer-events: none` 的背景图（不参与布局）；
 3. 覆盖 `sidebar.brand.mark` / `sidebar.brand.name` / `conversation.hero.brand.mark` 三个展示槽；
-4. 一段定向 CSS，把「新会话」按钮刷成星蓝。
+4. 一段定向 CSS，把「新会话」按钮刷成星蓝；
+5. `shell.overlay` 里再放一张右下角探头图（`23vh` 左右，只露头和手）。
 
 图片全部以 data URI 内嵌在 `client.js` 里，装好即用，不需要额外静态服务。
 
