@@ -209,7 +209,7 @@ body[data-kaguya] button[class*="newSession"]:focus-visible {
     function BrandName() {
       return h('span', { className: 'gy-brand' },
         h('span', { className: 'gy-brand-mark' }, 'TSUKUYOMI'),
-        h('span', { className: 'gy-brand-badge' }, 'HARNESS'))
+        h('span', { className: 'gy-brand-badge' }, 'STAGE'))
     }
 
     /** Blank-session hero mark: the same chibi portrait as the sidebar. */
