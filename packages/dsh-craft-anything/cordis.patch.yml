@@ -1,4 +1,6 @@
 - insert:
+    - id: craft-anything-workbench
+      name: '@zhuobichen/dsh-craft-anything'
     - id: craft-anything-mcp
       name: '@deepseek-ai/dsh-mcp-client'
       config:

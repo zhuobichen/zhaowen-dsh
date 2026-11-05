@@ -23,6 +23,19 @@ MCP server 启动后会注册 **17 个工具集 / 315 个工具**，默认只暴
 
 打开方式：让 agent 调 `list_toolsets` → `enable_toolset {"toolset":"browser"}`（也可以用 `"all"`）。
 
+## 工作台标签页
+
+装上后会话顶部会多一个 **Craft Anything 工作台** 标签（和「对话」「轨迹」「IG5 逆向工作台」并列），显示：
+
+- CLI 版本、工具总数、当前模式下可用的工具数、`analysis_mode`（clean-room / deep）；
+- 17 个工具集及各自「可用 / 总数」；
+- 本机引擎（Ghidra / adb / JADX / Chromium / Frida… 是否找到）；
+- 一段用法示例。
+
+数据来自 Host 半身挂的 `GET /craft-anything/status`：它跑一次 `craft-anything-cli capabilities`，聚合成上面的视图，缓存 60 秒；面板每分钟自动刷新。
+
+这个 bundle 因而是"两半"：`index.js`（Host，提供状态接口）+ `client.js`（Client，画标签页），外加 patch 里插入的 MCP 行。
+
 ## 必备的前置
 
 只有 `core` 是零依赖的；其它工具集按需装引擎（它自己会检测并告诉你缺什么）：
