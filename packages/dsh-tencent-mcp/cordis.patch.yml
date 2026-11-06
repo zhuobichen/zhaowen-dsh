@@ -71,3 +71,55 @@
           COS_CONFIG: !!js process.env.COS_CONFIG
         failOnStartupError: false
       disabled: true
+
+    # 5) QQ Mail (read-only, IMAP) — uses the authorization code already in .env.
+    - id: tencent-qqmail-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-qqmail
+        transport: stdio
+        command: 'D:\Node_js\node.exe'
+        args:
+          - 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\qqmail-local\node_modules\qqmail-mcp\dist\index.js'
+        env:
+          QQMAIL_USER: !!js process.env.QQMAIL_USER
+          QQMAIL_PASS: !!js process.env.QQMAIL_AUTH_CODE
+          QQMAIL_IMAP_HOST: imap.qq.com
+          QQMAIL_IMAP_PORT: '993'
+        failOnStartupError: false
+
+    # 6) QQ Mail (full, official service) — needs a one-time phone scan; enable after that.
+    - id: tencent-qqmail-full-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-qqmail-full
+        transport: stdio
+        command: 'D:\Node_js\npx.cmd'
+        args:
+          - -y
+          - '@ethanli666/qqmail-mcp@latest'
+        env:
+          npm_config_cache: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\npm'
+        failOnStartupError: false
+      disabled: true
+
+    # 7) Tencent IMA knowledge base — needs cookie/bkn copied from ima.qq.com (F12 → Network).
+    - id: tencent-ima-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-ima
+        transport: stdio
+        command: 'C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Scripts\uvx.exe'
+        args:
+          - --from
+          - tencent-ima-copilot-mcp
+          - ima-mcp
+        env:
+          UV_CACHE_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv'
+          UV_TOOL_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv-tools'
+          UV_TOOL_BIN_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv-bin'
+          IMA_X_IMA_COOKIE: !!js process.env.IMA_X_IMA_COOKIE
+          IMA_X_IMA_BKN: !!js process.env.IMA_X_IMA_BKN
+          IMA_KNOWLEDGE_BASE_ID: !!js process.env.IMA_KNOWLEDGE_BASE_ID
+        failOnStartupError: false
+      disabled: true

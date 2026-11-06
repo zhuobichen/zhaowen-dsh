@@ -6,12 +6,29 @@
 
 | 服务 | 传输 | 状态 | 说明 |
 |---|---|---|---|
-| **腾讯文档** `tencent-docs` | streamable-http | ✅ 启用 | `https://docs.qq.com/openapi/mcp`，一套工具覆盖文档/表格/幻灯片/智能表/流程图/思维导图/OCR/网页剪藏 |
-| **云服务器** `tencent-cvm` | stdio（uvx） | ✅ 启用 | 列实例、开关机、查规格；用 `.env` 里的 `TENCENTCLOUD_SECRET_ID/KEY` |
-| **自动化助手** `tencent-tat` | stdio（uvx） | ⏸ 停用 | 无需 SSH 在云服务器上跑命令；把 `disabled: true` 去掉即启用 |
-| **对象存储** `tencent-cos` | stdio（npx） | ⏸ 停用 | 需在 `.env` 补 `COS_CONFIG`（bucket/region 的 JSON）再启用 |
+| **腾讯文档** `tencent-docs` | streamable-http | ✅ 实测可用 | `https://docs.qq.com/openapi/mcp`，工具覆盖文档/表格/幻灯片/智能表/流程图/OCR/网页剪藏 |
+| **QQ 邮箱** `tencent-qqmail` | stdio（node 直跑） | ✅ 实测可用 | 只读 IMAP：列新邮件、取摘要、读全文；用 `.env` 的 `QQMAIL_USER` + `QQMAIL_AUTH_CODE` |
+| **云服务器** `tencent-cvm` | stdio（uvx） | ⚠ 已连接，工具未注册 | 见下方「stdio 的现状」 |
+| **QQ 邮箱（全功能）** `tencent-qqmail-full` | stdio（npx） | ⏸ 停用 | 官方 12 项工具、可发信，首次要手机 QQ 扫码；扫码后去掉 `disabled` |
+| **自动化助手** `tencent-tat` | stdio（uvx） | ⏸ 停用 | 不用 SSH 在云服务器跑命令 |
+| **对象存储** `tencent-cos` | stdio（npx） | ⏸ 停用 | 需补 `COS_CONFIG`（bucket/region JSON） |
+| **IMA 知识库** `tencent-ima` | stdio（uvx） | ⏸ 停用 | 需从 ima.qq.com 复制 cookie（见下） |
 
-后续想加 CLS（日志）、TAPD（需求缺陷）、DNSPod、轻量服务器等，复制一行 patch 改 `serverName` / 包名即可——官方合集见 [TencentCloudCommunity/mcp-server](https://github.com/TencentCloudCommunity/mcp-server)。
+## stdio 的现状（重要）
+
+这台机器上 DSH 的 `dsh-mcp-client` 能**连上** stdio server（`tencent-cvm`、`tencent-qqmail` 都会出现在 MCP 服务列表里），但工具没有注册进 agent 的工具表，调用会报 `unknown tool`。HTTP 型的腾讯文档完全正常。
+
+所以 stdio 服务目前走两条路：
+
+1. **DSH 侧配置保留**（缓存热了以后重启宿主有机会恢复）；
+2. **mcporter 兜底**（本机已装，实测可用）：
+
+```powershell
+# 先加载 .env 里的 QQMAIL_*，再调用
+mcporter call --stdio "node D:\...\_mcp-cache\qqmail-local\node_modules\qqmail-mcp\dist\index.js" qqmail_list_new_messages limit=5
+```
+
+QQ 邮箱这条路实测返回 `[]`（收件箱没有新邮件），exit 0，链路是通的。
 
 ## 两个环境前提
 
@@ -21,39 +38,50 @@
 TENCENT_DOCS_TOKEN=...            # 腾讯文档 MCP 的 Authorization
 TENCENTCLOUD_SECRET_ID=...        # 腾讯云 API
 TENCENTCLOUD_SECRET_KEY=...
-# TENCENTCLOUD_REGION=ap-guangzhou   # 可选，默认 ap-guangzhou
+QQMAIL_USER=...@qq.com            # IMAP 账号
+QQMAIL_AUTH_CODE=...              # IMAP 授权码（不是 QQ 密码）
+# TENCENTCLOUD_REGION=ap-guangzhou
 # COS_CONFIG={"cos":[{"bucket":"...","region":"..."}]}
+# IMA_X_IMA_COOKIE=... IMA_X_IMA_BKN=... IMA_KNOWLEDGE_BASE_ID=...
 ```
 
-**2. stdio 服务需要可写缓存**
+**2. stdio 服务要可写缓存**
 
-这台机器的 `D:\dev-cache\npm` 与 `D:\dev-cache\uv` 权限被拒（EPERM / 拒绝访问），`npx`、`uvx` 默认都装不动。patch 里已把缓存重定向到工作区：
+这台机器的 `D:\dev-cache\npm` / `D:\dev-cache\uv` 权限被拒，`npx`、`uvx` 默认装不动。patch 里已重定向到工作区 `_mcp-cache\`：
 
 ```yaml
 env:
-  UV_CACHE_DIR: 'D:\...\_mcp-cache\uv'
-  UV_TOOL_DIR: 'D:\...\_mcp-cache\uv-tools'
-  UV_TOOL_BIN_DIR: 'D:\...\_mcp-cache\uv-bin'
-  npm_config_cache: 'D:\...\_mcp-cache\npm'
+  UV_CACHE_DIR / UV_TOOL_DIR / UV_TOOL_BIN_DIR → \_mcp-cache\uv*
+  npm_config_cache → \_mcp-cache\npm
 ```
 
-第一次启用某个 stdio 服务要下载依赖（实测 `mcp-server-cvm` 约 3 分钟，之后走缓存秒开）。这段时间工具可能还没出现，是正常的。
+`npx` 的 shim 在这台机器上会被拒（`Access is denied`），所以 QQ 邮箱改成**先把包装到 `_mcp-cache\qqmail-local`，再用 `node` 直接跑入口**——这条路稳定。
 
-## 安装
+## IMA 知识库怎么接
+
+[highkay/tencent-ima-copilot-mcp](https://github.com/highkay/tencent-ima-copilot-mcp) 包装的是 ima.qq.com 的网页接口，需要一个**浏览器里的登录态**：
+
+1. 打开 <https://ima.qq.com> 登录，F12 → Network，随便发一条提问；
+2. 找 `/cgi-bin/assistant/qa` 的请求，复制：
+   - `x-ima-cookie` → `IMA_X_IMA_COOKIE`
+   - `x-ima-bkn` → `IMA_X_IMA_BKN`
+3. 再填 `IMA_KNOWLEDGE_BASE_ID`（知识库 ID）；
+4. 把这几条写进 `.env`，然后去掉 patch 里 `tencent-ima` 行的 `disabled: true`。
+
+cookie 会过期，过期后工具返回未授权，重新复制即可。
+
+## 安装 / 验证
 
 ```sh
 dsh plugin --profile web add ./dsh-tencent-docs-mcp
 ```
 
-pnpm 被上面那个权限问题挡住时，手动接线（junction + profile 的 `dependencies` / `dsh.profile.bundles`）。
-
-## 验证
-
-- 腾讯文档：让 agent 调 `mcp__tencent-docs__get_user_info`，应返回自己的昵称与 user_id。
-- 云服务器：`mcp__tencent-cvm__*` 里挑一个只读工具；返回鉴权错误说明 SECRET_ID/KEY 或 REGION 不对。
+- 腾讯文档：`mcp__tencent-docs__get_user_info` 应返回你的昵称与 user_id；
+- QQ 邮箱：`mcporter call --stdio "node …\qqmail-mcp\dist\index.js" qqmail_list_new_messages limit=3`。
 
 ## 边界
 
-- 只做连接层，不修改、不代理腾讯服务的行为。
-- 腾讯文档工具会**真实写你的文档**；删除类操作（`manage_delete_file`、`delete_space_node`）不可撤销，先确认。
-- 腾讯云密钥权限很大（能开关机），建议在控制台给这个密钥收窄到只读或指定产品。
+- 只做连接层，不修改腾讯服务的行为。
+- 腾讯文档工具会**真实写你的文档**；`manage_delete_file`、`delete_space_node` 这类不可撤销，先确认。
+- QQ 邮箱只读（IMAP 版不提供发信）；要发信就用全功能版（扫码）。
+- 腾讯云密钥权限很大（能开关机），建议在控制台收窄到只读或指定产品。
