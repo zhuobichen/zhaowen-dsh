@@ -1,0 +1,73 @@
+# Tencent suite: one bundle, several Tencent MCP servers.
+#
+# Secrets come from dsh\home\.env through `!!js process.env.*`, never from this file.
+# stdio servers need a writable cache: the machine's default D:\dev-cache is not writable,
+# so UV_CACHE_DIR / npm_config_cache point into the workspace instead.
+- insert:
+    # 1) Tencent Docs — hosted HTTP endpoint, no local process.
+    - id: tencent-docs-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-docs
+        transport: streamable-http
+        url: https://docs.qq.com/openapi/mcp
+        headers:
+          Authorization: !!js process.env.TENCENT_DOCS_TOKEN
+        failOnStartupError: false
+
+    # 2) Tencent Cloud CVM — cloud servers: list, start/stop, describe.
+    - id: tencent-cvm-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-cvm
+        transport: stdio
+        command: 'C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Scripts\uvx.exe'
+        args:
+          - --from
+          - mcp-server-cvm
+          - mcp-server-cvm
+        env:
+          UV_CACHE_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv'
+          UV_TOOL_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv-tools'
+          UV_TOOL_BIN_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv-bin'
+          TENCENTCLOUD_SECRET_ID: !!js process.env.TENCENTCLOUD_SECRET_ID
+          TENCENTCLOUD_SECRET_KEY: !!js process.env.TENCENTCLOUD_SECRET_KEY
+          TENCENTCLOUD_REGION: !!js process.env.TENCENTCLOUD_REGION ?? 'ap-guangzhou'
+        failOnStartupError: false
+
+    # 3) Tencent Cloud TAT — run commands on cloud servers without SSH.
+    - id: tencent-tat-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-tat
+        transport: stdio
+        command: 'C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Scripts\uvx.exe'
+        args:
+          - --from
+          - mcp-server-tat
+          - mcp-server-tat
+        env:
+          UV_CACHE_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv'
+          UV_TOOL_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv-tools'
+          UV_TOOL_BIN_DIR: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\uv-bin'
+          TENCENTCLOUD_SECRET_ID: !!js process.env.TENCENTCLOUD_SECRET_ID
+          TENCENTCLOUD_SECRET_KEY: !!js process.env.TENCENTCLOUD_SECRET_KEY
+          TENCENTCLOUD_REGION: !!js process.env.TENCENTCLOUD_REGION ?? 'ap-guangzhou'
+        failOnStartupError: false
+      disabled: true
+
+    # 4) Tencent Cloud COS — object storage (needs a bucket list in COS_CONFIG).
+    - id: tencent-cos-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: tencent-cos
+        transport: stdio
+        command: 'D:\Node_js\npx.cmd'
+        args:
+          - -y
+          - cos-mcp
+        env:
+          npm_config_cache: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\npm'
+          COS_CONFIG: !!js process.env.COS_CONFIG
+        failOnStartupError: false
+      disabled: true

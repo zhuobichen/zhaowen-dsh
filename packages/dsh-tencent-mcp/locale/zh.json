@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "腾讯文档 MCP",
+    "description": "把腾讯文档的官方 MCP 接口接成原生工具：创建/读取/搜索文档、智能表、PPT、Word、Excel、网页剪藏。"
+  }
+}

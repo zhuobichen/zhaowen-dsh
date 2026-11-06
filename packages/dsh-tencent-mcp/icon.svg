@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Tencent Docs">
+  <rect width="128" height="128" rx="28" fill="#1E6FFF"/>
+  <g fill="#FFFFFF">
+    <rect x="30" y="26" width="52" height="66" rx="8" opacity="0.95"/>
+    <rect x="46" y="38" width="52" height="66" rx="8" opacity="0.75"/>
+  </g>
+  <g stroke="#1E6FFF" stroke-width="4" stroke-linecap="round" opacity="0.85">
+    <path d="M58 58h28"/>
+    <path d="M58 70h28"/>
+    <path d="M58 82h18"/>
+  </g>
+  <circle cx="96" cy="34" r="12" fill="#FFD24C"/>
+</svg>
