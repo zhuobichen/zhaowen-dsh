@@ -81,3 +81,4 @@ git tag dsh-team-v0.2.1   && git push origin dsh-team-v0.2.1
 - `zhuobichen/dsh-team` → `packages/dsh-team`
 - `zhuobichen/dsh-tui` → `packages/dsh-cc-tui`
 - `zhuobichen/dsh-term` → `packages/dsh-term`
+| [`packages/dsh-weflow-mcp`](packages/dsh-weflow-mcp) | `@zhuobichen/dsh-weflow-mcp` | **DSH 插件**（配置型）：接 WeFlow CLI 自带的 MCP——本机微信聊天、收藏、公众号日报、知识库、朋友圈、微信读书 |

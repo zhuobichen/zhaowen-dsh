@@ -1,0 +1,11 @@
+- insert:
+    - id: weflow-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: weflow
+        transport: stdio
+        command: 'D:\Node_js\node.exe'
+        args:
+          - 'D:\github_project\ZhaoWen_GitHub维护\weflow-cli\dist\mcp-server\index.js'
+        cwd: 'D:\github_project\ZhaoWen_GitHub维护\weflow-cli'
+        failOnStartupError: false
