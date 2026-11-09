@@ -544,17 +544,20 @@ export function apply(ctx, config = {}) {
 					timed_out: r.timed_out === true,
 					aborted: r.aborted === true,
 				})
-				const extra = r.timed_out ? ', timed_out: true' : r.aborted ? ', aborted: true' : ''
+				// ⚠️ 只在该有的时候才放 hint。写成 `hint: undefined` 会被判定为
+				// "value is not lossless JSON" —— undefined 不是合法 JSON 值，
+				// 工具会报 invalid output（我踩过一次）。
+				const stopHint = r.timed_out
+					? '命令被超时终止（整棵进程树已 kill）。要启动常驻服务请加 detach: true。'
+					: r.aborted
+						? '命令被取消（整棵进程树已 kill）。要启动常驻服务请加 detach: true。'
+						: undefined
 				return {
 					ok: r.exit_code === 0 && !r.timed_out && !r.aborted,
 					target: cwdOpt ?? '',
 					...(r.timed_out ? { code: 'TIMEOUT' } : r.aborted ? { code: 'ABORTED' } : {}),
 					...r,
-					hint:
-						r.timed_out || r.aborted
-							? `命令被${r.timed_out ? '超时' : '取消'}终止（整棵进程树已 kill）${extra}。` +
-								'要启动常驻服务请加 detach: true。'
-							: undefined,
+					...(stopHint === undefined ? {} : { hint: stopHint }),
 				}
 			},
 		}),
