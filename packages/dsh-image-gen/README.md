@@ -13,7 +13,19 @@ vendored 过来，改成可配置的工厂。
 | --- | --- |
 | `generate_image` | 文字 → 图片。约 15–35 秒，通常 2048×2048 |
 | `edit_image` | 1–4 张参考图 + 指令 → 图片。约 30–60 秒 |
+| `generate_video` | 参考图 / 文字 → 视频（图生视频）。约 2–6 分钟，实测 720×1280、24fps、带音轨 |
 | `image_gen_status` | 只读诊断：调试端口通不通、聊天页/输入框在不在、队列状态 |
+
+### `generate_video` 的三条硬约束
+
+1. **复刻已有角色必须传 `reference_images`。** 只给文字，模型会画出一个泛化形象；
+   给了参考图，豆包会把它当「唯一身份锚点」，脸型/发型/服装才守得住。
+2. **豆包会先要确认。** 它回一张参数单（模型/时长/声音/画面文字）并问
+   「确认后我再开始生成视频」，工具会自动补一句「确认，开始生成」。
+3. **下载不靠界面按钮。** 那个下载键藏在 hover 组里，合成鼠标事件下只闪一下
+   （视频块在隐藏页里还常被布局成 0×0，滚动和 hover 都没反应）。
+   实际走的是 React fiber 里的 `removeAiWatermarkVideoUrl`（带 `lr=unwatermarked`），
+   在页面内 fetch 取字节；下载按钮只作兜底。
 
 产物右下角有「豆包 AI 生成」可见水印，PNG 里还有 AIGC 元数据；**本插件不裁剪**。
 
@@ -93,6 +105,7 @@ $DSH_HOME/plugins/dsh-image-gen/output/
 | `cdpUrl` | `DOUBAO_CDP_URL` | `http://127.0.0.1:9333` |
 | `minPx` | `DOUBAO_MIN_PX` | `512` |
 | `timeoutMs` | `DOUBAO_TIMEOUT_MS` | `240000` |
+| `videoTimeoutMs` | `DOUBAO_VIDEO_TIMEOUT_MS` | `900000`（等视频块的上限） |
 | `newChat` | `DOUBAO_NEW_CHAT` | `false`（接着当前会话发） |
 | `maxPending` | `DSH_IMAGE_GEN_MAX_PENDING` | `8` |
 | `maxPromptChars` | `DSH_IMAGE_GEN_MAX_PROMPT` | `8000` |
