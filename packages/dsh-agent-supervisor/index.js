@@ -36,6 +36,14 @@ const SUPERVISOR_TITLE = '管理Bot'
  */
 const DEFAULT_SUPERVISOR_TITLES = [SUPERVISOR_TITLE]
 
+/**
+ * 默认的标题后缀白名单：会话标题以这些后缀结尾也算「调度会话」。
+ *
+ * 这样不用把每个新会话都加进 `supervisorTitles`——起名 `项目A_调度` 即可。
+ * 可以用 config.supervisorSuffixes 覆盖。
+ */
+const SUPERVISOR_SUFFIXES = ['_调度']
+
 /** 落盘目录名（$DSH_HOME/plugins/dsh-agent-supervisor/memory）。 */
 const PLUGIN_DIRNAME = 'dsh-agent-supervisor'
 
@@ -190,6 +198,25 @@ const supervisorTitlesOf = (settings) => {
 	}
 
 	return titles
+}
+
+/**
+ * 后缀白名单：config.supervisorSuffixes 覆盖默认的 `['_调度']`。
+ *
+ * 传空数组等于「只按标题全等匹配」；传字符串也接受。
+ */
+const supervisorSuffixesOf = (settings) => {
+	const raw = settings.supervisorSuffixes
+	if (raw === undefined || raw === null) return [...SUPERVISOR_SUFFIXES]
+	const list = typeof raw === 'string' ? [raw] : Array.isArray(raw) ? raw : [...SUPERVISOR_SUFFIXES]
+	const out = []
+	for (const candidate of list) {
+		if (typeof candidate !== 'string') continue
+		const suffix = candidate.trim()
+		if (suffix === '' || out.includes(suffix)) continue
+		out.push(suffix)
+	}
+	return out
 }
 //#endregion
 
@@ -905,24 +932,30 @@ const readRequestBody = (req) =>
  * 装配插件。
  *
  * @param ctx - 宿主 Cordis 上下文。
- * @param config - `{ onlySupervisor?: boolean, supervisorTitles?: string | string[], memoryDir?: string }`。
- *   `onlySupervisor` 默认 **true**：只有标题落在 `supervisorTitles` 白名单里的会话能执行这些工具。
+ * @param config - `{ onlySupervisor?: boolean, supervisorTitles?: string | string[], supervisorSuffixes?: string | string[], memoryDir?: string }`。
+ *   `onlySupervisor` 默认 **true**：只有标题落在 `supervisorTitles` 白名单里、**或以 `supervisorSuffixes` 结尾**的会话能执行这些工具。
  *   `supervisorTitles` 默认 **['管理Bot']**；追加的标题只增不减，`管理Bot` 永远在且排第一。
+ *   `supervisorSuffixes` 默认 **['_调度']**；例如「项目A_调度」无需另加白名单即可执行。
+ *   把 `onlySupervisor` 设为 **false** 可整体放开（默认不这么做）。
  */
 export function apply(ctx, config = {}) {
 	const settings = config === null || typeof config !== 'object' ? {} : config
 	const onlySupervisor = settings.onlySupervisor !== false
 	const supervisorTitles = supervisorTitlesOf(settings)
 	const supervisorTitleLabel = supervisorTitles.map((title) => '「' + title + '」').join('、')
+	const supervisorSuffixes = supervisorSuffixesOf(settings)
+	const suffixLabel =
+		supervisorSuffixes.length > 0 ? '（或以 ' + supervisorSuffixes.map((s) => '「' + s + '」').join('、') + ' 结尾）' : ''
 	const memoryDir =
 		typeof settings.memoryDir === 'string' && settings.memoryDir !== '' ? settings.memoryDir : defaultMemoryDir()
 
 	/**
-	 * 调用方是不是白名单里的「管理Bot」。
+	 * 调用方是不是白名单里的「管理」会话。
 	 *
-	 * 判据只有一个：**调用方自己的会话标题**（exec.agent.session）规范化后落在
-	 * `supervisorTitles` 里。不是 id 白名单、不是 cwd、不是「最后一个会话」——
-	 * 标题是用户唯一改得动、也唯一看得见的那个标签。
+	 * 判据只有一个：**调用方自己的会话标题**（exec.agent.session）规范化后
+	 * 要么整个落在 `supervisorTitles` 里，要么以 `supervisorSuffixes` 里的后缀结尾
+	 * （默认 `_调度`，所以「项目A_调度」也算）。不是 id 白名单、不是 cwd、
+	 * 不是「最后一个会话」——标题是用户唯一改得动、也唯一看得见的那个标签。
 	 */
 	const supervisorDenial = (exec) => {
 		if (!onlySupervisor) return undefined
@@ -937,13 +970,18 @@ export function apply(ctx, config = {}) {
 					'无法确认调用方会话（这次工具调用没有绑定 agent/session）。' +
 					'本插件只允许标题为 ' +
 					supervisorTitleLabel +
+					suffixLabel +
 					' 的会话执行；把 config.onlySupervisor 设为 false 可关闭这条限制。',
 			}
 		}
 
 		const title = titleOfSession(ctx, session)
+		const normalized = typeof title === 'string' ? title.trim() : undefined
 
-		if (typeof title === 'string' && supervisorTitles.includes(title.trim())) return undefined
+		if (normalized !== undefined) {
+			if (supervisorTitles.includes(normalized)) return undefined
+			if (supervisorSuffixes.some((suffix) => normalized.endsWith(suffix))) return undefined
+		}
 
 		const denial = {
 			ok: false,
@@ -951,9 +989,12 @@ export function apply(ctx, config = {}) {
 			error:
 				'只有标题为 ' +
 				supervisorTitleLabel +
+				suffixLabel +
 				' 的会话可以执行 dsh_* 工具。当前调用方会话标题是 ' +
 				(typeof title === 'string' ? '「' + title + '」' : '（还没有标题）') +
-				'。把这个会话改名成其中之一后重试，或者把插件配置的 onlySupervisor 设为 false。',
+				'。把这个会话改名成其中之一（或以「' +
+				(SUPERVISOR_SUFFIXES[0] ?? '_调度') +
+				'」结尾）后重试，或者把插件配置的 onlySupervisor 设为 false。',
 		}
 
 		if (typeof session.id === 'string' && session.id !== '') denial.session_id = session.id
