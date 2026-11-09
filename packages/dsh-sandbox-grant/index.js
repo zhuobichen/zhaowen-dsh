@@ -419,6 +419,9 @@ export function apply(ctx, config = {}) {
 	 */
 	function spawnDetached(argv, cwdOpt) {
 		const started = Date.now()
+		// await-gate: ok — 这是**故意**不设超时的：detached + stdio:'ignore' + unref，
+		// 我们自己不等它，它也不持有任何管道，所以不可能拖住调用。
+		// 常驻服务本来就该这样起（同步语义去等 daemon 才会挂死，见上面的注释）。
 		const child = spawn(argv[0], argv.slice(1), {
 			cwd: cwdOpt,
 			windowsHide: true,
