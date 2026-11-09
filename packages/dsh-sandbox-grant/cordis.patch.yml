@@ -1,0 +1,13 @@
+# dsh-sandbox-grant 的 bundle patch。
+#
+# 本包只注册工具，不涉及客户端：plugins 由 dsh.profile.bundles 加载，
+# 这里负责把自己插进运行树。
+#
+# config 里的 escalationOwners 是默认值；用户层（profile 的 cordis.patch.yml）
+# 可以用 `- id: sandbox-grant` 覆盖，且不影响这里。
+- insert:
+    - id: sandbox-grant
+      name: '@zhuobichen/dsh-sandbox-grant'
+      config:
+        escalationOwners:
+          - '管理Bot'

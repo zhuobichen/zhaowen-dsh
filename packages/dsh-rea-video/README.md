@@ -45,5 +45,18 @@
 
 - **时间**：一条 1 分钟的视频，抽帧 + OCR + 判定大概几分钟到十几分钟；工具超时上限 15 分钟。
 - **VLM**：想让"实拍 vs AI"判得更准、并且给每个镜头反推 prompt，需要配视频模型（Gemini 或豆包）。不配也能跑：不确定的镜头会标"待确认"，agent 可以自己看 `tiles` 复核。
-- **报告**：默认写在视频同级的 `rea-video` 工作目录里，`report.html` 可以直接打开。
+- **输出目录**：`decompose` 等子命令会自动补 `--out _tools\rea-video-out\<视频名>`，不会再落到宿主 cwd。
+- **模型缓存**：`~/.cache` 在本机不可写，`REA_VIDEO_MODELS` 已重定向到 `_tools\rea-video-models`。
 - 处理的是你自己的视频；不要拿别人的素材做越界的事。
+
+## 工作台
+
+装好后会话顶部多一个 **rea-video 工作台** 标签（和「对话」「轨迹」「IG5」「Craft Anything」并列），显示最近一次拆解：
+
+- 视频名 / 时长 / 镜头数 / 置信度 / 时间；
+- 结论（verdict）与制作构成（AI 视频 / 实拍 / 3D 等百分比）；
+- 画面与包装要点（景别、机位、打光、字幕与贴纸数量）；
+- 可信度提示（未开 VLM 时的说明）；
+- `report.html` 路径。
+
+数据来自 Host 半身的 `GET /rea-video/status`：扫 `_tools\rea-video-out` 下最新的 `breakdown.json`，面板每分钟自动刷新。还没跑过任何视频时显示空状态提示。

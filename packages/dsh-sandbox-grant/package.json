@@ -1,0 +1,36 @@
+{
+  "name": "@zhuobichen/dsh-sandbox-grant",
+  "version": "0.1.0",
+  "description": "为指定会话切换沙箱模式（提权/降权），带审计与升级守卫",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-sandbox-policy": "^0.2.1-rc.2"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "sandbox",
+    "permission",
+    "deepseek-harness"
+  ],
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+  }
+}
