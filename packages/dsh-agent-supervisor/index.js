@@ -893,7 +893,14 @@ const chatPost = async (ctx, text, signal, titles = DEFAULT_SUPERVISOR_TITLES) =
 	return { ok: true, sessionId: supervisor.id, title: supervisor.title }
 }
 
-/** 读完请求体（带上限）；读失败给空串，让调用方回 BAD_JSON。 */
+/**
+ * 读完请求体（带上限）；读失败给空串，让调用方回 BAD_JSON。
+ *
+ * await-gate: ok — HTTP 请求体读取，语义上必然终结：正常完成触发 `end`，
+ * 客户端断开/连接重置触发 `error`/`aborted`。对端就是发起这次请求的客户端，
+ * 不存在「永不回应的对端」；强行加超时反而会误伤大请求。
+ * 详见 docs/门禁-等待与取消.md §3.5。
+ */
 const readRequestBody = (req) =>
 	new Promise((resolve) => {
 		let raw = ''

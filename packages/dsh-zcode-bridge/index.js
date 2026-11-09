@@ -123,6 +123,14 @@ function sampleOf(ir, samples = 12) {
     }))
 }
 
+/**
+ * 读一个 JSON 请求体。
+ *
+ * await-gate: ok — HTTP 请求体读取，语义上必然终结：`end` 正常完成，
+ * 客户端断开/连接重置触发 `error`/`aborted`。对端就是发起请求的客户端，
+ * 不存在「永不回应的对端」；加超时反而误伤大请求。
+ * 详见 docs/门禁-等待与取消.md §3.5。
+ */
 function readJson(req) {
   return new Promise((resolve, reject) => {
     let size = 0

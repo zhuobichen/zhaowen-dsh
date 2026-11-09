@@ -94,6 +94,10 @@ export function runProcess(file: string, args: string[], options: RunOptions = {
     let child
 
     try {
+      // await-gate: ok — spawn 本身不传 `timeout` 选项，因为这里用自己的一套
+      // 分级终止（SIGTERM → 3s → SIGKILL → 1s → 强制结算），比 Node 自带的
+      // 单次 kill 更可控；超时/取消的兜底在本函数下方 options.timeoutMs 与
+      // options.signal 两个分支里。检查脚本看不到那么远，属已知误报。
       child = spawn(file, args, {
         cwd: options.cwd,
         env: options.env ?? process.env,
@@ -144,6 +148,25 @@ export function runProcess(file: string, args: string[], options: RunOptions = {
       })
     }
 
+    /** 硬结算前主动关掉管道：孙子进程可能一直握着它们，导致 close 永远不来。 */
+    const destroyStdio = (): void => {
+      try {
+        child.stdout?.destroy()
+      } catch {
+        /* ignore */
+      }
+      try {
+        child.stderr?.destroy()
+      } catch {
+        /* ignore */
+      }
+      try {
+        child.stdin?.destroy()
+      } catch {
+        /* ignore */
+      }
+    }
+
     child.on('error', (error) => {
       finish(null, null, error as NodeJS.ErrnoException)
     })
@@ -165,18 +188,41 @@ export function runProcess(file: string, args: string[], options: RunOptions = {
       else child.stdin.end()
     }
 
+    // 超时：SIGTERM → 3 秒后 SIGKILL → 再 1 秒**强制结算**。
+    //
+    // 最后那一步是门禁要求（docs/门禁-等待与取消.md 事故 A）：resolve 只挂在
+    // child.on('close') 上，而 close 要求 stdio 管道全部关闭。一旦有孙进程
+    // （或 Windows 上不理会信号的进程）继续握着管道，close 就永远不来 ——
+    // 工具调用永久挂起，用户点停止也没用。所以信号发完必须自己 finish。
     if (options.timeoutMs !== undefined && options.timeoutMs > 0) {
       timer = setTimeout(() => {
         timedOut = true
         child.kill('SIGTERM')
-        // 有些平台/进程不理会 SIGTERM，留 3 秒再强杀。
-        killTimer = setTimeout(() => child.kill('SIGKILL'), 3_000)
+        // 有些平台/进程不理会 SIGTERM，留 3 秒再强杀；强杀后再留 1 秒观察，然后硬结算。
+        killTimer = setTimeout(() => {
+          child.kill('SIGKILL')
+          killTimer = setTimeout(() => {
+            destroyStdio()
+            finish(null, null)
+          }, 1_000)
+        }, 3_000)
       }, options.timeoutMs)
     }
 
     if (options.signal) {
       const onAbort = (): void => {
+        // 取消同样需要硬兜底：只发信号不结算 = 用户点了停止还在等。
+        if (settled) return
+        if (timer) clearTimeout(timer)
+        if (killTimer) clearTimeout(killTimer)
         child.kill('SIGTERM')
+        killTimer = setTimeout(() => {
+          child.kill('SIGKILL')
+          killTimer = setTimeout(() => {
+            destroyStdio()
+            finish(null, null)
+          }, 1_000)
+        }, 3_000)
       }
 
       if (options.signal.aborted) onAbort()

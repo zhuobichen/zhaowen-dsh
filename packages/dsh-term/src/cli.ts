@@ -35,13 +35,44 @@ function renderToolCalls(stderrChunk: string): void {
  * 返回完整的 assistant 文本（用于对话历史）。
  */
 function runHeadless(prompt: string): Promise<string> {
+  // 门禁（docs/门禁-等待与取消.md）：不能只有 close 一条 settle 路径。
+  // 这个子进程是另一个完整 DSH，卡住（等输入、网络挂死）时如果不设上限，
+  // 整个终端会永久停在「思考中」。到点 kill 并 reject，让用户能继续输入。
+  const timeoutMs = 30 * 60_000
   return new Promise((resolve, reject) => {
+    let settled = false
+    let stdout = ''
+    let stderr = ''
+    const finish = (fn: () => void): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      fn()
+    }
     const child = spawn(process.execPath, [DSH_RUNTIME, '--profile', 'headless', prompt], {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: process.env,
     })
-    let stdout = ''
-    let stderr = ''
+    const timer = setTimeout(() => {
+      try {
+        child.kill('SIGKILL')
+      } catch {
+        /* 可能已经退了 */
+      }
+      try {
+        child.stdout?.destroy()
+      } catch {
+        /* ignore */
+      }
+      try {
+        child.stderr?.destroy()
+      } catch {
+        /* ignore */
+      }
+      finish(() =>
+        reject(new Error(`headless 超过 ${Math.round(timeoutMs / 60_000)} 分钟未结束，已终止。`)),
+      )
+    }, timeoutMs)
     child.stdout.on('data', (d: Buffer) => {
       const text = d.toString()
       stdout += text
@@ -52,10 +83,12 @@ function runHeadless(prompt: string): Promise<string> {
       stderr += text
       renderToolCalls(text)
     })
-    child.on('error', reject)
+    child.on('error', (error) => finish(() => reject(error)))
     child.on('close', (code) => {
-      if (code === 0) resolve(stdout.trim())
-      else reject(new Error(stderr.trim() || `dsh 退出码 ${code}`))
+      finish(() => {
+        if (code === 0) resolve(stdout.trim())
+        else reject(new Error(stderr.trim() || `dsh 退出码 ${code}`))
+      })
     })
   })
 }

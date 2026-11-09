@@ -60,6 +60,7 @@ function pipeline(
   producer: { file: string; args: string[] },
   consumer: { file: string; args: string[] },
   maxBytes: number,
+  timeoutMs = 30 * 60 * 1000,
 ): Promise<PipelineResult> {
   const started = Date.now()
 
@@ -80,6 +81,7 @@ function pipeline(
       if (pCode === null || cCode === null) return
 
       done = true
+      clearTimeout(hardTimer)
       resolvePromise({
         bytes,
         durationMs: Date.now() - started,
@@ -95,6 +97,36 @@ function pipeline(
       p.kill('SIGKILL')
       c.kill('SIGKILL')
     }
+
+    // 兜底 deadline：pipeline 原本只有「两个进程都 close」一条 settle 路径，
+    // 任何一端卡住（ssh 半死、tar 等 stdin 的 EOF 等不到）就永久挂起 ——
+    // 正是门禁里事故 A 的形态（docs/门禁-等待与取消.md）。
+    // 到点必须 kill + 自己 settle，不能只发信号再等 close。
+    const hardTimer = setTimeout(() => {
+      if (done) return
+      pErr += '\n[transfer] 超过硬上限，已强制终止'
+      cErr += '\n[transfer] 超过硬上限，已强制终止'
+      killBoth()
+      // 未知的退出码用 -1 占位，让 settle 不再被 null 拦住
+      if (pCode === null) pCode = -1
+      if (cCode === null) cCode = -1
+      try {
+        p.stdout?.destroy()
+      } catch {
+        /* ignore */
+      }
+      try {
+        c.stdin?.destroy()
+      } catch {
+        /* ignore */
+      }
+      try {
+        c.stdout?.destroy()
+      } catch {
+        /* ignore */
+      }
+      settle()
+    }, timeoutMs)
 
     p.stderr?.on('data', (chunk: Buffer) => {
       if (pErr.length < 16_384) pErr += chunk.toString('utf8')

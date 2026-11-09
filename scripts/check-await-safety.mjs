@@ -64,6 +64,17 @@ const win = (lines, from, to) => lines.slice(Math.max(0, from), Math.min(lines.l
 /** 这段代码里有没有"结算"动作（直接或通过一个局部函数）。 */
 const SETTLES = /\b(resolve|reject|finish|settle|done|fin)\s*\(/
 
+/**
+ * 豁免标记：`// await-gate: ok — <理由>`
+ *
+ * 有些等待在语义上必然终结（例如 HTTP 请求体：客户端断开必然触发 error/aborted），
+ * 强行加超时反而会误伤长连接。这种地方用这个标记显式豁免，
+ * **理由必须写出来**，否则下一个人无法判断这是深思熟虑还是漏掉了。
+ * 标记要出现在 `new Promise` 之前 12 行以内。
+ */
+const EXEMPT = /await-gate:\s*ok\b/
+const isExempt = (lines, from) => lines.slice(Math.max(0, from - 12), from + 1).some((l) => EXEMPT.test(l))
+
 for (const file of files) {
   let src = ''
   try {
@@ -84,6 +95,7 @@ for (const file of files) {
     if (!eventSettle) continue
 
     if (!hasTimer) {
+      if (isExempt(lines, i)) continue
       out.push({
         sev: testish ? '提示' : '必错',
         file: rel,
@@ -105,6 +117,7 @@ for (const file of files) {
       const kills = /\b(kill|taskkill|SIGKILL|SIGTERM)\b/.test(timerBody)
       const settlesInTimer = SETTLES.test(timerBody)
       if (kills && !settlesInTimer) {
+        if (isExempt(lines, i)) continue
         out.push({
           sev: testish ? '提示' : '必错',
           file: rel,
@@ -117,14 +130,17 @@ for (const file of files) {
   }
 
   // ── ③ 起子进程但没有任何 deadline ──
+  // 注意 negative lookbehind：`/re/.exec(s)` 是正则方法，不是起进程。
+  // 没有它会把 dsh-cc-tui 里所有 regex.exec() 全判成 spawn（实测 30 条假阳）。
   for (let i = 0; i < lines.length; i += 1) {
-    if (!/\b(spawn|spawnSync|execFile|execFileSync|exec|execSync)\s*\(/.test(lines[i])) continue
+    if (!/(?<![.\w$])(spawn|spawnSync|execFile|execFileSync|exec|execSync)\s*\(/.test(lines[i])) continue
     if (/^\s*(\/\/|\*|\/\*)/.test(lines[i])) continue
     const ctx = win(lines, i, i + 8)
     // 选项里出现 timeout（简写或键值）或 signal 就算有兜底
     if (/\btimeout\b/.test(ctx) || /\bsignal\b/.test(ctx)) continue
     // 调用点附近 40 行内有 kill / taskkill 也算有兜底
     if (/\b(kill|taskkill)\s*\(/.test(win(lines, i, i + 40))) continue
+    if (isExempt(lines, i)) continue
     out.push({
       sev: testish ? '提示' : '存疑',
       file: rel,
