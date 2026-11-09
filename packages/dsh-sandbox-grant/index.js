@@ -33,8 +33,8 @@
  *       不在名单里的会话调用一律 ESCALATION_DENIED；
  *     - 每次调用写完整命令 + 退出码到审计。
  */
-import { spawn } from 'node:child_process'
-import { appendFileSync, mkdirSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -139,6 +139,13 @@ const OUTPUT = {
 			stderr: { type: 'string' },
 			duration_ms: { type: 'number' },
 			truncated: { type: 'boolean' },
+			timed_out: { type: 'boolean' },
+			aborted: { type: 'boolean' },
+			detached: { type: 'boolean' },
+			pid: { type: 'number' },
+			hint: { type: 'string' },
+			count: { type: 'number' },
+			sessions: { type: 'array', items: { type: 'object', additionalProperties: true, properties: { id: { type: 'string' }, title: { type: 'string' } } } },
 		},
 	},
 	render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
@@ -265,22 +272,131 @@ export function apply(ctx, config = {}) {
 	// ── host_exec：默认关闭、按会话授权的无沙箱执行 ─────────────────────
 	const hostExecCfg = config.hostExec ?? {}
 	const hostExecEnabled = hostExecCfg.enabled === true
-	const hostExecSessions = Array.isArray(hostExecCfg.authorizedSessions)
+	const hostExecConfigSessions = Array.isArray(hostExecCfg.authorizedSessions)
 		? hostExecCfg.authorizedSessions.map((s) => String(s))
 		: []
+
+	/** 额外授权写在文件里，调用时现读——加会话不用重启 DSH。 */
+	function hostExecAuthorizedFile() {
+		const home = process.env.DSH_HOME || join(homedir(), '.dsh')
+		return join(home, 'plugins', 'dsh-sandbox-grant', 'authorized.json')
+	}
+
+	function hostExecSessionsNow() {
+		let extra = []
+		try {
+			const raw = readFileSync(hostExecAuthorizedFile(), 'utf-8')
+			const parsed = JSON.parse(raw)
+			if (Array.isArray(parsed)) extra = parsed.map((x) => String(x))
+		} catch {
+			// 文件不存在或写坏了：只用 config 里的名单
+		}
+		return [...new Set([...hostExecConfigSessions, ...extra])]
+	}
 	const hostExecTimeout = Number(hostExecCfg.timeoutMs) > 0 ? Number(hostExecCfg.timeoutMs) : 120000
 	const MAX_OUT = 8192
 
-	function runProcess(argv, cwdOpt, timeoutMs) {
+	/**
+	 * 杀掉**整棵进程树**。
+	 *
+	 * ⚠️ 这是修过的一个真事故：只 `child.kill()` 在 Windows 上等于
+	 * `TerminateProcess` 打**直接子进程**一个。而 `cmd /c "start /B ..."` 这种写法
+	 * 会把真正的活儿丢给孙进程，孙进程继续跑、并且**继承着宿主给的 stdout/stderr 管道**。
+	 * 于是 `child.on('close')`（只在管道全关时触发）永远不触发 ——
+	 * 超时到了也只杀掉一个已经退出的壳，调用**永久挂起**，
+	 * 连 UI 上的停止键都按不动（因为下面还完全不看 abort signal）。
+	 * 用 `taskkill /T /F` 连树一起收，再把管道 destroy 掉，才能让调用真的结束。
+	 */
+	function killTree(child) {
+		try {
+			if (process.platform === 'win32' && child.pid) {
+				spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+					windowsHide: true,
+					timeout: 10000,
+				})
+			} else {
+				child.kill('SIGKILL')
+			}
+		} catch {
+			// 进程可能已经没了
+		}
+	}
+
+	/**
+	 * 跑一个进程并**保证一定会 resolve**：正常退出 / 超时 / 被取消，三条路都会结束。
+	 *
+	 * `signal` 是 DSH 传进来的 `exec.signal`（`Required caller-owned cancellation`）。
+	 * 不接它的后果很严重：UI 上的停止键按了也没反应，那个调用会一直挂在队列里。
+	 */
+	function runProcess(argv, cwdOpt, timeoutMs, signal) {
 		return new Promise((resolve) => {
 			const started = Date.now()
 			let out = ''
 			let err = ''
 			let truncated = false
+			let settled = false
+
 			const child = spawn(argv[0], argv.slice(1), { cwd: cwdOpt, windowsHide: true, shell: false })
+
+			const finish = (code, extra = {}) => {
+				if (settled) return
+				settled = true
+				clearTimeout(timer)
+				if (signal) {
+					try {
+						signal.removeEventListener('abort', onAbort)
+					} catch {
+						// ignore
+					}
+				}
+				// 关键：主动关掉管道。孙进程可能还活着并持有写端，
+				// 不 destroy 的话宿主侧的 'close' 依旧不会来。
+				try {
+					child.stdout?.destroy()
+				} catch {
+					// ignore
+				}
+				try {
+					child.stderr?.destroy()
+				} catch {
+					// ignore
+				}
+				try {
+					child.unref()
+				} catch {
+					// ignore
+				}
+				resolve({
+					exit_code: code,
+					stdout: out.slice(0, MAX_OUT),
+					stderr: (extra.stderrOverride ?? err).slice(0, MAX_OUT),
+					duration_ms: Date.now() - started,
+					truncated,
+					...(extra.timed_out ? { timed_out: true } : {}),
+					...(extra.aborted ? { aborted: true } : {}),
+				})
+			}
+
 			const timer = setTimeout(() => {
-				try { child.kill('SIGKILL') } catch { /* ignore */ }
+				killTree(child)
+				finish(-1, { timed_out: true })
 			}, timeoutMs)
+
+			const onAbort = () => {
+				killTree(child)
+				finish(-1, { aborted: true })
+			}
+
+			if (signal) {
+				if (signal.aborted) {
+					// 进来之前就已经取消了
+					killTree(child)
+					finish(-1, { aborted: true })
+					return
+				}
+				signal.addEventListener('abort', onAbort, { once: true })
+			}
+
 			child.stdout?.on('data', (b) => {
 				if (out.length < MAX_OUT) out += b.toString('utf8')
 				else truncated = true
@@ -289,16 +405,65 @@ export function apply(ctx, config = {}) {
 				if (err.length < MAX_OUT) err += b.toString('utf8')
 				else truncated = true
 			})
-			child.on('error', (e) => {
-				clearTimeout(timer)
-				resolve({ exit_code: -1, stdout: out.slice(0, MAX_OUT), stderr: String(e?.message ?? e), duration_ms: Date.now() - started, truncated })
-			})
-			child.on('close', (code) => {
-				clearTimeout(timer)
-				resolve({ exit_code: typeof code === 'number' ? code : -1, stdout: out.slice(0, MAX_OUT), stderr: err.slice(0, MAX_OUT), duration_ms: Date.now() - started, truncated })
-			})
+			child.on('error', (e) => finish(-1, { stderrOverride: String(e?.message ?? e) }))
+			child.on('close', (code) => finish(typeof code === 'number' ? code : -1))
 		})
 	}
+
+	/**
+	 * 起一个**长驻**进程并立刻返回。
+	 *
+	 * 为什么需要：`host_exec` 是「跑完再返回」的同步语义。拿它去起 watchdog / NapCat /
+	 * MCP server 这类**永不退出**的服务，本来就只能靠超时脱身 —— 而超时又曾经
+	 * 不生效（见 killTree 的注释），于是整条调用链卡死。要常驻就明确用 detach。
+	 */
+	function spawnDetached(argv, cwdOpt) {
+		const started = Date.now()
+		const child = spawn(argv[0], argv.slice(1), {
+			cwd: cwdOpt,
+			windowsHide: true,
+			shell: false,
+			detached: true,
+			// 不接任何管道：它的 stdout/stderr 不归我们管，也不会拖住任何调用。
+			stdio: 'ignore',
+		})
+		child.unref()
+		return {
+			exit_code: 0,
+			stdout: `[detached] pid=${child.pid ?? '?'}\n`,
+			stderr: '',
+			duration_ms: Date.now() - started,
+			truncated: false,
+			detached: true,
+			pid: child.pid ?? null,
+		}
+	}
+
+	ctx.tools.register(
+		defineTool({
+			name: 'sandbox_sessions',
+			description: '只读：列出当前所有活会话的 id 与标题，用来确定该给哪个会话授权 host_exec。',
+			parameters: {},
+			output: OUTPUT,
+			execute: async () => {
+				const sessions = serviceOf(ctx, 'sessions')
+				if (sessions === undefined || typeof sessions.list !== 'function') {
+					return { ok: false, code: 'NO_SESSION_STORE', error: '当前部署取不到 ctx.sessions' }
+				}
+				let all = []
+				try {
+					all = Array.from(sessions.list() ?? [])
+				} catch (e) {
+					return { ok: false, code: 'LIST_FAILED', error: String(e?.message ?? e) }
+				}
+				const rows = all.map((s) => ({
+					id: String(s?.id ?? s?.sessionId ?? ''),
+					title: titleOf(s) ?? '(无标题)',
+				})).filter((r) => r.id !== '')
+				return { ok: true, count: rows.length, sessions: rows }
+			},
+		}),
+	)
 
 	ctx.tools.register(
 		defineTool({
@@ -306,12 +471,20 @@ export function apply(ctx, config = {}) {
 			description:
 				'在宿主机上执行命令，**绕过 DSH 沙箱子进程隔离**（默认关闭，需用户按会话授权）。' +
 				'用途：启动被沙箱挡住的本机程序（如 NapCat、ToDesk MCP）或访问工作区外的路径。' +
-				'调用前确认该会话在 hostExec.authorizedSessions 里。',
+				'\n\n⚠️ 这是**同步**语义：命令退出才返回。要起**常驻服务**（watchdog / NapCat / MCP server 等' +
+				'永不退出的进程）必须加 `detach: true`，否则只能拖到超时，而且那个服务会一直挂在后台。' +
+				'\n\n超时或用户在 UI 上点停止时，会 kill **整棵进程树**并正常返回（`code: TIMEOUT` / `ABORTED`）。',
 			parameters: {
 				command: { type: 'string', description: '命令行字符串（经 cmd.exe /c 执行）。与 argv 二选一。' },
 				argv: { type: 'array', items: { type: 'string' }, description: 'argv 数组（直接 execFile，不经 shell）。与 command 二选一。' },
 				cwd: { type: 'string', description: '可选：工作目录。' },
-				timeout_ms: { type: 'number', description: '可选：超时毫秒，默认取配置值（120000）。' },
+				timeout_ms: { type: 'number', description: '可选：超时毫秒，默认取配置值（120000）。到时整棵树被 kill。' },
+				detach: {
+					type: 'boolean',
+					description:
+						'可选：true = 后台常驻模式。立刻返回 pid，不接 stdio、不等退出。' +
+						'**启动 watchdog / NapCat / MCP server 这类服务时必须用它。**',
+				},
 			},
 			output: OUTPUT,
 			execute: async (args, exec) => {
@@ -321,7 +494,7 @@ export function apply(ctx, config = {}) {
 
 				const caller = callerSessionOf(exec)
 				const callerId = String(caller?.id ?? caller?.sessionId ?? '')
-				const authorized = hostExecSessions.some((s) => s !== '' && (callerId === s || callerId.startsWith(s)))
+				const authorized = hostExecSessionsNow().some((s) => s !== '' && (callerId === s || callerId.startsWith(s)))
 				if (!authorized) {
 					return {
 						ok: false,
@@ -339,8 +512,27 @@ export function apply(ctx, config = {}) {
 
 				const timeoutMs = Number(args.timeout_ms) > 0 ? Number(args.timeout_ms) : hostExecTimeout
 				const cwdOpt = typeof args.cwd === 'string' && args.cwd.trim() !== '' ? args.cwd : undefined
+				const detach = args.detach === true
 
-				const r = await runProcess(argv, cwdOpt, timeoutMs)
+				// 常驻服务（watchdog / NapCat / MCP server）必须走 detach：
+				// 同步跑它们只会拖到超时，历史事故就是这么来的。
+				if (detach) {
+					const d = spawnDetached(argv, cwdOpt)
+					audit({
+						action: 'host_exec',
+						mode: 'detach',
+						argv,
+						cwd: cwdOpt ?? null,
+						caller: callerId || null,
+						callerTitle: titleOf(caller) ?? null,
+						exit_code: d.exit_code,
+						duration_ms: d.duration_ms,
+						pid: d.pid,
+					})
+					return { ok: true, target: cwdOpt ?? '', ...d }
+				}
+
+				const r = await runProcess(argv, cwdOpt, timeoutMs, exec?.signal)
 				audit({
 					action: 'host_exec',
 					argv,
@@ -349,8 +541,21 @@ export function apply(ctx, config = {}) {
 					callerTitle: titleOf(caller) ?? null,
 					exit_code: r.exit_code,
 					duration_ms: r.duration_ms,
+					timed_out: r.timed_out === true,
+					aborted: r.aborted === true,
 				})
-				return { ok: r.exit_code === 0, target: cwdOpt ?? '', ...r }
+				const extra = r.timed_out ? ', timed_out: true' : r.aborted ? ', aborted: true' : ''
+				return {
+					ok: r.exit_code === 0 && !r.timed_out && !r.aborted,
+					target: cwdOpt ?? '',
+					...(r.timed_out ? { code: 'TIMEOUT' } : r.aborted ? { code: 'ABORTED' } : {}),
+					...r,
+					hint:
+						r.timed_out || r.aborted
+							? `命令被${r.timed_out ? '超时' : '取消'}终止（整棵进程树已 kill）${extra}。` +
+								'要启动常驻服务请加 detach: true。'
+							: undefined,
+				}
 			},
 		}),
 	)
