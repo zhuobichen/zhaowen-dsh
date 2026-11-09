@@ -5,7 +5,8 @@
 // 存进 DSH 附件系统并返回图片块（Web GUI 的客户端插件负责内联显示）。
 
 import { readFile, writeFile } from 'node:fs/promises'
-import { basename } from 'node:path'
+import { existsSync, statSync } from 'node:fs'
+import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
 
 import {
   createDoubaoDriver,
@@ -13,6 +14,7 @@ import {
   type DoubaoConfig,
   type DoubaoDriver,
   type DoubaoResult,
+  type DoubaoVideoResult,
 } from './doubao.js'
 
 import {
@@ -44,6 +46,8 @@ export interface Config {
   timeoutMs?: number
   /** 是否每次点「新对话」，默认 false（接着当前会话发）。 */
   newChat?: boolean
+  /** 视频生成等待上限，默认 900000ms（15 分钟）。 */
+  videoTimeoutMs?: number
   /** 队列最多同时排多少个，默认 8。 */
   maxPending?: number
   /** 提示词上限，默认 8000。 */
@@ -60,6 +64,7 @@ interface ResolvedConfig {
   minPx: number
   timeoutMs: number
   newChat: boolean
+  videoTimeoutMs: number
   maxPending: number
   maxPromptChars: number
   attachImages: boolean
@@ -85,6 +90,11 @@ const resolveConfig = (config: Config = {}): ResolvedConfig => ({
   timeoutMs:
     config.timeoutMs ?? envNumber(process.env.DOUBAO_TIMEOUT_MS, DEFAULT_DOUBAO_CONFIG.timeoutMs),
   newChat: config.newChat ?? envBool(process.env.DOUBAO_NEW_CHAT, DEFAULT_DOUBAO_CONFIG.newChat),
+  videoTimeoutMs: Math.max(
+    60000,
+    config.videoTimeoutMs ??
+      envNumber(process.env.DOUBAO_VIDEO_TIMEOUT_MS, DEFAULT_DOUBAO_CONFIG.videoTimeoutMs),
+  ),
   maxPending: Math.max(1, config.maxPending ?? envNumber(process.env.DSH_IMAGE_GEN_MAX_PENDING, 8)),
   maxPromptChars: Math.max(
     1,
@@ -217,6 +227,124 @@ const presentationMeta = (_args: unknown, value: ImageToolValue) => ({
   prompt: value.prompt,
 })
 
+// ---- 视频（generate_video）用的值/判据 ----
+interface VideoToolValue {
+  mode: 'video'
+  prompt: string
+  path: string
+  meta_path: string
+  format: 'mp4'
+  width: number
+  height: number
+  bytes: number
+  duration_sec: number
+  duration_ms: number
+  requested_path?: string
+  reference_images?: string[]
+}
+
+const VIDEO_RESULT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    mode: { type: 'string', enum: ['video'] },
+    prompt: { type: 'string' },
+    path: { type: 'string' },
+    meta_path: { type: 'string' },
+    format: { type: 'string', enum: ['mp4'] },
+    width: { type: 'integer' },
+    height: { type: 'integer' },
+    bytes: { type: 'integer' },
+    duration_sec: { type: 'number' },
+    duration_ms: { type: 'integer' },
+    requested_path: { type: 'string' },
+    reference_images: { type: 'array', items: { type: 'string' } },
+  },
+}
+
+const renderVideoResult = (_args: unknown, value: VideoToolValue): any[] => {
+  const lines = [
+    `已生成视频: ${value.path}`,
+    `${value.width}x${value.height} · ${value.duration_sec}s · ${value.bytes} 字节 · ${value.format}`,
+    `sidecar: ${value.meta_path}`,
+    '水印: 豆包视频产物带画面内水印（未裁剪）',
+  ]
+  if (value.reference_images?.length) {
+    lines.push(`参考图（身份锚点）: ${value.reference_images.join(', ')}`)
+  }
+  lines.push(`用 open_media / 播放器打开这个路径查看视频: ${value.path}`)
+
+  return [{ type: 'text', text: lines.join('\n') }]
+}
+
+const videoPresentationMeta = (_args: unknown, value: VideoToolValue) => ({
+  path: value.path,
+  mode: value.mode,
+  media_type: 'video/mp4',
+  width: value.width,
+  height: value.height,
+  duration_sec: value.duration_sec,
+  bytes: value.bytes,
+  prompt: value.prompt,
+})
+
+/**
+ * 视频的输出路径解析。
+ *
+ * 不复用 `resolveOutputBase`：那套的「不覆盖已有文件」只按 png/jpg/webp 查重，
+ * 拿来算 .mp4 会**静默覆盖**同名视频 —— 这是不可接受的那种错。
+ */
+const isDirectoryPath = (p: string): boolean => {
+  try {
+    return statSync(p).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+const resolveVideoBase = (input: {
+  outputDir: string
+  requestedPath?: string
+  name?: string
+  exists?: (p: string) => boolean
+}): { base: string; requestedPath?: string } => {
+  const exists = input.exists ?? existsSync
+  const stem = (input.name || 'video').replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 60) || 'video'
+  let base: string
+  let directory: string
+
+  const req = input.requestedPath?.trim()
+  if (!req) {
+    directory = input.outputDir
+    base = join(directory, stem)
+  } else {
+    const raw = req
+    const target = isAbsolute(raw) ? raw : resolve(input.outputDir, raw)
+    const dirSpec = /[\\/]$/.test(raw) || (exists(target) && isDirectoryPath(target))
+    if (dirSpec) {
+      directory = target
+      base = join(directory, stem)
+    } else {
+      const ext = extname(target).toLowerCase()
+      if (ext === '.mp4') {
+        base = target.slice(0, -4)
+        directory = dirname(base)
+      } else if (ext === '') {
+        directory = dirname(target)
+        base = target
+      } else {
+        throw new Error(`output_path 的扩展名 ${ext} 不支持；视频只接受 .mp4 或省略扩展名。`)
+      }
+    }
+  }
+
+  let candidate = base
+  for (let i = 1; i <= 100 && exists(candidate + '.mp4'); i += 1) {
+    candidate = `${base}-${i}`
+  }
+  return { base: candidate, requestedPath: req }
+}
+
 const patchSidecar = async (metaPath: string, patch: Record<string, unknown>): Promise<void> => {
   try {
     const current = JSON.parse(await readFile(metaPath, 'utf8'))
@@ -286,6 +414,7 @@ export function apply(ctx: any, config: Config = {}): void {
     minPx: cfg.minPx,
     timeoutMs: cfg.timeoutMs,
     newChat: cfg.newChat,
+    videoTimeoutMs: cfg.videoTimeoutMs,
   })
 
   // ---- 串行队列：所有豆包调用共用一个窗口，必须排队 ----
@@ -359,7 +488,7 @@ export function apply(ctx: any, config: Config = {}): void {
       presentationMeta,
     },
     isConcurrencySafe: () => true,
-    async execute(args: any) {
+    async execute(args: any, exec: any) {
       assertWebSocket()
       const prompt = validatePrompt(args?.prompt, cfg.maxPromptChars)
       const resolved = resolveOutputBase({
@@ -372,6 +501,7 @@ export function apply(ctx: any, config: Config = {}): void {
       const result = await runExclusive(() =>
         driver.generate(prompt, {
           outputBase: resolved.base,
+          signal: exec?.signal,
           extraMeta: {
             plugin: '@zhuobichen/dsh-image-gen',
             pluginVersion: '0.1.0',
@@ -436,6 +566,7 @@ export function apply(ctx: any, config: Config = {}): void {
         driver.edit(prompt, {
           images,
           outputBase: resolved.base,
+          signal: exec?.signal,
           extraMeta: {
             plugin: '@zhuobichen/dsh-image-gen',
             pluginVersion: '0.1.0',
@@ -445,6 +576,103 @@ export function apply(ctx: any, config: Config = {}): void {
       )
 
       return finalize('edit', prompt, images, resolved.requestedPath, result)
+    },
+  })
+
+  // ---- generate_video：文字 / 参考图 → 视频 ----
+  ctx.tools.register({
+    name: 'generate_video',
+    description:
+      '用本机豆包桌面版生成一段视频（图生视频）。约 2–6 分钟，产出 .mp4（实测 720×1280、24fps、10 秒、带音轨）。' +
+      '\n\n⚠️ 想复刻某个已有角色时**必须传 reference_images**：只给文字提示词，模型会画出一个泛化的形象；' +
+      '给了参考图，豆包会把那张图当作「唯一身份锚点」，脸型/发型/服装才守得住。' +
+      '\n\n流程上有一步不能省：豆包收到视频请求后先回一张参数单（模型/时长/声音/画面文字）并问' +
+      '「确认后我再开始生成视频」，本工具会自动回一句「确认，开始生成」。' +
+      '\n\n前提：豆包桌面版已带 --remote-debugging-port=9333 启动并已登录；每日免费额度有限。',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['prompt'],
+      properties: {
+        prompt: {
+          type: 'string',
+          description:
+            '视频描述。除了画面内容，把**运动**写清楚（镜头是否固定、主体怎么动、结尾停在哪一帧）。' +
+            '例：「镜头固定在洗衣机滚筒内部；角色随滚筒缓慢旋转，由稍远处漂近并贴住玻璃，最后眨眼、歪头浅笑；单镜到底」。',
+        },
+        reference_images: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            `1–${MAX_INPUT_IMAGES} 张本地参考图（绝对路径，或相对会话 cwd）。` +
+            '**强推**：复刻已有角色时，这是守住设定的唯一可靠手段；也用于给首帧做图生视频。',
+        },
+        output_path: {
+          type: 'string',
+          description:
+            '可选。目录、文件主干，或带 .mp4 的完整路径；省略时写到 $DSH_HOME/plugins/dsh-image-gen/output/。' +
+            '同名 .mp4 已存在时自动加 -1、-2，**不覆盖**。',
+        },
+        name: {
+          type: 'string',
+          description: '可选文件名主干（不指定 output_path 或它是目录时使用）。',
+        },
+      },
+    },
+    output: {
+      schema: VIDEO_RESULT_SCHEMA,
+      render: renderVideoResult,
+      presentationMeta: videoPresentationMeta,
+    },
+    isConcurrencySafe: () => true,
+    async execute(args: any, exec: any) {
+      assertWebSocket()
+      const prompt = validatePrompt(args?.prompt, cfg.maxPromptChars)
+      const refs =
+        args?.reference_images === undefined
+          ? []
+          : validateImages(args.reference_images, cwdOf(exec), MAX_INPUT_IMAGES)
+      const resolved = resolveVideoBase({
+        outputDir: cfg.outputDir,
+        requestedPath: typeof args?.output_path === 'string' ? args.output_path : undefined,
+        name: typeof args?.name === 'string' ? args.name : undefined,
+      })
+
+      const result: DoubaoVideoResult = await runExclusive(() =>
+        driver.generateVideo(prompt, {
+          outputBase: resolved.base,
+          referenceImages: refs,
+          signal: exec?.signal,
+          extraMeta: {
+            plugin: '@zhuobichen/dsh-image-gen',
+            pluginVersion: '0.2.0',
+            requestedPath: resolved.requestedPath ?? null,
+          },
+        }),
+      )
+
+      const value: VideoToolValue = {
+        mode: 'video',
+        prompt,
+        path: result.path,
+        meta_path: result.metaPath,
+        format: 'mp4',
+        width: result.width,
+        height: result.height,
+        bytes: result.bytes,
+        duration_sec: result.durationSec,
+        duration_ms: result.durationMs,
+      }
+      if (resolved.requestedPath !== undefined) value.requested_path = resolved.requestedPath
+      if (refs.length > 0) value.reference_images = refs
+
+      await patchSidecar(result.metaPath, {
+        plugin: '@zhuobichen/dsh-image-gen',
+        pluginVersion: '0.2.0',
+        requestedPath: resolved.requestedPath ?? null,
+      })
+
+      return value
     },
   })
 

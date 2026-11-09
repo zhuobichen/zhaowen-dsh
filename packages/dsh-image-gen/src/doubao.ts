@@ -27,6 +27,8 @@ export interface DoubaoConfig {
   timeoutMs: number;
   /** 是否每次点「新对话」。见下方 DEFAULT_DOUBAO_CONFIG 的说明。 */
   newChat: boolean;
+  /** 视频生成的等待上限（生成 + 下载）。豆包自己说「预计 5 分钟」，留足余量。 */
+  videoTimeoutMs: number;
 }
 
 /**
@@ -45,6 +47,7 @@ export const DEFAULT_DOUBAO_CONFIG: DoubaoConfig = {
   minPx: 512,
   timeoutMs: 240000,
   newChat: false,
+  videoTimeoutMs: 900000,
 };
 
 let cfg: DoubaoConfig = { ...DEFAULT_DOUBAO_CONFIG };
@@ -54,6 +57,8 @@ export interface DoubaoGenerateOptions {
   outputBase: string;
   /** 合并进 sidecar 的额外字段（插件名、版本等）。 */
   extraMeta?: Record<string, unknown>;
+  /** DSH 的取消信号（exec.signal）。接上它，用户点停止才真的停。 */
+  signal?: AbortSignal;
 }
 
 export interface DoubaoEditOptions extends DoubaoGenerateOptions {
@@ -76,7 +81,39 @@ export interface DoubaoResult {
 export interface DoubaoDriver {
   generate(prompt: string, opts: DoubaoGenerateOptions): Promise<DoubaoResult>;
   edit(prompt: string, opts: DoubaoEditOptions): Promise<DoubaoResult>;
+  generateVideo(prompt: string, opts: DoubaoVideoOptions): Promise<DoubaoVideoResult>;
   status(): Promise<DoubaoStatus>;
+}
+
+/**
+ * 视频生成选项。
+ *
+ * `referenceImages` 是**身份锚点**，不是可选装饰：只给文字提示词时，模型会画出
+ * 一个「泛化的蓝发女仆」；给了参考图，豆包会明说「以你上传的角色图作为唯一身份锚点」，
+ * 脸型/发型/服装配色才会守住。想复刻某个已有角色，务必传图。
+ */
+export interface DoubaoVideoOptions {
+  /** 绝对路径，**不带扩展名**；产物固定为 `.mp4`。 */
+  outputBase: string;
+  /** 参考图（1–4 张本地绝对路径）。传了就按图生视频。 */
+  referenceImages?: string[];
+  extraMeta?: Record<string, unknown>;
+  /** DSH 的取消信号（exec.signal）。 */
+  signal?: AbortSignal;
+}
+
+export interface DoubaoVideoResult {
+  path: string;
+  metaPath: string;
+  format: "mp4";
+  width: number;
+  height: number;
+  bytes: number;
+  /** 秒 */
+  durationSec: number;
+  model: string | null;
+  requestedModel: string;
+  durationMs: number;
 }
 
 /**
@@ -93,11 +130,32 @@ export function createDoubaoDriver(config: Partial<DoubaoConfig> = {}): DoubaoDr
   return {
     generate: (prompt, opts) => use(() => generateImageViaDoubao(prompt, opts)),
     edit: (prompt, opts) => use(() => editImageViaDoubao(prompt, opts)),
+    generateVideo: (prompt, opts) => use(() => generateVideoViaDoubao(prompt, opts)),
     status: () => use(() => doubaoStatus()),
   };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 取消支持：DSH 每次工具调用都会给一个 `exec.signal`（caller-owned cancellation）。
+ * 不接它的后果就是「用户点了停止，工具毫无反应」—— 在 host_exec 上刚吃过这个亏。
+ * 这里把它存成模块级变量，每个公共入口进来时设置，长时间等待用 `pause()` 包一层。
+ */
+let abortSignal: AbortSignal | undefined;
+
+function throwIfAborted(): void {
+  if (abortSignal?.aborted) {
+    throw new Error("操作已被用户取消（abort signal）—— 已中止，不再继续等待豆包。");
+  }
+}
+
+/** 可取消的等待。所有轮询循环里的 sleep 都应该用它。 */
+async function pause(ms: number): Promise<void> {
+  throwIfAborted();
+  await sleep(ms);
+  throwIfAborted();
+}
 
 export interface DoubaoStatus {
   reachable: boolean;
@@ -171,8 +229,45 @@ async function connect(): Promise<Cdp> {
     ws.addEventListener("open", () => res());
     ws.addEventListener("error", (e: any) => rej(new Error("CDP websocket 失败: " + (e?.message || "?"))));
   });
+  // ⚠️ 每条 CDP 命令都必须有超时。
+  //
+  // 没有超时的时候，只要某一条 `Runtime.evaluate` 因为页面忙/求值太重而迟迟不回，
+  // 这个 Promise 就**永远不会 settle** —— 工具调用挂死，UI 上的停止键也按不动
+  // （同一个教训在 host_exec 上刚踩过一遍）。这里统一兜住：
+  // 到点 resolve 一个带 error 的对象，上层把它当成"这一步失败"而不是干等。
+  const SEND_TIMEOUT_MS = 30000;
   cdp.send = (method: string, params: Record<string, unknown> = {}) =>
-    new Promise<any>((res) => { const id = ++seq; pending.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
+    new Promise<any>((res) => {
+      const id = ++seq;
+      let done = false;
+      const timer = setTimeout(() => {
+        if (done) return;
+        done = true;
+        pending.delete(id);
+        res({ error: { message: `CDP ${method} 超时（${SEND_TIMEOUT_MS}ms 无响应）` } });
+      }, SEND_TIMEOUT_MS);
+      pending.set(id, (v) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        res(v);
+      });
+      try {
+        ws.send(JSON.stringify({ id, method, params }));
+      } catch (e: any) {
+        if (!done) {
+          done = true;
+          clearTimeout(timer);
+          pending.delete(id);
+          res({ error: { message: `CDP 发送失败: ${e?.message || e}` } });
+        }
+      }
+    });
+  // websocket 断了也要把还在等的请求放掉，否则又是一处永久挂起。
+  ws.addEventListener("close", () => {
+    for (const [, resolve] of pending) resolve({ error: { message: "CDP websocket 已断开" } });
+    pending.clear();
+  });
   cdp.evalJs = async (expr: string) => {
     const r = await cdp.send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true });
     return r?.result?.result?.value;
@@ -353,42 +448,74 @@ async function attachImages(cdp: Cdp, paths: string[]): Promise<void> {
   // 直到复用会话连跑两次时第二次稳定复现（`ok` 但一个上传请求都没有，然后就干等到超时）。
   // 重试时**重新 getDocument 拿一遍 nodeId**：这个 node 会随页面重渲染被换掉，
   // 拿着旧 id 写进去就是写进一个已经脱离文档的节点，静默无效。
+  //
+  // ⚠️⚠️ 2.32.4 上**页面上有两个 `input[type=file]`，行为完全不同**（实测）：
+  //
+  //   | 输入框                                    | accept 含 dockerfile | 塞进去之后        |
+  //   |-------------------------------------------|----------------------|-------------------|
+  //   | 无 data-testid                            | 否                   | 0 上传、0 缩略图  |
+  //   | `[data-testid="upload-file-input"]`       | 是                   | 2 上传、1 缩略图  |
+  //
+  // 老版本恰好相反（含 dockerfile 的是"添加文件"、不含的才收图），所以旧启发式
+  // 「accept 含 .webp 且**不含** dockerfile」在这里**正好挑中坏的那个**，表现就是
+  // 「返回成功、一个请求都不发」。优先认 testid，再退回 accept，并且逐个试。
+  const candidates = await listFileInputCandidates(cdp);
+  const seenBeforeAll = cdp.uploadsSeen;
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const nodeId = await findImageFileInput(cdp);
-    const seenBefore = cdp.uploadsSeen;
-    const r = await cdp.send("DOM.setFileInputFiles", { files: paths, nodeId });
-    if (r?.error) throw new Error("往豆包的 file input 塞图失败: " + JSON.stringify(r.error));
-    const t0 = Date.now();
-    while (Date.now() - t0 < 15000) {
-      await sleep(1000);
-      if (cdp.uploadsSeen > seenBefore) return;   // 上传链路动了 = 真的收下了
+    const list = await listFileInputCandidates(cdp);
+    const ordered = list.length ? list : candidates;
+    for (const cand of ordered) {
+      const seenBefore = cdp.uploadsSeen;
+      const r = await cdp.send("DOM.setFileInputFiles", { files: paths, nodeId: cand.nodeId });
+      if (r?.error) continue;
+      const t0 = Date.now();
+      while (Date.now() - t0 < 15000) {
+        await sleep(1000);
+        if (cdp.uploadsSeen > seenBefore) return; // 上传链路动了 = 真的收下了
+      }
     }
   }
   throw new Error(
-    "往豆包塞图试了 3 次，每次都返回成功但**一个上传请求都没发出**（prepare_upload 没出现）。" +
-      "人工看一眼那个豆包窗口的输入框里有没有缩略图。"
+    `往豆包塞图试了 3 轮（每轮 ${candidates.length} 个候选输入框），每次都返回成功但` +
+      `**一个上传请求都没发出**（prepare_upload 没出现，uploadsSeen 仍是 ${seenBeforeAll}）。` +
+      `人工看一眼那个豆包窗口的输入框里有没有缩略图；豆包可能又改版了。`
   );
 }
 
-/** 找图片上传入口（`input[type=file]` 里 accept 含 .png/.jpg/.webp 的那个）。等它挂载。 */
-async function findImageFileInput(cdp: Cdp): Promise<number> {
+/** 页面上的文件输入框，按「最可能收图」排序。等它挂载。 */
+async function listFileInputCandidates(
+  cdp: Cdp
+): Promise<Array<{ nodeId: number; accept: string; testid: string }>> {
   for (let i = 0; i < 40; i++) {
     const doc = await cdp.send("DOM.getDocument", { depth: -1 });
     const q = await cdp.send("DOM.querySelectorAll", {
       nodeId: doc?.result?.root?.nodeId,
       selector: "input[type=file]",
     });
-    for (const nid of (q?.result?.nodeIds || [])) {
+    const out: Array<{ nodeId: number; accept: string; testid: string }> = [];
+    for (const nid of q?.result?.nodeIds || []) {
       const d = await cdp.send("DOM.describeNode", { nodeId: nid });
       const a: string[] = d?.result?.node?.attributes || [];
       const mp: Record<string, string> = {};
       for (let j = 0; j < a.length; j += 2) mp[a[j]] = a[j + 1];
-      const acc = String(mp.accept || "");
-      if (acc.includes(".webp") && !acc.includes("dockerfile")) return nid;
+      out.push({ nodeId: nid, accept: String(mp.accept || ""), testid: String(mp["data-testid"] || "") });
+    }
+    const usable = out.filter((x) => /\.(webp|png|jpe?g)/i.test(x.accept));
+    if (usable.length) {
+      // 排序：先 data-testid=upload-file-input，再其它有 testid 的，最后才是没 testid 的
+      usable.sort((x, y) => scoreInput(x) - scoreInput(y));
+      return usable;
     }
     await sleep(1000);
   }
   throw new Error("豆包页面里没找到图片上传入口（input[type=file] 带 .png/.jpg/.webp 的那个）。界面可能没起来。");
+}
+
+/** 越小越优先：`upload-file-input` 是 2.32.4 实测唯一真正收图的那个。 */
+function scoreInput(x: { testid: string; accept: string }): number {
+  if (x.testid === "upload-file-input") return 0;
+  if (x.testid) return 1;
+  return 2;
 }
 
 /**
@@ -516,7 +643,7 @@ async function waitForImage(
   const excl = JSON.stringify([...before]);
   const t0 = Date.now();
   while (Date.now() - t0 < cfg.timeoutMs) {
-    await sleep(5000);
+    await pause(5000);
     const r = await cdp.evalJs(`(() => {
       const excl=new Set(${excl});
       const out=[]; const seen=new Set();
@@ -754,6 +881,7 @@ export async function editImageViaDoubao(
   if (!images.length) throw new Error("图生图至少要传一张输入图片(images)");
 
   const started = Date.now();
+  abortSignal = opts.signal;
   const cdp = await connect();
   try {
     await startNewChat(cdp);
@@ -808,4 +936,326 @@ export async function editImageViaDoubao(
   } finally {
     cdp.close();
   }
+}
+
+// ==================== 生视频 ====================
+/**
+ * 让豆包出一段视频。
+ *
+ * 流程（每一步都在 2.32.4 上实测过）：
+ *   1. （可选）把**参考图**塞进附件区 —— 这一步决定「像不像那个角色」。
+ *      只给文字时它画的是泛化的蓝发女仆；给了图它会明说
+ *      「以你上传的角色图作为唯一身份锚点」。
+ *   2. `composeAndSend` 打字发送（走 `Input.insertText` + 发送键）。
+ *   3. 豆包**不会立刻生成**，它先回一张参数单（模型/时长/声音/画面文字）并问
+ *      「确认后我再开始生成视频」。要再发一句「确认，开始生成」才会动。
+ *   4. 等回复里出现 `[class*="block-video"]`（视频块，懒渲染，里面没有 `<video>`）。
+ *   5. 真视频取不到直链：块里那两个 `aka.doubaocdn.com/s/xxxx` 一个是封面
+ *      （HEIC 单帧），不是视频；`<video>` 要等播放器挂载才有，而页面是隐藏页，
+ *      永远等不到。**可靠办法是用豆包自己的下载按钮**：
+ *      `Browser.setDownloadBehavior` 把下载目录指到目标目录，悬停视频块后点
+ *      `[data-testid="edit_image_download_button"]`，mp4 直接落盘。
+ *   6. 等那个新 `.mp4` 出现，改名成 `outputBase.mp4`，写 sidecar。
+ */
+export async function generateVideoViaDoubao(
+  prompt: string,
+  opts: DoubaoVideoOptions
+): Promise<DoubaoVideoResult> {
+  const started = Date.now();
+  abortSignal = opts.signal;
+  const cdp = await connect();
+  const outDir = dirname(opts.outputBase);
+  await mkdir(outDir, { recursive: true });
+  try {
+    await startNewChat(cdp);
+    await clearStaleAttachments(cdp);
+
+    // ⚠️ 复用会话时，**上一轮的视频块还在页面上**。不先记数量的话，
+    // 「等到 block-video」会立刻命中旧块，接着点的是旧块的下载键 —— 实测就是
+    // 这样点了 3 分钟一个文件都没下来。所以只认「数量变多之后的最新那个」。
+    const blocksBefore = Number(
+      (await cdp.evalJs(`document.querySelectorAll('[class*="block-video"]').length`)) || 0
+    );
+
+    const refs = (opts.referenceImages || []).filter(Boolean);
+    if (refs.length) await attachImages(cdp, refs);
+
+    await composeAndSend(cdp, prompt);
+
+    // 豆包先出参数单、问一句才开工
+    const askedConfirm = await waitForText(cdp, /确认后我再开始生成视频|确认后开始生成|参数确认/, 90000);
+    if (askedConfirm) {
+      await sleep(1000);
+      await composeAndSend(cdp, "确认，开始生成");
+    }
+
+    const deadline = Date.now() + cfg.videoTimeoutMs;
+    let blockSeen = false;
+    while (Date.now() < deadline) {
+      await pause(5000);
+      const n = Number((await cdp.evalJs(`document.querySelectorAll('[class*="block-video"]').length`)) || 0);
+      if (n > blocksBefore) {
+        blockSeen = true;
+        break;
+      }
+    }
+    if (!blockSeen) {
+      throw new Error(
+        `等了 ${Math.round(cfg.videoTimeoutMs / 1000)}s 没等到新的视频块（原有 ${blocksBefore} 个）。` +
+          `常见原因：那个豆包实例没登录、每日免费额度用完、或提示词被拦。` +
+          `人工看一眼那个豆包窗口。`
+      );
+    }
+    await pause(6000);
+
+    const outPath = `${opts.outputBase}.mp4`;
+
+    // ── 优先：从 React fiber 里读视频直链，页面内 fetch 下来 ──────────────
+    //
+    // 为什么不用界面上那个「下载」按钮：它藏在 hover 组里，**合成鼠标事件下只
+    // 闪现一下就没了**（实测轮询能命中、但紧接着取 rect 就为 null），靠它极不稳。
+    // 而视频块的 React props 里直接躺着 `removeAiWatermarkVideoUrl`
+    // （带 `lr=unwatermarked`，实测 720×1280 / h264+aac / 5s / 797KB），
+    // 用它在页面内 fetch 是确定性的。
+    const videoUrl = String(
+      (await cdp.evalJs(`(() => {
+      const bs=[...document.querySelectorAll('[class*="block-video"]')];
+      const el=bs[bs.length-1]; if(!el) return 'none';
+      const seen=new Set(); let best=null;
+      const visit=(o,depth)=>{
+        if(!o||depth>9||typeof o!=='object') return;
+        if(seen.has(o)) return; seen.add(o);
+        let keys=[]; try{keys=Object.keys(o)}catch(e){return}
+        for(const k of keys){
+          if(/^__/.test(k)) continue;
+          let v; try{v=o[k]}catch(e){continue}
+          if(typeof v==='string'){
+            if(/mime_type=video_mp4|\\.mp4/i.test(v) && /^https?:/.test(v)){
+              if(!best && /removeAiWatermarkVideoUrl|videoUrl|playUrl|downloadUrl/i.test(k)) best=v;
+              else if(!best) best=v;
+            }
+          } else if(v&&typeof v==='object') visit(v,depth+1);
+        }
+      };
+      for(const k of Object.keys(el)) if(k.startsWith('__react')) visit(el[k],0);
+      return best || 'none';
+    })()`)) || "none"
+    );
+
+    let bytes: Buffer | null = null;
+    if (videoUrl.startsWith("http")) {
+      const r = await cdp.evalJs(`(async () => {
+        try {
+          const res = await fetch(${JSON.stringify(videoUrl)}, { credentials: 'include' });
+          if (!res.ok) return 'HTTP ' + res.status;
+          const u8 = new Uint8Array(await (await res.blob()).arrayBuffer());
+          let bin=''; const chunk=0x8000;
+          for (let i=0;i<u8.length;i+=chunk) bin += String.fromCharCode.apply(null, u8.subarray(i,i+chunk));
+          return 'OK:' + btoa(bin) + ':' + u8.length;
+        } catch(e){ return 'ERR ' + e.message; }
+      })()`);
+      const val = typeof r === "string" ? r : "";
+      if (val.startsWith("OK:")) {
+        const parts = val.split(":");
+        parts.pop(); // 丢掉长度，base64 自身可能含冒号
+        bytes = Buffer.from(parts.slice(1).join(":"), "base64");
+      }
+    }
+
+    // ── 兜底：走界面上的下载按钮（直链取不到时才用）─────────────────────
+    if (!bytes) {
+      const before = new Set(await listDir(outDir));
+      await cdp.send("Browser.setDownloadBehavior", {
+        behavior: "allow",
+        downloadPath: outDir,
+        eventsEnabled: true,
+      });
+      await cdp
+        .send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: outDir })
+        .catch(() => {});
+
+      // 滚动到视口 + 反复 hover，等下载键出现（合成事件下它只闪一下，必须轮询）
+      let btn = false;
+      for (let i = 0; i < 40 && !btn; i++) {
+        await cdp.evalJs(`(() => {
+          const bs=[...document.querySelectorAll('[class*="block-video"]')];
+          const el=bs[bs.length-1]; if(!el) return 'none';
+          try { el.scrollIntoView({block:'center'}); } catch(e){}
+          const t = el.querySelector('[class*="video-hover-button-group"]') || el;
+          for (const ev of ['pointerover','mouseover','pointerenter','mouseenter','pointermove','mousemove'])
+            t.dispatchEvent(new MouseEvent(ev,{bubbles:true,cancelable:true,view:window}));
+          return 'ok';
+        })()`);
+        await pause(1000);
+        btn = !!(await cdp.evalJs(`!!document.querySelector('[data-testid="edit_image_download_button"]')`));
+      }
+      if (!btn) {
+        throw new Error(
+          "视频块出来了，但既没从 React props 里读到直链，也没等到下载按钮" +
+            "（edit_image_download_button）—— 豆包界面可能改版了。"
+        );
+      }
+      // hover 与点击必须紧挨着（中间隔久了按钮又消失）
+      await cdp.evalJs(`(() => {
+        const b=document.querySelector('[data-testid="edit_image_download_button"]');
+        if(b) b.click(); return b ? 'clicked' : 'missing';
+      })()`);
+
+      let mp4: string | null = null;
+      let mp4Dir = outDir;
+      const dlDeadline = Date.now() + 240000;
+      while (Date.now() < dlDeadline && !mp4) {
+        await pause(2000);
+        for (const dir of [outDir, downloadsDir()]) {
+          const now = await listDir(dir);
+          const fresh = now.filter((f) => !before.has(f) && /\.mp4$/i.test(f));
+          if (fresh.length) {
+            let last = -1;
+            for (let i = 0; i < 30; i++) {
+              const st = await statSize(dir, fresh[0]);
+              if (st === last && st > 0) break;
+              last = st;
+              await pause(1000);
+            }
+            mp4 = fresh[0];
+            mp4Dir = dir;
+            break;
+          }
+        }
+      }
+      if (!mp4) {
+        throw new Error("点了下载但没等到新的 .mp4 文件落到目标目录（也没落到系统下载目录）。");
+      }
+      bytes = await readFileBytes(`${mp4Dir}/${mp4}`);
+      try {
+        await removeFile(`${mp4Dir}/${mp4}`);
+      } catch {
+        /* 留着也无妨 */
+      }
+    }
+
+    await writeFile(outPath, bytes);
+    const meta = await probeMp4(bytes);
+    const { path: savedPath, metaPath } = await saveImage(bytes, outPath, {
+      at: new Date().toISOString(),
+      kind: "video",
+      provider: "doubao-desktop",
+      endpoint: cfg.cdpUrl + " (CDP → 豆包桌面版对话界面)",
+      requestedModel: "doubao (桌面版会话，无法指定具体型号)",
+      reportedModel: null,
+      usage: null,
+      prompt,
+      referenceImages: refs,
+      size: `${meta.width}x${meta.height}`,
+      durationSec: meta.durationSec,
+      outputPath: outPath,
+      bytes: bytes.length,
+      format: "mp4",
+      durationMs: Date.now() - started,
+      watermarks: ["豆包视频产物带画面内水印（未裁剪）"],
+      ...(opts.extraMeta || {}),
+    });
+
+    abortSignal = undefined;
+    return {
+      path: savedPath,
+      metaPath,
+      format: "mp4",
+      width: meta.width,
+      height: meta.height,
+      bytes: bytes.length,
+      durationSec: meta.durationSec,
+      model: null,
+      requestedModel: "doubao (桌面版)",
+      durationMs: Date.now() - started,
+    };
+  } finally {
+    cdp.close();
+  }
+}
+
+/** 轮询等页面上出现匹配某段正则的文字。 */
+async function waitForText(cdp: Cdp, re: RegExp, timeoutMs: number): Promise<boolean> {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    await pause(2000);
+    const hit = await cdp.evalJs(
+      `((s)=>{try{return new RegExp(s).test(document.body.innerText)}catch(e){return false}})(${JSON.stringify(
+        re.source
+      )})`
+    );
+    if (hit) return true;
+  }
+  return false;
+}
+
+async function listDir(dir: string): Promise<string[]> {
+  const { readdir } = await import("fs/promises");
+  try {
+    return await readdir(dir);
+  } catch {
+    return [];
+  }
+}
+
+async function statSize(dir: string, name: string): Promise<number> {
+  const { stat } = await import("fs/promises");
+  try {
+    return (await stat(`${dir}/${name}`)).size;
+  } catch {
+    return 0;
+  }
+}
+
+async function readFileBytes(p: string): Promise<Buffer> {
+  const { readFile } = await import("fs/promises");
+  return await readFile(p);
+}
+
+async function removeFile(p: string): Promise<void> {
+  const { unlink } = await import("fs/promises");
+  await unlink(p);
+}
+
+/** 系统下载目录：`setDownloadBehavior` 偶尔不生效时，豆包会把文件丢在这儿。 */
+function downloadsDir(): string {
+  const home = process.env.USERPROFILE || process.env.HOME || "";
+  return `${home}\\Downloads`.replace(/\\/g, "/");
+}
+
+/**
+ * 从 mp4 字节里读尺寸与时长（不依赖 ffprobe）。
+ *
+ * 只要 mvhd 的 timescale/duration 和 tkhd 的宽高就够写 sidecar；
+ * 解析失败返回 0 —— **不因为读不出元数据就让整次生成失败**。
+ */
+async function probeMp4(buf: Buffer): Promise<{ width: number; height: number; durationSec: number }> {
+  const out = { width: 0, height: 0, durationSec: 0 };
+  try {
+    const size = buf.length;
+    const i = buf.indexOf(Buffer.from("mvhd"));
+    if (i > 0) {
+      const version = buf[i + 4];
+      if (version === 0) {
+        const timescale = buf.readUInt32BE(i + 16);
+        const duration = buf.readUInt32BE(i + 20);
+        if (timescale) out.durationSec = Math.round((duration / timescale) * 100) / 100;
+      } else if (version === 1) {
+        const timescale = buf.readUInt32BE(i + 24);
+        const duration = Number(buf.readBigUInt64BE(i + 28));
+        if (timescale) out.durationSec = Math.round((duration / timescale) * 100) / 100;
+      }
+    }
+    const t = buf.indexOf(Buffer.from("tkhd"));
+    if (t > 0) {
+      const off = t + 4 + (buf[t + 4] === 1 ? 88 : 76);
+      if (off + 8 <= size) {
+        out.width = Math.round(buf.readUInt32BE(off) / 65536);
+        out.height = Math.round(buf.readUInt32BE(off + 4) / 65536);
+      }
+    }
+  } catch {
+    /* 读不出就算了 */
+  }
+  return out;
 }

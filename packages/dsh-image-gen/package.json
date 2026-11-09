@@ -1,7 +1,7 @@
 {
   "name": "@zhuobichen/dsh-image-gen",
-  "version": "0.1.0",
-  "description": "Agent-callable image generation/editing through the local Doubao desktop app (DSH plugin)",
+  "version": "0.2.0",
+  "description": "Agent-callable image + video generation through the local Doubao desktop app (DSH plugin)",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
