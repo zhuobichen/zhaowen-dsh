@@ -1,0 +1,3 @@
+- insert:
+    - id: rea-video
+      name: '@local/dsh-rea-video'

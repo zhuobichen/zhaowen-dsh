@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="rea-video">
+  <rect width="128" height="128" rx="28" fill="#1B1B2F"/>
+  <g fill="none" stroke="#7C6CF5" stroke-width="5" stroke-linecap="round">
+    <rect x="24" y="34" width="80" height="48" rx="8"/>
+    <path d="M56 48v20l18-10z" fill="#7C6CF5" stroke="none"/>
+  </g>
+  <g fill="#F5D06F">
+    <circle cx="34" cy="96" r="4"/>
+    <circle cx="50" cy="96" r="4"/>
+    <circle cx="66" cy="96" r="4"/>
+    <circle cx="82" cy="96" r="4"/>
+    <circle cx="98" cy="96" r="4"/>
+  </g>
+</svg>
