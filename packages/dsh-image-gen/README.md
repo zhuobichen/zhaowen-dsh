@@ -23,12 +23,40 @@ vendored 过来，改成可配置的工厂。
    ```cmd
    packages\dsh-image-gen\scripts\start-doubao-debug.cmd
    ```
-   脚本用独立 profile（`D:\github_project\ZhaoWen_GitHub维护\_doubao-profile`），
-   不会碰你日常那个豆包。可用 `DOUBAO_EXE` / `DOUBAO_PROFILE` / `DOUBAO_PORT` 覆盖。
-2. 那个实例**已登录**（首次在那个窗口里扫码一次，登录态存在 profile 里）。
+   默认用**真实的日常 profile**（`%LOCALAPPDATA%\Doubao\User Data`，profile `Default`），
+   这样登录态是现成的、生成的才是图而不是文字。
+   可用 `DOUBAO_EXE` / `DOUBAO_USER_DATA_DIR` / `DOUBAO_PROFILE_DIR` / `DOUBAO_PORT` 覆盖；
+   `DOUBAO_RESTART=1` 会先杀掉现有进程再启动。
+2. 那个实例**已登录**。
 3. Node 22+（依赖全局 `WebSocket`；当前 DSH 用 Node v24）。
 
-> 调试端口等于本地后门：任何本机进程都能驱动那个窗口。不要给日常豆包开端口。
+> 调试端口等于本地后门：任何本机进程都能驱动那个窗口。
+
+### 2.32.4 上启动必须同时满足三条（缺一条都静默失败）
+
+红过很多次的坑，记在这里省得下次再挖：
+
+1. **策略位**。豆包把 Chromium 的远程调试按「企业策略」关掉了，只加
+   `--remote-debugging-port` 端口永远不会监听。开关是注册表
+   `HKLM/HKCU\SOFTWARE\Policies\Chromium\RemoteDebuggingAllowed=1`
+   （写 HKLM 需要管理员）。豆包二进制里那句
+   `DevTools remote debugging is disallowed by the system admin` 就是这个检查。
+   `start-doubao-debug.ps1` 每次都会把策略写一遍（幂等）。
+2. **启动哪个 exe**。`D:\豆包\Doubao\Doubao.exe` 是 launcher，它**会**把参数
+   透传给 `app\Doubao.exe`（`"%s" %s --start_time=%llu`）。直接跑
+   `app\Doubao.exe` 会立刻退出。
+3. **用哪个 profile**。端口只在 `--user-data-dir` 非默认时才开；但空 profile 没登录，
+   豆包会回一段文字 + 提示词改写而**不出图**。所以指向真实 profile。
+
+### 运行时还有三个坑（`src/doubao.ts` 已处理，别删）
+
+- **聊天页是隐藏页**（`document.visibilityState === 'hidden'`）。刚启动的那一页能发出去，
+  一旦 `Page.navigate` 过就再也发不出去：点发送键会把它变灰，但抓包看**一个请求都不发**。
+  所以驱动里不做导航。
+- **成品图在 shadow root 里**。普通 `document.querySelectorAll('img')` 只能看到 320px 缩略图，
+  必须递归 `shadowRoot`；并且优先取 URL 里带 `rc_gen_image` 的（那才是成图）。
+- **输入必须走 CDP `Input.insertText`**。合成的 `execCommand` 插不进 React，
+  发送键会一直是 disabled。回车没反应时再补一次「点发送键」。
 
 ## 安装
 

@@ -464,6 +464,24 @@ async function sendComposer(cdp: Cdp, prompt: string): Promise<void> {
       const s = await sent();
       if (s.has && !s.inComposer) return;   // 提示词已出现在页面上、且不在输入框里 = 发出去了
     }
+    // 回车没发出去时补一次「点发送键」。2.32.4 实测：回车在某些页面状态下
+    // 完全无效，而 [data-testid="chat_input_send_button"] 的 .click() 有效
+    // （前提是 Input.insertText 已经把字塞进 ProseMirror，否则按钮是 disabled）。
+    const clicked = await cdp.evalJs(`(() => {
+      const b=document.querySelector('[data-testid="chat_input_send_button"]');
+      if(!b) return 'missing';
+      if(b.disabled) return 'disabled';
+      b.click(); return 'clicked';
+    })()`);
+    const t1 = Date.now();
+    while (Date.now() - t1 < 8000) {
+      await sleep(700);
+      const s = await sent();
+      if (s.has && !s.inComposer) return;   // 同上：点发送键把它送进了对话
+    }
+    if (clicked === "disabled") {
+      console.warn("[doubao] 发送键是 disabled：多半是输入没走 Input.insertText，React 没收到。");
+    }
   }
   throw new Error(
     `回车按了 3 次，这条消息始终没进对话（判据：提示词出现在页面里且不再位于输入框）。` +
@@ -501,25 +519,54 @@ async function waitForImage(
     await sleep(5000);
     const r = await cdp.evalJs(`(() => {
       const excl=new Set(${excl});
-      const msgs=[...document.querySelectorAll('[data-testid="receive_message"]')];
-      const cand=msgs.flatMap(m=>[...m.querySelectorAll('img')])
-        .map(e=>({src:e.currentSrc||e.src||'',w:e.naturalWidth,h:e.naturalHeight}))
-        .filter(o=>o.w>=${cfg.minPx}&&o.h>=${cfg.minPx}
-                   &&!/^(blob:|data:|chrome:)/.test(o.src)
-                   &&!/avatar|emoji|icon/i.test(o.src)
-                   &&!excl.has(o.src));
-      return cand.length?JSON.stringify(cand[cand.length-1]):null; })()`);
+      const out=[]; const seen=new Set();
+      // ⚠️ 2.32.4 实测：成品图挂在自定义元素的 **shadow root** 里，
+      // 普通 document.querySelectorAll('img') 一张都取不到（只能看到 320px 缩略图）。
+      // 所以这里必须递归 shadowRoot。
+      function walk(root,depth){
+        if(depth>8||!root) return;
+        for (const el of root.querySelectorAll('*')) {
+          if (el.shadowRoot) walk(el.shadowRoot, depth+1);
+          if (el.tagName!=='IMG') continue;
+          const src=el.currentSrc||el.src||'';
+          if(!src||seen.has(src)) continue;
+          seen.add(src);
+          out.push({src, w:el.naturalWidth, h:el.naturalHeight});
+        }
+      }
+      walk(document,0);
+      const cand=out.filter(o=>o.w>=${cfg.minPx}&&o.h>=${cfg.minPx}
+                 &&!/^(blob:|data:|chrome:)/.test(o.src)
+                 &&!/avatar|emoji|icon/i.test(o.src)
+                 &&!excl.has(o.src));
+      if(!cand.length) return null;
+      // 成图优先：豆包生成的图 URL 里带 rc_gen_image，缩略图/推荐图不带
+      const gen=cand.filter(o=>o.src.includes('rc_gen_image'));
+      const pick=(gen.length?gen:cand);
+      return JSON.stringify(pick[pick.length-1]); })()`);
     if (r) return JSON.parse(r);
   }
   // 失败时才去分辨：是"结构没了"，还是"结构在但没出图"？
   const hasStructure = await cdp.evalJs(`!!document.querySelector('[data-testid="receive_message"]')`);
+  const sawThumbs = await cdp.evalJs(`(() => {
+    const out=[]; const seen=new Set();
+    function walk(root,d){ if(d>8||!root) return;
+      for (const el of root.querySelectorAll('*')) {
+        if (el.shadowRoot) walk(el.shadowRoot,d+1);
+        if (el.tagName==='IMG') { const s=el.currentSrc||el.src||'';
+          if(s&&!seen.has(s)){seen.add(s);out.push({s,w:el.naturalWidth,h:el.naturalHeight});} }
+      }
+    }
+    walk(document,0);
+    return JSON.stringify(out.filter(o=>o.w>=200).slice(-6));
+  })()`);
   throw new Error(
     `等了 ${Math.round(cfg.timeoutMs / 1000)}s 没等到助手回复里的成图` +
       (hasStructure
         ? "（receive_message 结构还在，是图没出来）"
         : "（页面里**一个 receive_message 都没有** —— 豆包界面八成改版了，判据得跟着改）") +
       `。常见原因：那个豆包实例**没登录**、或者提示词被拦（合规审查）。` +
-      `界面里明明有结果就说明是判据问题，请把 DOUBAO_MIN_PX 调低再试。`
+      `看到的大图（可能被 MIN_PX 卡掉）：${sawThumbs}`
   );
 }
 
