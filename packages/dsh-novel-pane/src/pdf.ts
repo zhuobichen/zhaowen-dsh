@@ -7,7 +7,7 @@
 // 而且不能把宿主的 web 服务卡住。抽出来的正文按 `路径 + mtime + size` 缓存到
 // `$DSH_HOME/plugins/dsh-novel-pane/text/<hash>.txt`（和 EPUB 同一套缓存目录）。
 
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -137,12 +137,40 @@ const runOnce = (
     }
     const timer = setTimeout(() => {
       timedOut = true
-      // 超时必须真杀：130 MB 的漫画能把 PyMuPDF 拖很久
+      // 超时必须真杀：130 MB 的漫画能把 PyMuPDF 拖很久。
+      //
+      // ⚠️ 两处都踩过（见 docs/门禁-等待与取消.md 事故 A）：
+      //   ① 只 kill 直接子进程 —— Windows 上等于 TerminateProcess 打 python.exe 一个，
+      //      它拉起的孙子进程可能还活着并握着继承来的 stdio 管道；
+      //   ② 更致命的是"只 kill 不结算"：resolve 只在 child.on('close') 里，
+      //      而 close 要求管道全关。孙子进程不死 → close 永不来 → 这个工具调用永久挂起，
+      //      用户点停止也没用。所以这里必须自己 finish()。
       try {
-        child.kill('SIGKILL')
+        if (process.platform === 'win32' && child.pid) {
+          spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, timeout: 10000 })
+        } else {
+          child.kill('SIGKILL')
+        }
       } catch {
         // 进程可能已经自己退了
       }
+      // 主动关管道，否则宿主侧的 close 仍可能被孙子进程拖住
+      try {
+        child.stdout?.destroy()
+      } catch {
+        // ignore
+      }
+      try {
+        child.stderr?.destroy()
+      } catch {
+        // ignore
+      }
+      finish({
+        code: null,
+        stdout: Buffer.concat(out).toString('utf8'),
+        stderr: Buffer.concat(err).toString('utf8'),
+        timedOut: true,
+      })
     }, timeoutMs)
 
     child.stdout?.on('data', (chunk: Buffer) => out.push(chunk))
