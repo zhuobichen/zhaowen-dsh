@@ -142,6 +142,10 @@ export function shellQuote(args) {
  * process never starts, leaving an updated package and a dead TUI.
  */
 function runProcess(command, args, options = {}) {
+    // 门禁（docs/门禁-等待与取消.md）：不能只有 close 一条 settle 路径。
+    // `pnpm add` 这类命令可能卡在网络或交互提示上；没有上限的话，
+    // 整个 TUI 升级流程会永久停在「正在安装…」。
+    const timeoutMs = options.timeoutMs ?? 10 * 60_000;
     return new Promise(resolve => {
         let settled = false;
         const useShell = options.shell === true && process.platform === 'win32';
@@ -154,8 +158,20 @@ function runProcess(command, args, options = {}) {
             if (settled)
                 return;
             settled = true;
+            clearTimeout(timer);
             resolve(code);
         };
+        const timer = setTimeout(() => {
+            try {
+                child.kill('SIGKILL');
+            }
+            catch {
+                /* 可能已经退了 */
+            }
+            process.stderr.write(`cc-tui: ${command} 超过 ${Math.round(timeoutMs / 1000)}s 未结束，已终止\n`);
+            // 超时按 124 返回（与 timeout(1) 的约定一致），不再等 close
+            finish(124);
+        }, timeoutMs);
         child.once('error', error => {
             process.stderr.write(`cc-tui: failed to run ${command}: ${error.message}\n`);
             finish(127);
