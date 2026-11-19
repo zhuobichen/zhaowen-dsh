@@ -14,6 +14,9 @@
         headers:
           Authorization: !!js process.env.TENCENT_DOCS_TOKEN
         failOnStartupError: false
+      # 2026-11-11：TENCENT_DOCS_TOKEN 未配置（User/Machine/Process 环境变量均为空），
+      # `!!js` 求值成 undefined 会让 zod 拒收整个 config。补好凭据后改回 false。
+      disabled: true
 
     # 2) Tencent Cloud CVM — cloud servers: list, start/stop, describe.
     - id: tencent-cvm-mcp
@@ -34,6 +37,8 @@
           TENCENTCLOUD_SECRET_KEY: !!js process.env.TENCENTCLOUD_SECRET_KEY
           TENCENTCLOUD_REGION: !!js process.env.TENCENTCLOUD_REGION ?? 'ap-guangzhou'
         failOnStartupError: false
+      # 2026-11-11：TENCENTCLOUD_SECRET_ID / SECRET_KEY 未配置，env 里出现 undefined。
+      disabled: true
 
     # 3) Tencent Cloud TAT — run commands on cloud servers without SSH.
     - id: tencent-tat-mcp
@@ -87,6 +92,8 @@
           QQMAIL_IMAP_HOST: imap.qq.com
           QQMAIL_IMAP_PORT: '993'
         failOnStartupError: false
+      # 2026-11-11：QQMAIL_USER / QQMAIL_AUTH_CODE 未配置，env 里出现 undefined。
+      disabled: true
 
     # 6) QQ Mail (full, official service) — needs a one-time phone scan; enable after that.
     - id: tencent-qqmail-full-mcp

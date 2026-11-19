@@ -31,7 +31,7 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-tools": "*"
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.4"
   },
   "license": "MIT"
 }

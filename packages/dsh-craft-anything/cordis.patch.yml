@@ -11,3 +11,6 @@
           - mcp
         cwd: 'D:\github_project\ZhaoWen_GitHub维护\craft-anything-plugin\vendor\craft-anything\craft-anything-0.3.0-windows-x64-portable'
         failOnStartupError: true
+      # 2026-11-11：D:\github_project 不存在，craft-anything-cli.exe 找不到，
+      # 启动时报 spawn C:\windows\system32\cmd.exe ENOENT。装好 CLI 或改对路径后启用。
+      disabled: true
