@@ -50,6 +50,7 @@
 | `packages/dsh-tencent-mcp` | 腾讯官方 MCP 全家桶：腾讯文档（HTTP）、qqmail、CVM、TAT、COS、IMA | ~67 行（几乎全是 `cordis.patch.yml` 配置） |
 | `packages/dsh-weflow-mcp` | WeFlow CLI（本地微信聊天导出 / 公众号） | 0 行（纯配置） |
 | `packages/dsh-rea-video` | rea-video CLI（视频逆向拆解，含人脸/分离模型） | ~301 行 |
+| `packages/dsh-zotero-mcp` | Zotero 插件 `zotero-mcp-plugin` 的本地 MCP 服务（工具注册为 `mcp__zotero__*`） | 薄壳 |
 
 这些都只做**连接层**，不修改上游行为。上游升级时重新装 CLI 即可，壳子不用动。
 
