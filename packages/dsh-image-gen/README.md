@@ -27,6 +27,20 @@ vendored 过来，改成可配置的工厂。
    实际走的是 React fiber 里的 `removeAiWatermarkVideoUrl`（带 `lr=unwatermarked`），
    在页面内 fetch 取字节；下载按钮只作兜底。
 
+### 手动验一次视频链路
+
+不是 CI 测试（要豆包开着 + 消耗一次视频额度），所以放在 `scripts/`：
+
+```powershell
+# 纯文字
+node scripts/e2e-video.mjs
+
+# 带身份锚点（复刻角色时必须）
+node scripts/e2e-video.mjs --ref D:\path\ref.png --out .\out\demo
+```
+
+跑之前先 `image_gen_status` 确认 CDP 通、输入框在。产物路径与 sidecar 由脚本打印。
+
 产物右下角有「豆包 AI 生成」可见水印，PNG 里还有 AIGC 元数据；**本插件不裁剪**。
 
 ## 前提
