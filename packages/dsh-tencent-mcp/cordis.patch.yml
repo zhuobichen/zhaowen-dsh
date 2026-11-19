@@ -14,9 +14,7 @@
         headers:
           Authorization: !!js process.env.TENCENT_DOCS_TOKEN
         failOnStartupError: false
-      # 2026-11-11：TENCENT_DOCS_TOKEN 未配置（User/Machine/Process 环境变量均为空），
-      # `!!js` 求值成 undefined 会让 zod 拒收整个 config。补好凭据后改回 false。
-      disabled: true
+      # 2026-11-19：TENCENT_DOCS_TOKEN 已配好（端点 initialize 实测 HTTP 200）→ 启用。
 
     # 2) Tencent Cloud CVM — cloud servers: list, start/stop, describe.
     - id: tencent-cvm-mcp
@@ -38,6 +36,7 @@
           TENCENTCLOUD_REGION: !!js process.env.TENCENTCLOUD_REGION ?? 'ap-guangzhou'
         failOnStartupError: false
       # 2026-11-11：TENCENTCLOUD_SECRET_ID / SECRET_KEY 未配置，env 里出现 undefined。
+      # 2026-11-19：凭据已配好，但本行依赖的路径在本机不存在 —— uvx.exe 与 _mcp-cache 路径属于原作者机器；本机 uvx 在 %USERPROFILE%\.local\bin，缓存目录未建。SECRET_ID/KEY 已就绪，补好路径即可启用。
       disabled: true
 
     # 3) Tencent Cloud TAT — run commands on cloud servers without SSH.
@@ -59,6 +58,7 @@
           TENCENTCLOUD_SECRET_KEY: !!js process.env.TENCENTCLOUD_SECRET_KEY
           TENCENTCLOUD_REGION: !!js process.env.TENCENTCLOUD_REGION ?? 'ap-guangzhou'
         failOnStartupError: false
+      # 2026-11-19：凭据已配好，但本行依赖的路径在本机不存在 —— 同 CVM：uvx.exe 与 _mcp-cache 路径本机不存在。SECRET_ID/KEY 已就绪。
       disabled: true
 
     # 4) Tencent Cloud COS — object storage (needs a bucket list in COS_CONFIG).
@@ -75,25 +75,31 @@
           npm_config_cache: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\npm'
           COS_CONFIG: !!js process.env.COS_CONFIG
         failOnStartupError: false
+      # 2026-11-19：凭据已配好，但本行依赖的路径在本机不存在 —— D:\Node_js\npx.cmd 不存在（本机 npx 在 C:\Program Files\nodejs），且缺 COS_CONFIG（桶列表）。
       disabled: true
 
     # 5) QQ Mail (read-only, IMAP) — uses the authorization code already in .env.
+    #
+    # 2026-11-19 启用。原配置指向原作者机器（D:\Node_js\node.exe + D:\github_project\...\qqmail-mcp），
+    # 本机都不存在；改为本机 node + 全局安装的 qqmail-mcp。
+    # 凭据来自 DSH 启动目录（E:\CodeProject\其余工程）的 .env —— 那是 project-env 层，
+    # dsh 启动时会被写进 process.env，所以下面的 !!js 能取到值。
+    # 注意：npm 里 qqmail-mcp@0.1.0 的 fetchOne 参数位置写错，三个工具原本全部返回空，
+    # 本机 dist/index.js 已打补丁（原件 .orig）。重新 npm i -g 会覆盖补丁。
     - id: tencent-qqmail-mcp
       name: '@deepseek-ai/dsh-mcp-client'
       config:
         serverName: tencent-qqmail
         transport: stdio
-        command: 'D:\Node_js\node.exe'
+        command: 'node'
         args:
-          - 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\qqmail-local\node_modules\qqmail-mcp\dist\index.js'
+          - 'C:\Users\chenlizhuo\AppData\Roaming\npm\node_modules\qqmail-mcp\dist\index.js'
         env:
           QQMAIL_USER: !!js process.env.QQMAIL_USER
           QQMAIL_PASS: !!js process.env.QQMAIL_AUTH_CODE
           QQMAIL_IMAP_HOST: imap.qq.com
           QQMAIL_IMAP_PORT: '993'
         failOnStartupError: false
-      # 2026-11-11：QQMAIL_USER / QQMAIL_AUTH_CODE 未配置，env 里出现 undefined。
-      disabled: true
 
     # 6) QQ Mail (full, official service) — needs a one-time phone scan; enable after that.
     - id: tencent-qqmail-full-mcp
@@ -108,6 +114,7 @@
         env:
           npm_config_cache: 'D:\github_project\ZhaoWen_GitHub维护\_mcp-cache\npm'
         failOnStartupError: false
+      # 2026-11-19：凭据已配好，但本行依赖的路径在本机不存在 —— D:\Node_js\npx.cmd 本机不存在；且该服务需一次性手机扫码授权，尚未做。
       disabled: true
 
     # 7) Tencent IMA knowledge base — needs cookie/bkn copied from ima.qq.com (F12 → Network).
@@ -129,4 +136,5 @@
           IMA_X_IMA_BKN: !!js process.env.IMA_X_IMA_BKN
           IMA_KNOWLEDGE_BASE_ID: !!js process.env.IMA_KNOWLEDGE_BASE_ID
         failOnStartupError: false
+      # 2026-11-19：凭据已配好，但本行依赖的路径在本机不存在 —— uvx.exe 与 _mcp-cache 路径本机不存在，且缺 IMA_X_IMA_COOKIE / IMA_X_IMA_BKN / IMA_KNOWLEDGE_BASE_ID。
       disabled: true

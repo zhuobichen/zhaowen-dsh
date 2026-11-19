@@ -1,11 +1,12 @@
-// 冒烟：插件能注册两个工具，且工具形状完整（不碰任何真实会话文件）。
+// 冒烟：插件能注册全部工具，且工具形状完整（不碰任何真实会话文件）。
 import { apply } from "../lib/index.js";
 
 const registered = [];
 apply({ tools: { register: (def) => (registered.push(def), () => {}) } }, {});
 
 const names = registered.map((t) => t.name).sort();
-const expected = ["agent_sessions_import", "agent_sessions_scan"];
+// fork 是后加的工具，这里的清单要跟着注册表走，否则新增工具就会误报。
+const expected = ["agent_sessions_fork", "agent_sessions_import", "agent_sessions_scan"];
 if (JSON.stringify(names) !== JSON.stringify(expected)) {
   console.error("unexpected tools:", names);
   process.exit(1);

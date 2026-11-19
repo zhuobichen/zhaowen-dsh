@@ -105,12 +105,13 @@ const install = (h: Harness, outputDir: string) => {
   })
 }
 
-test('注册三个工具，都有 parameters / output.schema / render', () => {
+test('注册四个工具，都有 parameters / output.schema / render', () => {
   const h = harness()
 
   install(h, temp())
 
-  assert.deepEqual([...h.tools.keys()].sort(), ['edit_image', 'generate_image', 'image_gen_status'])
+  // generate_video 是后加的工具，清单跟着注册表走，否则新增工具就会误报。
+  assert.deepEqual([...h.tools.keys()].sort(), ['edit_image', 'generate_image', 'generate_video', 'image_gen_status'])
 
   for (const definition of h.tools.values()) {
     assert.equal(definition.parameters.type, 'object')
