@@ -1,0 +1,7 @@
+# 破甲工具台：只挂插件本体，不改任何宿主行、不动审批与沙箱。
+#
+# inject 由 index.js 的 `export const inject` 声明（Cordis 标准做法），
+# 这里不再重复写，避免两处声明打架。
+- insert:
+    - id: mowan-console
+      name: '@local/dsh-mowan-console'

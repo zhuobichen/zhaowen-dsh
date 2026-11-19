@@ -1,0 +1,22 @@
+﻿{
+  "name": "@zhuobichen/dsh-mowan-console",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "破甲工作台：按会话软注入提示词 + 按会话切换模型，带 Web 面板实时显示哪个会话被改了什么",
+  "main": "index.js",
+  "dsh": {
+    "id": "dsh-mowan-console",
+    "name": "破甲工作台",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}
