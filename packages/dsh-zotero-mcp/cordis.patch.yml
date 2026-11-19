@@ -1,0 +1,27 @@
+# Zotero MCP 客户端 bundle
+#
+# 把 dsh-mcp-client 的一个实例 insert 到 profile 里，连接 Zotero 插件
+# zotero-mcp-plugin 的本地 MCP 服务 (http://127.0.0.1:23120/mcp)。
+# 安装后 Zotero MCP 的工具以 mcp__zotero__* 注册为原生工具。
+#
+# 前提：Zotero 桌面端已启动、zotero-mcp-plugin 已启用。
+# 端口：23120 = MCP server（zotero-mcp-plugin），23119 = Connector/Local API。
+- insert:
+    - id: mcp-zotero
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: zotero
+        transport: streamable-http
+        url: http://127.0.0.1:23120/mcp
+        # add_by_identifier 走 Zotero 的 translator 联网解析元数据，
+        # 慢的时候单个标识符可能跑十几秒；60s 的默认值不够用。
+        toolCallTimeoutMs: 180000
+        # Zotero 没开着的时候连不上是常态（不是故障），所以：
+        # - 不因启动失败而拒绝激活，用户开机 Zotero 后能自动重连
+        # - 给足重试次数，指数退避从 500ms 起
+        failOnStartupError: false
+        reconnect:
+          enabled: true
+          initialDelayMs: 1000
+          maxDelayMs: 30000
+          maxAttempts: 20
