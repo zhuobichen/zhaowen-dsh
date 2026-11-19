@@ -1,6 +1,6 @@
 # zhaowen-dsh
 
-赵文自己的 **DeepSeek Harness（DSH）** 工具集：团队编排插件、会话导入插件、TUI 前端插件、终端客户端。
+赵文自己的 **DeepSeek Harness（DSH）** 插件与工具集：**26 个包**，覆盖会话管理、沙箱与权限、生图生视频、跨工具会话迁移、远程执行、若干 MCP 桥接，以及一个 TUI 前端和一个独立终端客户端。
 
 > ⚠️ **开发门禁（必读）**：[`docs/门禁-等待与取消.md`](docs/门禁-等待与取消.md)
 >
@@ -24,6 +24,7 @@
 | [`packages/dsh-agent-supervisor`](packages/dsh-agent-supervisor) | `@zhuobichen/dsh-agent-supervisor` | **DSH 插件**：主管 Agent，管理其它会话（派活 / 查状态 / 改名 / 记记忆），设计上没有删除能力 |
 | [`packages/dsh-agent-dispatch`](packages/dsh-agent-dispatch) | `@zhuobichen/dsh-agent-dispatch` | **DSH 插件**（纯 ESM 无构建）：判断一件事该单 Agent 做还是派子 Agent，带成本量级与渐进式披露路线 |
 | [`packages/dsh-plugin-gate`](packages/dsh-plugin-gate) | `@zhuobichen/dsh-plugin-gate` | **DSH 插件**：会话级插件闸门——默认全量注入，开闸后只注入指定插件的能力 |
+| [`packages/dsh-sandbox-grant`](packages/dsh-sandbox-grant) | `@zhuobichen/dsh-sandbox-grant` | **DSH 插件**：为指定会话切换沙箱模式（提权/降权），带审计与升级守卫；附 `host_exec`（绕过沙箱子进程隔离，按会话授权） |
 | [`packages/dsh-capability-audit`](packages/dsh-capability-audit) | `@zhuobichen/dsh-capability-audit` | **DSH 插件**（纯 ESM 无构建）：能力体检——skill 触发率、MCP 健康度、工具成功率，附建议 |
 | [`packages/dsh-kimi-bridge`](packages/dsh-kimi-bridge) | `@zhuobichen/dsh-kimi-bridge` | **DSH 插件**（纯 ESM 无构建）：DSH ↔ Kimi Code 会话迁移（列会话 / 导出 / 导入） |
 | [`packages/dsh-zcode-bridge`](packages/dsh-zcode-bridge) | `@zhuobichen/dsh-zcode-bridge` | **DSH 插件**：DSH ↔ ZCode 双向会话迁移；写库默认 dry-run、写前备份、单事务、ZCode 在跑就拒绝 |
@@ -31,6 +32,10 @@
 | [`packages/dsh-theme-kaguya-hime`](packages/dsh-theme-kaguya-hime) | `@zhuobichen/dsh-theme-kaguya-hime` | **DSH 主题**：超时空辉夜姬皮肤——蜡笔绘本背景、Q 版八千代头像、`TSUKUYOMI STAGE` 字标、冷蓝白配色（只换颜色 token，不动布局） |
 | [`packages/dsh-client-ui-voice`](packages/dsh-client-ui-voice) | `@zhuobichen/dsh-client-ui-voice` | **DSH 插件**（只有客户端半身）：输入框工具行的麦克风按钮——语音转草稿，从不自动发送 |
 | [`packages/dsh-craft-anything`](packages/dsh-craft-anything) | `@zhuobichen/dsh-craft-anything` | **DSH 插件**（配置型）：通过 MCP 接入 [Craft Anything](https://github.com/storytold/craft-anything) 的净室逆向引擎——315 个检查工具、Study→Build→Check→Ready 复刻流水线 |
+| [`packages/dsh-tencent-mcp`](packages/dsh-tencent-mcp) | `@zhuobichen/dsh-tencent-mcp` | **DSH 插件**（配置型）：腾讯 MCP 全家桶——腾讯文档（HTTP）、QQ 邮箱 IMAP、CVM、TAT、COS、IMA；凭据走 `.env`，按行启停 |
+| [`packages/dsh-zotero-mcp`](packages/dsh-zotero-mcp) | `@zhuobichen/dsh-zotero-mcp` | **DSH 插件**（配置型）：接 Zotero 插件 `zotero-mcp-plugin` 的本地 MCP 服务，工具注册为 `mcp__zotero__*` |
+| [`packages/dsh-weflow-mcp`](packages/dsh-weflow-mcp) | `@zhuobichen/dsh-weflow-mcp` | **DSH 插件**（配置型）：接 WeFlow CLI 自带的 MCP——本机微信聊天、收藏、公众号日报、知识库、朋友圈、微信读书 |
+| [`packages/dsh-rea-video`](packages/dsh-rea-video) | `@zhuobichen/dsh-rea-video` | **DSH 插件**：接 rea-video CLI——逐镜头判断视频是实拍/AI/3D/代码做的，产出带证据的 report.html 与复刻方案 |
 | [`packages/dsh-mowan-console`](packages/dsh-mowan-console) | `@zhuobichen/dsh-mowan-console` | **DSH 插件**（宿主 + 客户端两半）：按**会话**软注入提示词 + 按**会话**切换模型，带「破甲工作台」Web 标签页实时显示哪个会话被改了什么；改动全部落 `changes.jsonl` 审计。不动宿主源码、不碰审批与沙箱 |
 
 带界面的插件是**一个包两半**：宿主半身（`main` / `exports["."]`）算数，客户端半身（`exports["./client"]` +
@@ -64,11 +69,12 @@ dsh plugin --profile web add dsh-cc-tui
 cd packages/dsh-term && npm install && npm run build && npm start
 ```
 
-三个包各自的细节看包内 README。
+上面举例的这三个（`dsh-team` / `dsh-cc-tui` / `dsh-term`）有独立的构建与发版流水线，细节看包内 README。
+**其余 23 个插件都是 link 安装、无需构建**（纯 ESM 的连 `lib/` 都没有）。
 
 ## 发版
 
-三个包共享一个标签命名空间，用**带包名前缀的标签**触发对应流水线：
+`dsh-team` / `dsh-cc-tui` / `dsh-term` 这三个包共享一个标签命名空间，用**带包名前缀的标签**触发对应流水线（其余包不发 npm，直接 link 使用）：
 
 ```sh
 git tag dsh-cc-tui-v0.4.3 && git push origin dsh-cc-tui-v0.4.3
@@ -89,5 +95,3 @@ git tag dsh-team-v0.2.1   && git push origin dsh-team-v0.2.1
 - `zhuobichen/dsh-team` → `packages/dsh-team`
 - `zhuobichen/dsh-tui` → `packages/dsh-cc-tui`
 - `zhuobichen/dsh-term` → `packages/dsh-term`
-| [`packages/dsh-weflow-mcp`](packages/dsh-weflow-mcp) | `@zhuobichen/dsh-weflow-mcp` | **DSH 插件**（配置型）：接 WeFlow CLI 自带的 MCP——本机微信聊天、收藏、公众号日报、知识库、朋友圈、微信读书 |
-| [`packages/dsh-rea-video`](packages/dsh-rea-video) | `@zhuobichen/dsh-rea-video` | **DSH 插件**：接 rea-video CLI——逐镜头判断视频是实拍/AI/3D/代码做的，产出带证据的 report.html 与复刻方案 |
