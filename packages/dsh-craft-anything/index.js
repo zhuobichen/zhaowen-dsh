@@ -155,7 +155,7 @@ async function collect(cli) {
   }
 }
 
-export const name = '@local/dsh-craft-anything'
+export const name = '@zhuobichen/dsh-craft-anything'
 export const inject = []
 
 export function apply(ctx, config = {}) {
