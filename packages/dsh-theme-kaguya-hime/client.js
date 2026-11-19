@@ -7,7 +7,7 @@
  * structural changes, so the layout stays exactly the shipped one.
  */
 window.__ModuleLoader__.load({
-  id: '@zhuobichen/dsh-theme-kaguya-hime',
+  id: '@local/kaguya-hime-theme',
   factory(require) {
     const React = require('react')
     const h = React.createElement
@@ -246,7 +246,9 @@ body[data-kaguya] button[class*="newSession"]:focus-visible {
             height: '100%',
             objectFit: 'cover',
             objectPosition: '50% 45%',
-            opacity: 0.22,
+            // 背景透明度。原始 0.22 → 透明一半 0.11 → 再一半 0.055。
+            // 想再调就改这一个数：越小越看不见，0 等于关掉壁纸。
+            opacity: 0.055,
             pointerEvents: 'none',
             userSelect: 'none',
             maskImage: mask,
