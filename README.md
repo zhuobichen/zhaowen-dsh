@@ -8,6 +8,10 @@
 > **① 每一个 await 都有「无论如何都会结束」的兜底；② 每个工具都接 `exec.signal`。**
 > 两次真实事故（`host_exec` 挂死 QQ 会话、`generate_video` 生成成功却永不返回）都出在这两条上。
 > 提交前跑：`node scripts/check-await-safety.mjs`（退出码 1 = 有 [必错]）。
+>
+> 另有一条**改名门禁**：`node scripts/check-plugins.mjs`（CI 里也跑）会核对每个包的
+> `cordis.patch.yml` 引用的模块名 —— 改名只改 `package.json`、漏改 patch，重启后插件会
+> `enabled:true` 但 `fiberPhase:null`（工具消失、面板 404，启动日志里很不显眼）。
 
 | 目录 | 包名 | 是什么 |
 |---|---|---|

@@ -47,6 +47,33 @@ for (const dir of readdirSync(PACKAGES)) {
     if (!existsSync(clientFile)) notes.push(`${dir}: 没有根 client.js（可能在 client/ 或 lib/ 下）`)
   }
 
+  // bundle patch 里 insert 的模块名必须能解析：自身 / 依赖 / 宿主自带的 @deepseek-ai/*。
+  // 2026-11-20 的真实事故：包改名（@local → @zhuobichen）只改了 package.json，
+  // cordis.patch.yml 还指着旧名 —— 结果是插件 enabled:true 但 fiberPhase:null，
+  // 工具消失、面板 404，而启动日志里并不显眼。
+  const patchRel = manifest.dsh?.bundle?.patch
+  if (patchRel) {
+    const patchPath = join(pkgDir, patchRel)
+    if (!existsSync(patchPath)) {
+      problems.push(`${dir}: dsh.bundle.patch 指向的文件不存在（${patchRel}）`)
+    } else {
+      const text = readFileSync(patchPath, 'utf8')
+      const deps = new Set([
+        ...Object.keys(manifest.dependencies ?? {}),
+        ...Object.keys(manifest.peerDependencies ?? {}),
+      ])
+      for (const match of text.matchAll(/^\s*(?:-\s*)?name:\s*['"]?([^'"\s#]+)['"]?\s*$/gm)) {
+        const name = match[1]
+        if (name === manifest.name || name.startsWith(manifest.name + '/')) continue
+        if (deps.has(name) || name.startsWith('@deepseek-ai/')) continue
+        problems.push(
+          `${dir}: ${patchRel} 引用的模块 ${name} 既不是自身也不是依赖` +
+            `（改了包名却漏改 patch，重启后这个插件会 enabled 但挂不上）`,
+        )
+      }
+    }
+  }
+
   if (!manifest.files) problems.push(`${dir}: 缺少 files[]（发布时会带上一堆无关文件）`)
   if (!manifest.license) notes.push(`${dir}: package.json 没写 license 字段`)
 
