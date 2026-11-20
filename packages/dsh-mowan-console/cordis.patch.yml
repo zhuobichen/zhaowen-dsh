@@ -4,4 +4,4 @@
 # 这里不再重复写，避免两处声明打架。
 - insert:
     - id: mowan-console
-      name: '@local/dsh-mowan-console'
+      name: '@zhuobichen/dsh-mowan-console'
