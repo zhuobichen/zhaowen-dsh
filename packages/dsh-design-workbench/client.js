@@ -533,7 +533,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [state, setState] = useState(null)
         const [err, setErr] = useState('')
         const [layer, setLayer] = useState('')
-        const [scope, setScope] = useState('both')
+        const [scope, setScope] = useState('style')
         const [tag, setTag] = useState('')
         const [origin, setOrigin] = useState('')
         const [query, setQuery] = useState('')
@@ -578,6 +578,16 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             return (e.name + ' ' + e.oneLine + ' ' + (e.tags || []).join(' ') + ' ' + e.id + ' ' + e.source).toLowerCase().indexOf(q) >= 0
           })
         }, [current, tag, origin, query, scope])
+
+        // 当前层里各类条目有多少（芯片上显示，知道被藏了多少）
+        const scopeCounts = useMemo(function () {
+          const list = current ? current.entries : []
+          return {
+            style: list.filter(function (e) { return (e.nature || 'style') === 'style' }).length,
+            both: list.filter(function (e) { return (e.nature || 'style') !== 'method' }).length,
+            all: list.length,
+          }
+        }, [current])
 
         const allTags = useMemo(function () {
           if (current === null) return []
@@ -635,9 +645,9 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ),
 
           el('div', { className: 'dw-chips' },
-            el('button', { className: 'dw-chip' + (scope === 'style' ? ' dw-chip-on' : ''), onClick: function () { setScope('style') }, title: '只显示能照着做的视觉风格' }, '只看风格'),
-            el('button', { className: 'dw-chip' + (scope === 'both' ? ' dw-chip-on' : ''), onClick: function () { setScope('both') }, title: '风格 + 项目素材，隐藏方法与工程' }, '风格+素材'),
-            el('button', { className: 'dw-chip' + (scope === 'all' ? ' dw-chip-on' : ''), onClick: function () { setScope('all') }, title: '连方法/工程一起看' }, '全部'),
+            el('button', { className: 'dw-chip' + (scope === 'style' ? ' dw-chip-on' : ''), onClick: function () { setScope('style') }, title: '只显示能照着做的视觉风格' }, '只看风格 ' + scopeCounts.style),
+            el('button', { className: 'dw-chip' + (scope === 'both' ? ' dw-chip-on' : ''), onClick: function () { setScope('both') }, title: '风格 + 项目素材，隐藏方法与工程' }, '风格+素材 ' + scopeCounts.both),
+            el('button', { className: 'dw-chip' + (scope === 'all' ? ' dw-chip-on' : ''), onClick: function () { setScope('all') }, title: '连方法/工程一起看' }, '全部 ' + scopeCounts.all),
             el('span', { style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
             el('button', { className: 'dw-chip' + (origin === '' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部来源'),
             el('button', { className: 'dw-chip' + (origin === 'mine' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '只看自制'),

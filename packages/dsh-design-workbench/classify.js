@@ -102,6 +102,11 @@ export function classifyEntry(entry) {
   // 分区风格库（huashu 的六个区）：结构上就是「一排可挑的样式」，一律算风格
   if (/^fe-huasu-.*-zone$/.test(entry.id || '')) nature = 'style'
 
+  // 扫描进来的目录（design_scan）与「项目类」条目：永远不是风格
+  if ((entry.tags || []).includes('扫描') || /^app-scan-|^fe-scan-|^vid-scan-|^cv-scan-/.test(entry.id || '')) {
+    if (nature === 'style') nature = 'reference'
+  }
+
   return { nature, score: Math.round(score * 10) / 10, why }
 }
 
