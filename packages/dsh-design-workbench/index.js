@@ -70,12 +70,12 @@ export function apply(ctx) {
       description:
         '设计工作台的数据通道：**用户本机的设计资料库，分四层（App 设计 / 前端设计 / 视频风格 / 代码生视频）**。\n' +
         '工作台面板是给人看的；这是给 AI 读同一份数据的入口。\n' +
-        'op=list 三层全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一层（app | frontend | video | codevideo）；' +
+        'op=list 四层全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一层（app | frontend | video | codevideo）；' +
         'op=get {id} 取完整规格（颜色/圆角/投影/CSS/要点/怎么用，几百字）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
         '用户说「用工作台里那个水墨的」「按那个紧凑仪表盘做」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
       parameters: {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
-        id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video）、或关键词（search）' },
+        id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo）、或关键词（search）' },
       },
       output: OUTPUT,
       execute: async (args) => {
