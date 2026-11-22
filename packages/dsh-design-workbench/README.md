@@ -88,6 +88,25 @@ design_style op=search {关键词}             按名称/标签/出处搜（「�
 
 写前端、做 App 原型、做视频/动效前先 `op=current` 或 `op=layer`：用户可能已经攒好参照了。
 
+## 把新目录扫进来（design_scan）
+
+从云端拉了一堆项目？不用手写 catalog：
+
+```
+design_scan op=scan id=D:/github_project/third-party        # 给根目录，depth 默认 3
+design_scan op=add  id=all                                  # 或 id=fe-scan-xxx,app-scan-yyy
+design_scan op=list                                         # 看已导入的
+design_scan op=remove id=fe-scan-xxx                        # 删掉
+```
+
+判定只看文件名与 manifest：`DESIGN.md`/`style-guide`/`tokens`、`package.json` 里的
+react/vue/next/tailwind/electron、`AndroidManifest.xml`/`.apk`、`remotion.config.*`/`scene.py`、
+截图数量与 `index.html`。分到四层里，封面取目录里最像封面的那张图。
+
+导入的条目写在 `$DSH_HOME/plugins/dsh-design-workbench/extra.json`（覆盖层），
+**不动 catalog.js**；工作台与工具都从「catalog + 覆盖层」合并后的结果读。
+扫描有硬上限（4000 个目录 / 80 个候选），不会把磁盘扫穿。
+
 ## 数据落点
 
 没有落点。这个插件**只读**：目录在 `catalog.js`，封面读本机文件，不写 `state.json`、不留审计。

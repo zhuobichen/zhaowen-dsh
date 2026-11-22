@@ -9,16 +9,22 @@
  * 所以这里**只读**：不写 state、不留审计。工作台是给人看的，AI 需要时来查。
  */
 
-import { existsSync, readFileSync, statSync } from 'node:fs'
-import { extname } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { extname, join } from 'node:path'
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, refOf, specOf } from './catalog.js'
+import { scanRoot } from './scan.js'
 
 const NAME = 'dsh-design-workbench'
 const ROUTE = '/design-workbench'
 const MAX_COVER_BYTES = 12 * 1024 * 1024
+
+function dshHome() {
+  return process.env.DSH_HOME && process.env.DSH_HOME.trim() !== '' ? process.env.DSH_HOME : join(homedir(), '.dsh')
+}
 
 const MEDIA = {
   '.png': 'image/png',
@@ -29,15 +35,64 @@ const MEDIA = {
   '.svg': 'image/svg+xml',
 }
 
+// ── 覆盖层：用户用 design_scan 扫进来的条目（不写死进 catalog.js）──────
+function extraPath() {
+  return join(dshHome(), 'plugins', NAME, 'extra.json')
+}
+
+/** { entries: [ {id, layer, name, oneLine, source, cover, tags, kind, bullets, howto, sources} ] } */
+function loadExtra() {
+  try {
+    const raw = JSON.parse(readFileSync(extraPath(), 'utf8'))
+    if (raw && Array.isArray(raw.entries)) {
+      return raw.entries.filter((e) => e && typeof e.id === 'string' && typeof e.layer === 'string')
+    }
+  } catch {
+    // 没有覆盖层就是空
+  }
+  return []
+}
+
+function saveExtra(entries) {
+  const dir = join(dshHome(), 'plugins', NAME)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  writeFileSync(extraPath(), JSON.stringify({ entries }, null, 2), 'utf8')
+}
+
+/** catalog + 覆盖层合并后的四层；面板与工具都从这读。 */
+function mergedLayers() {
+  const extra = loadExtra()
+  return LAYERS.map((l) => {
+    const added = extra.filter((e) => e.layer === l.id).map((e) => ({ ...e, prompt: refOf(e), spec: specOf(e), added: true }))
+    return { ...l, entries: [...l.entries, ...added] }
+  })
+}
+
+function allEntries() {
+  return mergedLayers().flatMap((l) => l.entries)
+}
+
+function findAny(id) {
+  return findEntry(id) ?? loadExtra().find((e) => e.id === id) ?? null
+}
+
+function layerOfAny(id) {
+  return mergedLayers().find((l) => l.entries.some((e) => e.id === id)) ?? null
+}
+
+/** 扫描结果按 id 暂存，供 op=add 用（同一进程内有效）。 */
+const scanProposals = new Map()
+
 /** 面板读的整包状态：目录 + 标签 + 计数。 */
 function snapshot() {
+  const layers = mergedLayers()
   return {
     ok: true,
     at: new Date().toISOString(),
-    layers: LAYERS,
+    layers,
     tags: TAGS,
-    counts: LAYERS.map((l) => ({ id: l.id, name: l.name, count: l.entries.length })),
-    total: ALL_ENTRIES.length,
+    counts: layers.map((l) => ({ id: l.id, name: l.name, count: l.entries.length })),
+    total: layers.reduce((n, l) => n + l.entries.length, 0),
     channel: 'design_style op=list / op=layer / op=get / op=search',
   }
 }
@@ -85,22 +140,22 @@ export function apply(ctx) {
         if (op === 'list') {
           return {
             ok: true,
-            count: ALL_ENTRIES.length,
-            layers: LAYERS.map((l) => ({
+            count: allEntries().length,
+            layers: mergedLayers().map((l) => ({
               id: l.id,
               name: l.name,
               hint: l.hint,
               count: l.entries.length,
               entries: l.entries.map((e) => ({ id: e.id, name: e.name, oneLine: e.oneLine, origin: e.origin, tags: e.tags })),
             })),
-            note: LAYERS.map(
-              (l) => `【${l.name}】${l.entries.length} 条\n` + l.entries.map((e) => `  ${e.id.padEnd(20)} ${e.name} —— ${e.oneLine}`).join('\n'),
-            ).join('\n\n'),
+            note: mergedLayers()
+              .map((l) => `【${l.name}】${l.entries.length} 条\n` + l.entries.map((e) => `  ${e.id.padEnd(20)} ${e.name} —— ${e.oneLine}`).join('\n'))
+              .join('\n\n'),
           }
         }
 
         if (op === 'layer') {
-          const layer = LAYERS.find((l) => l.id === arg || l.name === arg)
+          const layer = mergedLayers().find((l) => l.id === arg || l.name === arg)
           if (layer === undefined) {
             return { ok: false, code: 'UNKNOWN_LAYER', error: `层只支持：${LAYERS.map((l) => l.id).join(' / ')}`, note: 'op=layer 需要 id：' + LAYERS.map((l) => l.id).join(' / ') }
           }
@@ -113,7 +168,7 @@ export function apply(ctx) {
         }
 
         if (op === 'get') {
-          const entry = findEntry(arg)
+          const entry = findAny(arg)
           if (entry === null) {
             return { ok: false, code: 'UNKNOWN_ENTRY', error: `没有这个条目：${arg}`, note: '用 op=list 看全部 id，或 op=search 搜关键词。' }
           }
@@ -123,7 +178,7 @@ export function apply(ctx) {
         if (op === 'search') {
           const q = arg.toLowerCase()
           if (q === '') return { ok: false, code: 'EMPTY_QUERY', error: 'op=search 需要关键词（名称/标签/出处都可以）', note: '例如 op=search id=水墨' }
-          const hits = ALL_ENTRIES.filter((e) => {
+          const hits = allEntries().filter((e) => {
             const hay = [e.id, e.name, e.oneLine, e.source, ...(e.tags ?? [])].join(' ').toLowerCase()
             return hay.includes(q)
           })
@@ -139,6 +194,101 @@ export function apply(ctx) {
         }
 
         return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 list / layer / get / search，收到：${op}`, note: 'op 只支持 list / layer / get / search。' }
+      },
+    }),
+  )
+
+  // ──────────────────────────────────────────────────────────────────────
+  // 工具：扫目录 → 候选 → 入库（写 extra.json 覆盖层，不改 catalog.js）
+  // ──────────────────────────────────────────────────────────────────────
+  ctx.tools.register(
+    defineTool({
+      name: 'design_scan',
+      description:
+        '设计工作台的「导入」通道：扫一个本机目录，按四层给出候选，确认后写进工作台。\n' +
+        'op=scan {id: 绝对路径} 扫目录（可选 depth，默认 3）→ 返回候选（id/层/名称/封面/出处）；' +
+        'op=add {id: "all"} 或 {id: "id1,id2"} 把候选入库；op=list 看已导入的；op=remove {id} 删一条。\n' +
+        '判断依据只看文件名与 manifest（package.json 依赖 / AndroidManifest / remotion 配置 / 截图数量），不读全文、不联网。',
+      parameters: {
+        op: { type: 'string', required: true, description: 'scan | add | list | remove' },
+        id: { type: 'string', description: 'scan 时是根目录绝对路径；add 时是 "all" 或逗号分隔的候选 id；remove 时是条目 id' },
+        depth: { type: 'number', description: 'scan 的递归深度，默认 3，最大 6' },
+      },
+      output: OUTPUT,
+      execute: async (args) => {
+        const op = String(args.op ?? '').trim()
+        const arg = String(args.id ?? '').trim()
+
+        if (op === 'scan') {
+          if (arg === '') return { ok: false, code: 'EMPTY_ROOT', error: 'op=scan 需要一个绝对路径，例如 D:/github_project/third-party', note: '给我一个根目录。' }
+          const known = allEntries().flatMap((e) => [e.source, ...(e.sources || []).map((x) => x.path || '')]).filter((x) => typeof x === 'string' && x !== '')
+          const result = scanRoot(arg, { depth: Number(args.depth) > 0 ? Number(args.depth) : 3, knownPaths: known })
+          if (result.ok !== true) return { ...result, note: result.error }
+          for (const c of result.candidates) scanProposals.set(c.id, c)
+          return {
+            ok: true,
+            root: result.root,
+            scanned: result.scanned,
+            truncated: result.truncated,
+            count: result.candidates.length,
+            candidates: result.candidates.map((c) => ({ id: c.id, layer: c.layer, name: c.name, oneLine: c.oneLine, source: c.source, cover: c.cover })),
+            note:
+              result.candidates.length === 0
+                ? `扫了 ${result.scanned} 个目录，没有发现新的设计素材。换个更靠里的根目录，或把 depth 调大。`
+                : `扫了 ${result.scanned} 个目录，发现 ${result.candidates.length} 个候选：\n` +
+                  result.candidates.map((c) => `  [${c.layer}] ${c.id}  ${c.name} —— ${c.oneLine}`).join('\n') +
+                  '\n确认用 op=add id=all（或指定几个 id）。',
+          }
+        }
+
+        if (op === 'add') {
+          if (arg === '') return { ok: false, code: 'EMPTY_ID', error: 'op=add 需要 "all" 或候选 id 列表' }
+          const wanted = arg === 'all' ? [...scanProposals.keys()] : arg.split(',').map((x) => x.trim()).filter(Boolean)
+          const extra = loadExtra()
+          const have = new Set(extra.map((e) => e.id))
+          const added = []
+          for (const id of wanted) {
+            const c = scanProposals.get(id)
+            if (c === undefined || have.has(id)) continue
+            extra.push(c)
+            have.add(id)
+            added.push(c)
+          }
+          saveExtra(extra)
+          return {
+            ok: true,
+            added: added.length,
+            total: allEntries().length,
+            note:
+              added.length === 0
+                ? '没有新增（候选已失效或已存在）。重新 scan 一次再 add。'
+                : `入库 ${added.length} 条：\n` + added.map((c) => `  [${c.layer}] ${c.name}`).join('\n') + `\n工作台现在 ${allEntries().length} 条。`,
+          }
+        }
+
+        if (op === 'list') {
+          const extra = loadExtra()
+          return {
+            ok: true,
+            count: extra.length,
+            entries: extra.map((e) => ({ id: e.id, layer: e.layer, name: e.name, source: e.source })),
+            note:
+              extra.length === 0
+                ? '还没有导入过条目。用 op=scan 扫一个目录。'
+                : extra.map((e) => `  [${e.layer}] ${e.id}  ${e.name}`).join('\n'),
+          }
+        }
+
+        if (op === 'remove') {
+          if (arg === '') return { ok: false, code: 'EMPTY_ID', error: 'op=remove 需要条目 id' }
+          const extra = loadExtra()
+          const next = extra.filter((e) => e.id !== arg)
+          if (next.length === extra.length) return { ok: false, code: 'NOT_FOUND', error: `没有这条导入记录：${arg}` }
+          saveExtra(next)
+          return { ok: true, removed: arg, total: allEntries().length, note: `已移除 ${arg}，工作台现在 ${allEntries().length} 条。` }
+        }
+
+        return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 scan / add / list / remove，收到：${op}` }
       },
     }),
   )
