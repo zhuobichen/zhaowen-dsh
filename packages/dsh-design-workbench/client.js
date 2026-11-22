@@ -375,6 +375,15 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-cover iframe,.dw-cover img,.dw-cover .dw-poster,.dw-cover .dw-cover-ph{pointer-events:none;}',
             '.dw-cover-hit{position:absolute;inset:0;cursor:pointer;}',
             '.dw-nature{font-size:10px;padding:0 5px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);}',
+            '.dw-members{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:340px;overflow:auto;padding:2px;}',
+            '.dw-member{display:flex;flex-direction:column;gap:3px;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);cursor:pointer;text-align:left;}',
+            '.dw-member:hover{border-color:var(--dsw-alias-brand-primary,#4d6bfe);}',
+            '.dw-member img{width:100%;height:74px;object-fit:cover;display:block;}',
+            '.dw-member-ph{height:74px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dsw-alias-label-tertiary);}',
+            '.dw-member-name{font-size:10.5px;line-height:1.3;padding:0 6px 4px;color:var(--dsw-alias-label-secondary);}',
+            '.dw-member-tier{font-size:9.5px;padding:0 6px 5px;color:var(--dsw-alias-label-tertiary);}',
+            '.dw-lightbox{z-index:9700;}',
+            '.dw-lightbox-card{background:var(--dsw-alias-bg-layer-1);border-radius:12px;padding:12px;max-width:min(880px,94vw);max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);}',
             '.dw-cover img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}',
             '.dw-cover-ph{padding:16px;font-size:11.5px;line-height:1.6;color:var(--dsw-alias-label-tertiary);text-align:center;}',
             '.dw-kind{position:absolute;top:6px;left:6px;padding:0 7px;border-radius:999px;font-size:10px;line-height:17px;background:rgba(0,0,0,.55);color:#fff;}',
@@ -517,6 +526,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [origin, setOrigin] = useState('')
         const [query, setQuery] = useState('')
         const [openId, setOpenId] = useState('')
+        const [memberOpen, setMemberOpen] = useState(-1)
         const [toast, setToast] = useState('')
 
         const load = function () {
@@ -695,6 +705,27 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               ) : null,
 
               (open.sources && open.sources.length > 0) ? el('div', null,
+                (open.members && open.members.length > 0) ? el('div', null,
+                  el('div', { style: { fontSize: 12, fontWeight: 600, marginBottom: 6 } }, '内页 · ', open.members.length, ' 种风格（点开看大图）'),
+                  el('div', { className: 'dw-members' },
+                    open.members.map(function (m, i) {
+                      return el('button', {
+                        key: i,
+                        type: 'button',
+                        className: 'dw-member',
+                        onClick: function () { setMemberOpen(i) },
+                        title: m.name,
+                      },
+                        m.cover !== ''
+                          ? el('img', { src: API + '/member/' + encodeURIComponent(open.id) + '/' + i, alt: m.name, loading: 'lazy', draggable: false })
+                          : el('div', { className: 'dw-member-ph' }, '无样张'),
+                        el('span', { className: 'dw-member-name' }, m.name.replace(/（.*?）$/, '')),
+                        m.tier ? el('span', { className: 'dw-member-tier' }, m.tier) : null,
+                      )
+                    }),
+                  ),
+                ) : null,
+
                 el('div', { style: { fontSize: 12, fontWeight: 600, marginBottom: 4 } }, '原始材料'),
                 el('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11.5, lineHeight: 1.5 } },
                   open.sources.map(function (src, i) {
@@ -717,6 +748,25 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               el('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
                 el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制引用（一行索引）'),
                 el('button', { className: 'dw-btn', onClick: function () { setOpenId('') } }, '关闭'),
+              ),
+            ),
+          ) : null,
+
+          (open && memberOpen >= 0 && open.members && open.members[memberOpen]) ? el('div', {
+            className: 'dw-modal dw-lightbox',
+            onClick: function (ev) { if (ev.target === ev.currentTarget) setMemberOpen(-1) },
+          },
+            el('div', { className: 'dw-lightbox-card' },
+              el('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 } },
+                el('b', { style: { fontSize: 13, flex: 1 } }, open.members[memberOpen].name),
+                open.members[memberOpen].tier ? el('span', { className: 'dw-nature' }, open.members[memberOpen].tier) : null,
+                el('button', { className: 'dw-close', onClick: function () { setMemberOpen(-1) }, title: '关闭' }, '×'),
+              ),
+              el('img', { src: API + '/member/' + encodeURIComponent(open.id) + '/' + memberOpen, alt: '', style: { width: '100%', display: 'block', borderRadius: 8 } }),
+              el('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
+                el('button', { className: 'dw-btn', onClick: function () { copy(open.members[memberOpen].raw, '『' + open.members[memberOpen].name + '』原图地址') } }, '复制原图地址'),
+                el('button', { className: 'dw-btn', onClick: function () { copy(open.members[memberOpen].name, '风格名') } }, '复制风格名'),
+                el('button', { className: 'dw-btn', onClick: function () { setMemberOpen(-1) } }, '返回内页'),
               ),
             ),
           ) : null,

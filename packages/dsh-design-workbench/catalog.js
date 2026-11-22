@@ -1,3 +1,5 @@
+import { MEMBERS } from './collections.js'
+
 /**
  * 设计资料库 —— 三层：App 设计 / 前端设计 / 视频风格。
  *
@@ -1227,6 +1229,11 @@ for (const e of ALL_ENTRIES) {
 
 for (const e of ALL_ENTRIES) {
   if (SOURCES[e.id] !== undefined) e.sources = SOURCES[e.id]
+}
+
+// 分区风格库：把 92 条内页成员挂到对应的大条目上
+for (const e of ALL_ENTRIES) {
+  if (Array.isArray(MEMBERS[e.id]) && MEMBERS[e.id].length > 0) e.members = MEMBERS[e.id]
 }
 
 export function findEntry(id) {

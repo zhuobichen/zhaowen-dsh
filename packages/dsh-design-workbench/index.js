@@ -191,7 +191,20 @@ export function apply(ctx) {
           if (entry === null) {
             return { ok: false, code: 'UNKNOWN_ENTRY', error: `没有这个条目：${arg}`, note: '用 op=list 看全部 id，或 op=search 搜关键词。' }
           }
-          return { ok: true, entry, layer: layerOf(entry.id), ref: refOf(entry), spec: specOf(entry), note: specOf(entry) }
+          const members = Array.isArray(entry.members) ? entry.members : []
+          const memberText =
+            members.length > 0
+              ? '\n\n内页（' + members.length + ' 种）：\n' + members.map((m, i) => `  ${i + 1}. ${m.name}${m.tier ? '（' + m.tier + '）' : ''}`).join('\n')
+              : ''
+          return {
+            ok: true,
+            entry,
+            layer: layerOfAny(entry.id),
+            ref: refOf(entry),
+            spec: specOf(entry) + memberText,
+            members: members.map((m, i) => ({ index: i, name: m.name, tier: m.tier, raw: m.raw })),
+            note: specOf(entry) + memberText,
+          }
         }
 
         if (op === 'search') {
@@ -343,6 +356,29 @@ export function apply(ctx) {
             if (path === '/state' || path === '/') {
               if (method !== 'GET') return json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', error: '这里只支持 GET。' })
               return json(200, snapshot())
+            }
+
+            if (path.startsWith('/member/')) {
+              if (method !== 'GET') return json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', error: '内页图只支持 GET。' })
+              const rest = decodeURIComponent(path.slice('/member/'.length))
+              const slash = rest.lastIndexOf('/')
+              const entry = findAny(slash > 0 ? rest.slice(0, slash) : '')
+              const idx = Number(rest.slice(slash + 1))
+              const member = entry && Array.isArray(entry.members) ? entry.members[idx] : null
+              if (member === null || member === undefined || typeof member.cover !== 'string' || member.cover === '') {
+                return json(404, { ok: false, code: 'NO_MEMBER_COVER', error: '内页没有这张图' })
+              }
+              try {
+                if (!existsSync(member.cover)) return json(404, { ok: false, code: 'MEMBER_COVER_MISSING', error: member.cover })
+                const st2 = statSync(member.cover)
+                if (!st2.isFile() || st2.size > MAX_COVER_BYTES) return json(413, { ok: false, code: 'MEMBER_COVER_TOO_BIG', error: '图太大' })
+                const type2 = MEDIA[extname(member.cover).toLowerCase()] ?? 'application/octet-stream'
+                res.writeHead(200, { 'content-type': type2, 'cache-control': 'public, max-age=3600' })
+                res.end(readFileSync(member.cover))
+                return undefined
+              } catch (e) {
+                return json(500, { ok: false, code: 'MEMBER_COVER_READ_FAILED', error: String(e && e.message ? e.message : e) })
+              }
             }
 
             if (path.startsWith('/cover/')) {
