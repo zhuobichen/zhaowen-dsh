@@ -35,7 +35,7 @@ VideoQuiz（视频成卷）、Q 版桌宠 HuaJing、余烬 Ember、AuroWendao �
    - **样式**：同一块迷你界面的换皮预览（`iframe + srcDoc`，样式互不污染）；
    - **风格**：纯文字条目的海报（自带配色 + 图案），**不是成品帧**，只用来区分条目。
 3. 点卡片 → 细节：大图 / 大预览、要点、怎么用、完整「引用给 AI」正文。
-4. 两个按钮：**选中它 → AI 可见**（写 `state.json` + 审计）、**复制引用（一行索引）**。
+4. 一个按钮：**复制引用（一行索引）**。
 
 引用是**索引式**的，不把规格塞进对话（像 wiki 链接，不是把整页贴过来）：
 
@@ -49,22 +49,21 @@ AI 拿到这一行，需要细节时自己 `design_style op=get` 展开——完
 ## 工具
 
 ```
-design_style op=list                三层全列（按层分组）
+design_style op=list                        三层全列（按层分组）
 design_style op=layer {app|frontend|video}  只看一层
-design_style op=get {id}            完整规格（spec，几百字）+ 一行索引
-design_style op=current             用户当前选中的那一条（含 prompt）
-design_style op=pick {id}           替用户选中（他说「就用那个水墨的」时用）
+design_style op=get {id}                    完整规格（颜色/圆角/CSS/要点/怎么用）
+design_style op=search {关键词}             按名称/标签/出处搜（「水墨」「仪表盘」）
 ```
+
+**这就是「AI 接触工作台数据的通道」**：面板是给人看的，工具是给 AI 读同一份 `catalog.js` 的。
+面板「复制引用」复制的那两行索引，指向的正是 `op=get <id>`。工具只读，没有 pick/current
+——工作台不再记录「选中了哪条」，选中这件事本身就是把索引粘到对话里。
 
 写前端、做 App 原型、做视频/动效前先 `op=current` 或 `op=layer`：用户可能已经攒好参照了。
 
 ## 数据落点
 
-```
-$DSH_HOME/plugins/dsh-design-workbench/
-  state.json      { picked: {id, at, by}, recent: [...] }
-  changes.jsonl   append-only 审计（pick / 谁选的 / 什么时候）
-```
+没有落点。这个插件**只读**：目录在 `catalog.js`，封面读本机文件，不写 `state.json`、不留审计。
 
 ## 怎么加的（新条目）
 

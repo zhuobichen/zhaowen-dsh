@@ -280,8 +280,7 @@ window.__ModuleLoader__.load({
             '.dw-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;line-height:1.55;background:var(--dsw-alias-bg-layer-2);padding:9px 10px;border-radius:7px;max-height:300px;overflow:auto;}',
             '.dw-bullets{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.6;}',
             '.dw-bullets li:before{content:"· ";color:var(--dsw-alias-label-tertiary);}',
-            '.dw-banner{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:12.5px;flex-wrap:wrap;}',
-            '.dw-toast{position:sticky;bottom:0;align-self:flex-start;padding:5px 12px;border-radius:999px;background:#22c55e;color:#fff;font-size:12px;}',
+                        '.dw-toast{position:sticky;bottom:0;align-self:flex-start;padding:5px 12px;border-radius:999px;background:#22c55e;color:#fff;font-size:12px;}',
           ].join('\n')
           document.head.appendChild(tag)
         } catch {
@@ -394,8 +393,7 @@ window.__ModuleLoader__.load({
         useEffect(function () { load() }, [])
 
         const layers = (state && state.layers) || []
-        const picked = state && state.picked
-        const activeLayer = layer || (picked && picked.layer) || (layers[0] && layers[0].id) || 'app'
+        const activeLayer = layer || (layers[0] && layers[0].id) || 'app'
         const current = layers.filter(function (l) { return l.id === activeLayer })[0] || layers[0] || null
 
         const shown = useMemo(function () {
@@ -421,23 +419,6 @@ window.__ModuleLoader__.load({
           return flat.filter(function (e) { return e.id === openId })[0] || null
         })()
 
-        const pickEntry = function (id) {
-          fetch(API + '/pick', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ id: id }),
-          })
-            .then(function (r) { return r.json() })
-            .then(function (j) {
-              if (!j || j.ok !== true) { setErr((j && j.error) || '选中失败'); return }
-              setErr('')
-              setState(j)
-              setToast('已选中「' + ((j.picked && j.picked.name) || id) + '」，AI 现在读得到')
-              setTimeout(function () { setToast('') }, 2600)
-            })
-            .catch(function (e) { setErr(String((e && e.message) || e)) })
-        }
-
         const copy = function (text, what) {
           const ok = copyText(text)
           setToast(ok ? what + ' 已复制' : '复制失败，手动选中下面的文本吧')
@@ -456,7 +437,7 @@ window.__ModuleLoader__.load({
             counts.map(function (c) {
               return el('span', { className: 'dw-pill', key: c.id }, c.name, ' ', el('b', null, String(c.count)))
             }),
-            picked ? el('span', { className: 'dw-pill' }, '当前 ', el('b', null, picked.name)) : el('span', { className: 'dw-muted' }, '还没选'),
+            el('span', { className: 'dw-pill', title: (state && state.channel) || '' }, 'AI 通道 ', el('b', null, 'design_style')),
             el('input', {
               className: 'dw-search',
               placeholder: '搜名称 / 用途 / 出处…',
@@ -487,17 +468,16 @@ window.__ModuleLoader__.load({
             allTags.map(function (t) {
               return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
-            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 「选中」= 让 AI 知道你要哪一种'),
+            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 那侧用 design_style 读同一份数据'),
           ),
 
           el('div', { className: 'dw-grid' },
             shown.map(function (e) {
-              const isOn = picked && picked.id === e.id
               // 用 <button> 而不是 <div>：宿主里按钮的点击最可靠，div 的 onClick 有过不触发的情况
               return el('button', {
                 key: e.id,
                 type: 'button',
-                className: 'dw-card' + (isOn ? ' dw-card-on' : ''),
+                className: 'dw-card',
                 onClick: function () { setOpenId(e.id) },
               },
                 el('div', { className: 'dw-cover' },
@@ -505,7 +485,7 @@ window.__ModuleLoader__.load({
                   el('span', { className: 'dw-kind' }, e.swatch ? '风格' : (KIND_LABEL[e.kind] || e.kind)),
                 ),
                 el('div', { className: 'dw-card-body' },
-                  el('div', { className: 'dw-card-name' }, e.name, isOn ? el('span', { className: 'dw-tag', style: { color: 'var(--dsw-alias-brand-primary,#4d6bfe)' } }, '当前') : null),
+                  el('div', { className: 'dw-card-name' }, e.name),
                   el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
                   el('div', { className: 'dw-card-line' }, e.oneLine),
                   el('div', { className: 'dw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) })),
@@ -557,21 +537,11 @@ window.__ModuleLoader__.load({
               el('pre', { className: 'dw-pre' }, open.prompt),
 
               el('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
-                el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { pickEntry(open.id) } }, '选中它 → AI 可见'),
-                el('button', { className: 'dw-btn', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制引用（一行索引）'),
+                el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制引用（一行索引）'),
                 el('button', { className: 'dw-btn', onClick: function () { setOpenId('') } }, '关闭'),
               ),
             ),
           ) : null,
-
-          picked ? el('div', { className: 'dw-banner' },
-            el('span', null, '当前选用：', el('b', null, picked.name)),
-            el('span', { className: 'dw-muted' }, when(picked.at) + ' · ' + (picked.by === 'user' ? '工作台里点的' : picked.by)),
-            el('button', { className: 'dw-btn', onClick: function () { copy((state && state.pickedPrompt) || '', '当前条目的引用') } }, '复制引用'),
-          ) : null,
-
-          (state && state.recent && state.recent.length > 1) ? el('div', { className: 'dw-muted', style: { fontSize: 11.5 } },
-            '最近：' + state.recent.slice(0, 6).map(function (r) { return r.name + '(' + when(r.at) + ')' }).join(' · ')) : null,
 
           toast ? el('div', { className: 'dw-toast' }, toast) : null,
         )
