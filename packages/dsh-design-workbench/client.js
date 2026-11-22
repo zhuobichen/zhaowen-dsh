@@ -540,10 +540,9 @@ window.__ModuleLoader__.load({
                   el('div', { style: { fontSize: 12, fontWeight: 600 } }, '要点'),
                   el('ul', { className: 'dw-bullets' }, (open.bullets || []).map(function (b, i) { return el('li', { key: i }, b) })),
                   el('div', { style: { fontSize: 12, lineHeight: 1.6 } }, el('b', null, '怎么用：'), open.howto),
-                  el('div', { className: 'dw-muted', style: { fontSize: 11.5, lineHeight: 1.6 } },
-                    open.origin === 'referenced'
-                      ? '引用条目：只作参照，不声称原创、不整段照抄。'
-                      : '自制条目：可以直接复用或延伸。'),
+                  open.originNote
+                    ? el('div', { className: 'dw-muted', style: { fontSize: 11.5, lineHeight: 1.6 } }, open.originNote)
+                    : null,
                 ),
               ),
 

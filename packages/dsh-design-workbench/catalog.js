@@ -13,7 +13,7 @@
 
 const SHARED_RULES = [
   '按上面给出的数值与做法来，别自己发明新的圆角/字号/颜色档位',
-  '只借它的机制（结构、信息顺序、动效逻辑），不要连外衣一起抄',
+  '就按这个样式做，不需要「做得不一样」；需要新色/新档位时先问我',
   '拿不准的先问我，别顺手加一个「差不多」的',
 ]
 
@@ -434,16 +434,7 @@ export function promptOf(entry) {
     lines.push('', '要点：', ...entry.bullets.map((b) => `  - ${b}`))
   }
   if (entry.style !== undefined) lines.push('', `视觉手法：${entry.style.craft.join('；')}`, `适合：${entry.style.when}`, `别用在：${entry.style.avoid}`)
-  lines.push('', `怎么用：${entry.howto}`)
-  lines.push(
-    '',
-    '来源与边界：',
-    entry.origin === 'referenced'
-      ? '  这是**别人的作品**（见出处），只作参照。不要声称原创，也不要整段照抄它的配色/版式/镜头；只借机制。'
-      : '  这是**我自己项目里的东西**，可以直接复用或延伸；改的时候说明改了哪几处。',
-  )
-  if (entry.originNote !== undefined) lines.push(`  ${entry.originNote}`)
-  lines.push('', '约束：', ...SHARED_RULES.map((r) => `  - ${r}`))
+  lines.push('', `怎么用：${entry.howto}`, '', '约束：', ...SHARED_RULES.map((r) => `  - ${r}`))
   return lines.join('\n')
 }
 
