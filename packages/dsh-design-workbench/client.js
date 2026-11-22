@@ -259,6 +259,109 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
 <g fill="#111" font-size="8.5" text-anchor="middle"><text x="58" y="51">WEB</text><text x="160" y="51">API</text><text x="262" y="51">WORKER</text><text x="160" y="133">DB</text></g>
 <g fill="#666" font-size="6.5"><text x="20" y="22">最小线框 · 只留结构与层级</text></g>
 </svg></body></html>`,
+      // ── 视频风格（carl-motion 八种）：会动的预览，不再是空海报 ──────────
+      'vid-carl-flat': `<html><body style="margin:0;background:#f7f4ec;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.w{position:absolute;inset:0}
+.s{position:absolute;border-radius:2px;animation:slide 4s ease-in-out infinite alternate}
+.a{left:8%;top:34%;width:56px;height:56px;background:#2b59ff;animation-delay:0s}
+.b{left:42%;top:20%;width:48px;height:48px;border-radius:50%;background:#ff5a3c;animation-delay:.4s}
+.c{left:72%;top:44%;width:44px;height:44px;background:#ffd166;clip-path:polygon(50% 0,100% 100%,0 100%);animation-delay:.8s}
+.ln{position:absolute;left:6%;right:6%;top:76%;height:3px;background:#232323}
+@keyframes slide{from{transform:translateX(-10px)}to{transform:translateX(16px)}}
+</style><div class=w><div class="s a"></div><div class="s b"></div><div class="s c"></div><div class=ln></div>
+<div style="position:absolute;left:8%;bottom:8%;font-size:9px;color:#232323;letter-spacing:.14em">FLAT VECTOR</div></div></body></html>`,
+
+      'vid-carl-ink': `<html><body style="margin:0;background:#f3efe6;overflow:hidden;font-family:Georgia,serif">
+<style>
+.w{position:absolute;inset:0}
+.blot{position:absolute;border-radius:50%;background:radial-gradient(circle at 40% 40%,rgba(26,26,26,.85),rgba(26,26,26,.15) 60%,transparent 72%);filter:blur(1px);animation:spread 5s ease-out infinite}
+.b1{left:18%;top:26%;width:74px;height:64px}
+.b2{left:46%;top:38%;width:52px;height:46px;animation-delay:.7s}
+.b3{left:64%;top:18%;width:38px;height:34px;animation-delay:1.4s}
+.stroke{position:absolute;left:10%;top:20%;width:3px;height:60%;background:linear-gradient(#1a1a1a,rgba(26,26,26,0));transform-origin:top;animation:draw 5s ease-out infinite}
+@keyframes spread{0%{transform:scale(.35);opacity:0}25%{opacity:1}100%{transform:scale(1.15);opacity:.85}}
+@keyframes draw{0%{transform:scaleY(0)}40%{transform:scaleY(1)}100%{transform:scaleY(1);opacity:0}}
+</style><div class=w><div class="blot b1"></div><div class="blot b2"></div><div class="blot b3"></div><div class=stroke></div>
+<div style="position:absolute;right:8%;bottom:9%;font-size:9px;color:#6b6256;letter-spacing:.16em">CHINESE INK</div></div></body></html>`,
+
+      'vid-carl-clay': `<html><body style="margin:0;background:#e8d5c0;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.w{position:absolute;inset:0}
+.grain{position:absolute;inset:0;background-image:radial-gradient(rgba(74,53,36,.14) 1px,transparent 1px);background-size:3px 3px;opacity:.7}
+.blob{position:absolute;border-radius:26px;box-shadow:inset -6px -8px 14px rgba(74,53,36,.28),inset 5px 6px 12px rgba(255,255,255,.55);animation:jitter .5s steps(3) infinite alternate}
+.c1{left:14%;top:32%;width:70px;height:62px;background:#d98f5a}
+.c2{left:48%;top:24%;width:54px;height:50px;background:#b5651d;animation-delay:.15s}
+.c3{left:70%;top:46%;width:46px;height:42px;background:#8f4a2a;animation-delay:.3s}
+@keyframes jitter{from{transform:translate(0,0) rotate(-1.2deg)}to{transform:translate(1px,-2px) rotate(.8deg)}}
+</style><div class=w><div class=grain></div><div class="blob c1"></div><div class="blob c2"></div><div class="blob c3"></div>
+<div style="position:absolute;left:14%;bottom:9%;font-size:9px;color:#4a3524;letter-spacing:.14em">CLAYMATION · 12fps</div></div></body></html>`,
+
+      'vid-carl-blueprint': `<html><body style="margin:0;background:#0b2545;overflow:hidden;font-family:ui-monospace,monospace">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><pattern id="bg" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M14 0 H0 V14" fill="none" stroke="#1b3a63" stroke-width=".5"/></pattern></defs>
+<rect width="320" height="180" fill="url(#bg)"/>
+<g fill="none" stroke="#dbeafe" stroke-width="1.1" stroke-dasharray="240" stroke-dashoffset="240">
+<rect x="40" y="40" width="96" height="60" style="animation:draw 3s ease-out infinite"/>
+<circle cx="230" cy="70" r="34" style="animation:draw 3s .4s ease-out infinite"/>
+<path d="M136 70 H196" style="animation:draw 3s .8s ease-out infinite"/>
+</g>
+<g fill="#9ecbff" font-size="6.5"><text x="40" y="34">A-01 核心模块</text><text x="196" y="34">B-02 外部接口</text></g>
+<text x="40" y="160" font-size="6" fill="#5b86b5">BLUEPRINT · DIM 120×60</text>
+<style>@keyframes draw{0%{stroke-dashoffset:240}45%,100%{stroke-dashoffset:0}}</style>
+</svg></body></html>`,
+
+      'vid-carl-exploded': `<html><body style="margin:0;background:#0f172a;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.w{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px}
+.p{width:42px;height:42px;border-radius:6px;box-shadow:0 6px 16px rgba(0,0,0,.4);animation:fly 4s ease-in-out infinite alternate}
+.p:nth-child(1){background:#38bdf8;animation-delay:0s}
+.p:nth-child(2){background:#818cf8;animation-delay:.12s}
+.p:nth-child(3){background:#a78bfa;animation-delay:.24s}
+.p:nth-child(4){background:#f472b6;animation-delay:.36s}
+@keyframes fly{from{transform:translate(0,0) rotate(0)}to{transform:translate(0,-18px) rotate(-8deg)}}
+.tip{position:absolute;left:12%;bottom:12%;font-size:8.5px;color:#94a3b8;letter-spacing:.14em}
+.line{position:absolute;left:18%;right:18%;top:52%;height:1px;background:rgba(148,163,184,.35)}
+</style><div class=w><div class=p></div><div class=p></div><div class=p></div><div class=p></div></div>
+<div class=line></div><div class=tip>EXPLODED VIEW · 沿轴分离</div></body></html>`,
+
+      'vid-carl-brick': `<html><body style="margin:0;background:#f1f5f9;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.w{position:absolute;left:14%;bottom:18%;display:flex;align-items:flex-end;gap:5px}
+.b{width:34px;border-radius:4px;background:linear-gradient(180deg,#f43f5e,#be123c);box-shadow:inset 0 2px 0 rgba(255,255,255,.45);position:relative;animation:drop 3.6s ease-in-out infinite}
+.b:after{content:'';position:absolute;left:5px;top:-5px;width:8px;height:8px;border-radius:50%;background:#fb7185;box-shadow:14px 0 0 #fb7185}
+.b1{height:28px;animation-delay:0s}.b2{height:28px;animation-delay:.18s;background:linear-gradient(180deg,#38bdf8,#0369a1)}
+.b3{height:28px;animation-delay:.36s;background:linear-gradient(180deg,#fbbf24,#b45309)}
+.b4{height:56px;animation-delay:.5s;background:linear-gradient(180deg,#a3e635,#4d7c0f)}
+@keyframes drop{0%{transform:translateY(-40px);opacity:0}22%{transform:translateY(0);opacity:1}78%{transform:translateY(0)}100%{transform:translateY(-40px);opacity:0}}
+</style><div class=w><div class="b b1"></div><div class="b b2"></div><div class="b b3"></div><div class="b b4"></div></div>
+<div style="position:absolute;left:14%;bottom:9%;font-size:9px;color:#64748b;letter-spacing:.14em">BRICK TOY · 一块块拼</div></body></html>`,
+
+      'vid-carl-glass': `<html><body style="margin:0;background:linear-gradient(135deg,#1e1b4b,#0ea5e9 60%,#22d3ee);overflow:hidden;font-family:Inter,system-ui">
+<style>
+.blob{position:absolute;border-radius:50%;filter:blur(18px);opacity:.85}
+.g1{left:8%;top:16%;width:120px;height:120px;background:#a855f7}
+.g2{right:6%;top:32%;width:140px;height:140px;background:#f472b6}
+.card{position:absolute;border-radius:14px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);backdrop-filter:blur(10px) saturate(160%);box-shadow:0 10px 30px rgba(0,0,0,.25);animation:float 5s ease-in-out infinite alternate}
+.c1{left:16%;top:30%;width:110px;height:64px}
+.c2{left:48%;top:22%;width:86px;height:50px;animation-delay:.6s}
+.c3{left:40%;top:52%;width:130px;height:44px;animation-delay:1.2s}
+@keyframes float{from{transform:translateY(-6px)}to{transform:translateY(6px)}}
+</style><div class="blob g1"></div><div class="blob g2"></div>
+<div class="card c1"></div><div class="card c2"></div><div class="card c3"></div>
+<div style="position:absolute;left:16%;bottom:8%;font-size:9px;color:rgba(255,255,255,.8);letter-spacing:.14em">GLASS UI</div></body></html>`,
+
+      'vid-carl-huashu': `<html><body style="margin:0;background:#f6f1e7;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.port{position:absolute;left:50%;top:50%;width:120px;height:120px;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 50% 46%,#1f2937 0 44%,transparent 45%),radial-gradient(circle at 50% 30%,#e4572e 0 26%,transparent 27%);
+  -webkit-mask-image:radial-gradient(circle,#000 62%,transparent 63%);mask-image:radial-gradient(circle,#000 62%,transparent 63%);}
+.dots{position:absolute;left:50%;top:50%;width:150px;height:150px;transform:translate(-50%,-50%);border-radius:50%;
+  background-image:radial-gradient(#1f2937 1.4px,transparent 1.5px);background-size:5px 5px;opacity:.5;mix-blend-mode:multiply;
+  -webkit-mask-image:radial-gradient(circle,#000 55%,transparent 62%);mask-image:radial-gradient(circle,#000 55%,transparent 62%);}
+.bar{position:absolute;left:0;right:0;height:34%;bottom:0;background:#e4572e;mix-blend-mode:multiply;opacity:.35}
+</style><div class=bar></div><div class=dots></div><div class=port></div>
+<div style="position:absolute;left:8%;bottom:9%;font-size:9px;color:#4b5563;letter-spacing:.14em">HUASHU PORTRAITS · 半调双色</div></body></html>`,
     }
 
     function demoHtml(id) {
