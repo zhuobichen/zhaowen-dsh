@@ -62,6 +62,17 @@ $DSH_HOME/plugins/dsh-design-workbench/
 只改 `catalog.js` 一处：在对应层的 `entries` 里加一条 `{ id, name, oneLine, source, tags, kind, cover?|style?|swatch?, bullets, howto }`，
 `prompt` 由 `promptOf()` 统一拼出来。封面只认这个小文件里写死的路径 —— `/cover/` 路由是白名单，不接受任意路径。
 
+## 改完之后怎么生效（省一次重启）
+
+| 改的是 | 生效方式 |
+|---|---|
+| `client.js`（面板） | 页面按 F5（客户端 bundle 按内容哈希发号） |
+| `index.js` / `catalog.js`（宿主） | 用 `plugin_manager` 把 `include:design-workbench` 禁用再启用一次——宿主会重新 import 模块，**不用重启整个 DSH**；之后面板点「刷新」即可 |
+| `package.json` / 新增包 | 必须重启 DSH（boot 图在启动时组装） |
+
+2026-11-22 的现场：面板已经换成新版（界面文字是新的），但接口还返回旧的 `styles`，
+于是网格空白——就是宿主半身没重载。禁/启用一次后 `/state` 立刻变成三层。
+
 ## 边界
 
 - 只读本机文件；写盘只有 `state.json` 与 `changes.jsonl` 两个小文件。
