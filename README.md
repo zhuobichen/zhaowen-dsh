@@ -1,6 +1,6 @@
 # zhaowen-dsh
 
-赵文自己的 **DeepSeek Harness（DSH）** 插件与工具集：**26 个包**，覆盖会话管理、沙箱与权限、生图生视频、跨工具会话迁移、远程执行、若干 MCP 桥接，以及一个 TUI 前端和一个独立终端客户端。
+赵文自己的 **DeepSeek Harness（DSH）** 插件与工具集：**27 个包**，覆盖会话管理、沙箱与权限、生图生视频、跨工具会话迁移、远程执行、若干 MCP 桥接，以及一个 TUI 前端和一个独立终端客户端。
 
 > ⚠️ **开发门禁（必读）**：[`docs/门禁-等待与取消.md`](docs/门禁-等待与取消.md)
 >
@@ -40,6 +40,7 @@
 | [`packages/dsh-zotero-mcp`](packages/dsh-zotero-mcp) | `@zhuobichen/dsh-zotero-mcp` | **DSH 插件**（配置型）：接 Zotero 插件 `zotero-mcp-plugin` 的本地 MCP 服务，工具注册为 `mcp__zotero__*` |
 | [`packages/dsh-weflow-mcp`](packages/dsh-weflow-mcp) | `@zhuobichen/dsh-weflow-mcp` | **DSH 插件**（配置型）：接 WeFlow CLI 自带的 MCP——本机微信聊天、收藏、公众号日报、知识库、朋友圈、微信读书 |
 | [`packages/dsh-rea-video`](packages/dsh-rea-video) | `@zhuobichen/dsh-rea-video` | **DSH 插件**：接 rea-video CLI——逐镜头判断视频是实拍/AI/3D/代码做的，产出带证据的 report.html 与复刻方案 |
+| [`packages/dsh-design-workbench`](packages/dsh-design-workbench) | `@zhuobichen/dsh-design-workbench` | **DSH 插件**（宿主 + 客户端两半）：前端设计工作台——把本机已有的八种真实设计样式做成可横向对比的卡片（同一块迷你界面换皮），点一下复制「引用给 AI」的整段 token，或「选中它」落盘让 AI 用 `design_style` 直接读到 |
 | [`packages/dsh-mowan-console`](packages/dsh-mowan-console) | `@zhuobichen/dsh-mowan-console` | **DSH 插件**（宿主 + 客户端两半）：按**会话**软注入提示词 + 按**会话**切换模型，带「破甲工作台」Web 标签页实时显示哪个会话被改了什么；改动全部落 `changes.jsonl` 审计。不动宿主源码、不碰审批与沙箱 |
 
 带界面的插件是**一个包两半**：宿主半身（`main` / `exports["."]`）算数，客户端半身（`exports["./client"]` +
