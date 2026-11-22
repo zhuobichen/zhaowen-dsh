@@ -11,11 +11,8 @@
  *   prompt  —— 「引用给 AI」的正文，点一下整段复制走
  */
 
-const SHARED_RULES = [
-  '按上面给出的数值与做法来，别自己发明新的圆角/字号/颜色档位',
-  '就按这个样式做，不需要「做得不一样」；需要新色/新档位时先问我',
-  '拿不准的先问我，别顺手加一个「差不多」的',
-]
+/** 规格页只留一句要求；详细数值都在上面，不重复啰嗦。 */
+const ASK = '按上面这套来就行；要新颜色/新档位先问我。'
 
 /** 八种前端样式（量自本机代码，见 README「怎么量出来的」）。 */
 export const STYLES = [
@@ -405,7 +402,17 @@ export function layerOf(id) {
 }
 
 /** 「引用给 AI」的正文。三类（tokens / image / text）措辞一致，都带出处与约束。 */
-export function promptOf(entry) {
+/** 索引式引用：只给「用哪一条」，细节让 AI 自己 design_style op=get。 */
+export function refOf(entry) {
+  const layer = layerOf(entry.id)
+  return [
+    `用设计工作台里的「${entry.name}」（${layer === null ? '' : layer.name} · ${entry.id}），按这个设计来。`,
+    `要看完整规格：design_style op=get ${entry.id}`,
+  ].join('\n')
+}
+
+/** 完整规格：工具的 get / current 返回它，AI 按需展开。 */
+export function specOf(entry) {
   const layer = layerOf(entry.id)
   const lines = [
     `【设计参考】${entry.name}（${layer === null ? '设计' : layer.name}）`,
@@ -434,7 +441,7 @@ export function promptOf(entry) {
     lines.push('', '要点：', ...entry.bullets.map((b) => `  - ${b}`))
   }
   if (entry.style !== undefined) lines.push('', `视觉手法：${entry.style.craft.join('；')}`, `适合：${entry.style.when}`, `别用在：${entry.style.avoid}`)
-  lines.push('', `怎么用：${entry.howto}`, '', '约束：', ...SHARED_RULES.map((r) => `  - ${r}`))
+  lines.push('', `怎么用：${entry.howto}`, '', ASK)
   return lines.join('\n')
 }
 
@@ -511,7 +518,10 @@ const SWATCH = {
 }
 for (const e of ALL_ENTRIES) if (SWATCH[e.id] !== undefined) e.swatch = SWATCH[e.id]
 
-for (const e of ALL_ENTRIES) e.prompt = promptOf(e)
+for (const e of ALL_ENTRIES) {
+  e.prompt = refOf(e) // 面板「复制 引用给 AI」用的就是它：一行索引
+  e.spec = specOf(e) // 工具 get / current 展开的完整规格
+}
 
 /** 面板顶部的大层切换（三个），二级筛选按 tags。 */
 export const TAGS = [...new Set(ALL_ENTRIES.flatMap((e) => e.tags ?? []))]

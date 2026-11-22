@@ -35,14 +35,23 @@ VideoQuiz（视频成卷）、Q 版桌宠 HuaJing、余烬 Ember、AuroWendao �
    - **样式**：同一块迷你界面的换皮预览（`iframe + srcDoc`，样式互不污染）；
    - **风格**：纯文字条目的海报（自带配色 + 图案），**不是成品帧**，只用来区分条目。
 3. 点卡片 → 细节：大图 / 大预览、要点、怎么用、完整「引用给 AI」正文。
-4. 两个按钮：**选中它 → AI 可见**（写 `state.json` + 审计）、**复制 引用给 AI**（整段 prompt）。
+4. 两个按钮：**选中它 → AI 可见**（写 `state.json` + 审计）、**复制引用（一行索引）**。
+
+引用是**索引式**的，不把规格塞进对话（像 wiki 链接，不是把整页贴过来）：
+
+```
+用设计工作台里的「紧凑仪表盘」（前端设计 · dash-compact），按这个设计来。
+要看完整规格：design_style op=get dash-compact
+```
+
+AI 拿到这一行，需要细节时自己 `design_style op=get` 展开——完整规格（颜色/圆角/投影/密度/CSS/要点/怎么用）只存在工具里。
 
 ## 工具
 
 ```
 design_style op=list                三层全列（按层分组）
 design_style op=layer {app|frontend|video}  只看一层
-design_style op=get {id}            某条的完整要点 + prompt
+design_style op=get {id}            完整规格（spec，几百字）+ 一行索引
 design_style op=current             用户当前选中的那一条（含 prompt）
 design_style op=pick {id}           替用户选中（他说「就用那个水墨的」时用）
 ```

@@ -23,7 +23,7 @@ import { extname, join } from 'node:path'
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, promptOf } from './catalog.js'
+import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, refOf, specOf } from './catalog.js'
 
 const NAME = 'dsh-design-workbench'
 const ROUTE = '/design-workbench'
@@ -117,7 +117,7 @@ function snapshot(state) {
             at: state.picked.at,
             by: state.picked.by,
           },
-    pickedPrompt: pickedEntry === null ? '' : promptOf(pickedEntry),
+    pickedPrompt: pickedEntry === null ? '' : refOf(pickedEntry),
     recent: state.recent.map((r) => ({ ...r, name: findEntry(r.id)?.name ?? r.id })),
     counts: LAYERS.map((l) => ({ id: l.id, name: l.name, count: l.entries.length })),
     statePath: statePath(),
@@ -211,7 +211,7 @@ export function apply(ctx) {
           if (entry === null) {
             return { ok: false, code: 'UNKNOWN_ENTRY', error: `没有这个条目：${id}`, note: '用 op=list 看全部 id。' }
           }
-          return { ok: true, entry, layer: layerOf(entry.id), prompt: entry.prompt, note: entry.prompt }
+          return { ok: true, entry, layer: layerOf(entry.id), prompt: entry.prompt, spec: entry.spec, note: entry.spec }
         }
 
         if (op === 'current') {
@@ -225,8 +225,9 @@ export function apply(ctx) {
             ok: true,
             picked: { id: entry.id, name: entry.name, layer: layerOf(entry.id)?.name ?? '', at: state.picked.at, by: state.picked.by ?? 'user' },
             entry,
-            prompt: promptOf(entry),
-            note: `用户已选：${entry.name}（${state.picked.at}，${state.picked.by === 'user' ? '工作台里点的' : state.picked.by}）\n\n` + promptOf(entry),
+            prompt: refOf(entry),
+            spec: specOf(entry),
+            note: `用户已选：${entry.name}（${state.picked.at}，${state.picked.by === 'user' ? '工作台里点的' : state.picked.by}）\n\n` + specOf(entry),
           }
         }
 
@@ -234,7 +235,7 @@ export function apply(ctx) {
           const result = pick(String(args.id ?? '').trim(), `agent:${callerIdOf({}) || 'unknown'}`)
           if (!result.ok) return { ...result, note: result.error }
           const entry = findEntry(result.picked.id)
-          return { ok: true, picked: result.picked, prompt: entry.prompt, note: `已选中 ${entry.name}。\n\n` + entry.prompt }
+          return { ok: true, picked: result.picked, prompt: entry.prompt, spec: entry.spec, note: `已选中 ${entry.name}。\n\n` + entry.spec }
         }
 
         return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 list / layer / get / current / pick，收到：${op}`, note: 'op 只支持 list / layer / get / current / pick。' }

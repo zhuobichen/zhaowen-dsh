@@ -546,11 +546,19 @@ window.__ModuleLoader__.load({
                 ),
               ),
 
+              open.style ? el('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
+                [['底', open.style.colors.bg], ['面', open.style.colors.surface], ['字', open.style.colors.text], ['强调', open.style.colors.accent], ['描边', open.style.colors.border]].map(function (p) {
+                  return el('div', { key: p[0], title: p[0] + ' ' + p[1], style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--dsw-alias-label-tertiary)' } },
+                    el('span', { style: { width: 16, height: 16, borderRadius: 4, border: '1px solid var(--dsw-alias-border-l2)', background: p[1] } }),
+                    p[0])
+                }),
+              ) : null,
+
               el('pre', { className: 'dw-pre' }, open.prompt),
 
               el('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
                 el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { pickEntry(open.id) } }, '选中它 → AI 可见'),
-                el('button', { className: 'dw-btn', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制 引用给 AI'),
+                el('button', { className: 'dw-btn', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制引用（一行索引）'),
                 el('button', { className: 'dw-btn', onClick: function () { setOpenId('') } }, '关闭'),
               ),
             ),
