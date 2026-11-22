@@ -635,10 +635,10 @@ const HUASHU_FRONTEND = [
   },
 ]
 
-const OPENMOTION = [
+const CODEVIDEO = [
   {
-    id: 'vid-openmotion',
-    layer: 'video',
+    id: 'cv-openmotion',
+    layer: 'codevideo',
     name: 'OpenMotion · HTML 即视频的全栈工作室',
     oneLine: '把参考片拆成镜头，用 HTML/CSS/JS 重建，Studio 里调时间线，最后渲 MP4——同一份工程',
     source: 'https://github.com/nexu-io/openmotion（Apache-2.0）',
@@ -650,8 +650,8 @@ const OPENMOTION = [
     origin: 'referenced',
   },
   {
-    id: 'vid-openmotion-recreate',
-    layer: 'video',
+    id: 'cv-recreate',
+    layer: 'codevideo',
     name: 'OpenMotion · 参考片重构流程',
     oneLine: '拆钩子与叙事、拆镜头结构、拆动效节奏、拆字体与色彩、拆声音——再换成你的素材重建',
     source: 'https://github.com/nexu-io/openmotion/blob/main/skills/openmotion-recreate/SKILL.md',
@@ -663,8 +663,8 @@ const OPENMOTION = [
     origin: 'referenced',
   },
   {
-    id: 'vid-openmotion-templates',
-    layer: 'video',
+    id: 'cv-templates',
+    layer: 'codevideo',
     name: 'OpenMotion · 模板库与 Motion.md',
     oneLine: '一批可编辑的动效模板（OpenAI/Anthropic/Notion/Slack/Stripe/Kimi…），每个带 Motion.md',
     source: 'https://open-design.ai/templates/ · https://github.com/nexu-io/openmotion/blob/main/docs/motion-md.md',
@@ -676,8 +676,8 @@ const OPENMOTION = [
     origin: 'referenced',
   },
   {
-    id: 'vid-openmotion-stack',
-    layer: 'video',
+    id: 'cv-stack',
+    layer: 'codevideo',
     name: 'OpenMotion · 渲染栈（HTML → MP4）',
     oneLine: 'Chromium + Puppeteer 渲帧、FFmpeg 编码、GSAP 驱动时间线，导出前做规格校验',
     source: 'https://github.com/nexu-io/openmotion（hyperframes 引擎 + scripts/verify-export.ts）',
@@ -687,6 +687,24 @@ const OPENMOTION = [
     bullets: ['时间线用 GSAP，帧由无头 Chromium 抓', '导出走 FFmpeg/FFprobe，并校验分辨率/时长/音轨', '同一工程既能预览也能出片，避免「设计稿和成片两张皮」'],
     howto: '想知道「HTML 怎么变成片子」时看这条：这就是本机 generate_video 之外的另一条路。',
     origin: 'referenced',
+  },
+  {
+    id: 'cv-when',
+    layer: 'codevideo',
+    name: '什么时候用代码生视频（而不是 AI 生成）',
+    oneLine: '要精确的排版/时间/文案就写代码；要真实质感与角色就生成——两条路经常混着用',
+    source: '综合 OpenMotion 与豆包生视频两条链路（本机 generate_video 插件）',
+    tags: ['方法', '选型', '对比'],
+    kind: 'text',
+    swatch: { a: '#101820', b: '#1d2b3a', fg: '#e6f0fa', accent: '#66d9a8', pattern: 'grid' },
+    bullets: [
+      '代码生视频擅长的：排版精确、文案随时改、图表/信息图动起来、多语言版本、可复现可版本管理',
+      'AI 生成擅长的：真人/角色一致性、真实材质与光影、手部与表情、镜头语言（推拉摇移）',
+      '混着来的常见做法：AI 出关键画面当素材，代码负责排字、转场、字幕与节奏',
+      '判断一句话：这次错一个字会不会毁掉整条？会 → 写代码；不会、但要「像真的」→ 去生成',
+    ],
+    howto: '接到片子先问这三句：素材是不是真拍的/要生成？字与版式重要不重要？要不要多版本？然后决定写代码还是去生成。',
+    origin: 'mine',
   },
 ]
 
@@ -714,14 +732,15 @@ const LOCAL_COVERS = {
   'fe-huasu-song-block': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-song-block.jpg',
   'fe-huasu-tanaka': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-tanaka.jpg',
   'fe-huasu-hk-signs': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-hk-signs.jpg',
-  'vid-openmotion': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-openmotion.jpg',
-  'vid-openmotion-templates': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-openmotion-templates.jpg',
+  'cv-openmotion': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/cv-openmotion.jpg',
+  'cv-templates': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/cv-templates.jpg',
 }
 
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', entries: [...APP_ENTRIES, ...HUASHU_APP] },
   { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND] },
-  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: [...VIDEO_ENTRIES, ...OPENMOTION] },
+  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: VIDEO_ENTRIES },
+  { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：Motion.md、模板、渲染栈', entries: CODEVIDEO },
 ]
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
