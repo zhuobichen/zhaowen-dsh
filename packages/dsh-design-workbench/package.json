@@ -1,9 +1,9 @@
 {
   "name": "@zhuobichen/dsh-design-workbench",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "前端设计工作台：把本机已有的设计样式做成可横向对比的卡片，点一下就能把「我要这种」引用给 AI",
+  "description": "设计工作台：把本机（和外部方法）的设计资料整理成三层——App 设计 / 前端设计 / 视频风格，点一下就能把「我要这种」引用给 AI",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

@@ -219,43 +219,62 @@ window.__ModuleLoader__.load({
         try {
           const tag = document.createElement('style')
           tag.setAttribute('data-design-workbench', '1')
-          tag.textContent = `
-          .dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;font-size:13px;color:var(--dsw-alias-label-primary);}
-          .dw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-          .dw-title{font-size:15px;font-weight:600;}
-          .dw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}
-          .dw-muted{color:var(--dsw-alias-label-tertiary);}
-          .dw-btn{padding:3px 10px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;font-size:12px;}
-          .dw-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));}
-          .dw-btn-primary{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:#fff;background:var(--dsw-alias-brand-primary,#4d6bfe);}
-          .dw-search{flex:1;min-width:140px;max-width:280px;padding:4px 10px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:inherit;font-size:12px;}
-          .dw-chips{display:flex;gap:6px;flex-wrap:wrap;}
-          .dw-chip{padding:2px 10px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);font-size:12px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);}
-          .dw-chip:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));}
-          .dw-chip-on{background:var(--dsw-alias-brand-primary,#4d6bfe);border-color:transparent;color:#fff;}
-          .dw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
-          .dw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);}
-          .dw-card:hover{border-color:var(--dsw-alias-border-l3);}
-          .dw-card-on{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-1px;}
-          .dw-card-body{padding:9px 11px 10px;display:flex;flex-direction:column;gap:5px;}
-          .dw-card-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
-          .dw-card-line{font-size:11.5px;color:var(--dsw-alias-label-tertiary);line-height:1.45;}
-          .dw-tags{display:flex;gap:5px;flex-wrap:wrap;}
-          .dw-tag{font-size:10.5px;padding:0 6px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);}
-          .dw-detail{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--dsw-alias-bg-layer-1);}
-          .dw-detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-          .dw-two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;}
-          @media (max-width:900px){.dw-two{grid-template-columns:1fr;}}
-          .dw-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;line-height:1.55;background:var(--dsw-alias-bg-layer-2);padding:9px 10px;border-radius:7px;max-height:300px;overflow:auto;}
-          .dw-swatches{display:flex;gap:6px;flex-wrap:wrap;}
-          .dw-swatch{width:60px;text-align:center;color:var(--dsw-alias-label-tertiary);}
-          .dw-swatch-label{font-size:10.5px;}
-          .dw-swatch-val{font-family:ui-monospace,Consolas,monospace;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-          .dw-swatch i{display:block;height:22px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);margin-bottom:2px;}
-          .dw-banner{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:12.5px;flex-wrap:wrap;}
-          .dw-toast{position:sticky;bottom:0;align-self:flex-start;padding:5px 12px;border-radius:999px;background:#22c55e;color:#fff;font-size:12px;}
-          `
-          tag.textContent = tag.textContent.replace(/^\s+/gm, '')
+          tag.textContent = [
+            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;font-size:13px;color:var(--dsw-alias-label-primary);}',
+            '.dw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
+            '.dw-title{font-size:15px;font-weight:600;}',
+            '.dw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}',
+            '.dw-muted{color:var(--dsw-alias-label-tertiary);}',
+            '.dw-btn{padding:3px 10px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;font-size:12px;}',
+            '.dw-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));}',
+            '.dw-btn-primary{border-color:var(--dsw-alias-brand-primary,#4d6bfe);color:#fff;background:var(--dsw-alias-brand-primary,#4d6bfe);}',
+            '.dw-search{flex:1;min-width:140px;max-width:260px;padding:4px 10px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:inherit;font-size:12px;}',
+            '.dw-layers{display:flex;gap:6px;flex-wrap:wrap;}',
+            '.dw-layer{display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);font-size:12.5px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);}',
+            '.dw-layer:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));}',
+            '.dw-layer-on{background:var(--dsw-alias-brand-primary,#4d6bfe);border-color:transparent;color:#fff;}',
+            '.dw-layer-n{font-family:ui-monospace,Consolas,monospace;font-size:11px;opacity:.75;}',
+            '.dw-chips{display:flex;gap:6px;flex-wrap:wrap;}',
+            '.dw-chip{padding:1px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);font-size:11.5px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);}',
+            '.dw-chip:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));}',
+            '.dw-chip-on{background:var(--dsw-alias-brand-primary,#4d6bfe);border-color:transparent;color:#fff;}',
+            '.dw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}',
+            '.dw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);}',
+            '.dw-card:hover{border-color:var(--dsw-alias-border-l3);}',
+            '.dw-card-on{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-1px;}',
+            '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}',
+            '.dw-cover img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}',
+            '.dw-cover-ph{padding:16px;font-size:11.5px;line-height:1.6;color:var(--dsw-alias-label-tertiary);text-align:center;}',
+            '.dw-kind{position:absolute;top:6px;left:6px;padding:0 7px;border-radius:999px;font-size:10px;line-height:17px;background:rgba(0,0,0,.55);color:#fff;}',
+            '.dw-poster{position:relative;width:100%;height:100%;display:flex;align-items:flex-end;overflow:hidden;}',
+            '.dw-poster-big{min-height:260px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;}',
+            '.dw-poster-pat{position:absolute;inset:0;opacity:.35;}',
+            '.dw-poster[data-pattern=grid] .dw-poster-pat{background-image:linear-gradient(rgba(255,255,255,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.35) 1px,transparent 1px);background-size:22px 22px;}',
+            '.dw-poster[data-pattern=dots] .dw-poster-pat{background-image:radial-gradient(rgba(255,255,255,.5) 1.5px,transparent 1.6px);background-size:14px 14px;}',
+            '.dw-poster[data-pattern=stripes] .dw-poster-pat{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.28) 0 2px,transparent 2px 12px);}',
+            '.dw-poster[data-pattern=blot] .dw-poster-pat{background:radial-gradient(circle at 25% 35%,rgba(255,255,255,.35),transparent 55%),radial-gradient(circle at 70% 68%,rgba(255,255,255,.22),transparent 50%);}',
+            '.dw-poster[data-pattern=rays] .dw-poster-pat{background:repeating-conic-gradient(from 0deg at 50% 130%,rgba(255,255,255,.25) 0deg 4deg,transparent 4deg 10deg);}',
+            '.dw-poster-txt{position:relative;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0;}',
+            '.dw-poster-name{font-size:12.5px;font-weight:600;line-height:1.35;}',
+            '.dw-poster-tags{font-size:10.5px;opacity:.85;}',
+            '.dw-card-body{padding:9px 11px 10px;display:flex;flex-direction:column;gap:5px;}',
+            '.dw-card-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}',
+            '.dw-card-line{font-size:11.5px;color:var(--dsw-alias-label-tertiary);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}',
+            '.dw-tags{display:flex;gap:5px;flex-wrap:wrap;}',
+            '.dw-tag{font-size:10.5px;padding:0 6px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);}',
+            '.dw-detail{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--dsw-alias-bg-layer-1);}',
+            '.dw-detail-head{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}',
+            '.dw-two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;}',
+            '@media (max-width:900px){.dw-two{grid-template-columns:1fr;}}',
+            '.dw-big{width:100%;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);}',
+            '.dw-big img{width:100%;max-height:340px;object-fit:contain;object-position:top center;display:block;}',
+            '.dw-src{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary);word-break:break-all;line-height:1.5;}',
+            '.dw-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;line-height:1.55;background:var(--dsw-alias-bg-layer-2);padding:9px 10px;border-radius:7px;max-height:300px;overflow:auto;}',
+            '.dw-bullets{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.6;}',
+            '.dw-bullets li:before{content:"· ";color:var(--dsw-alias-label-tertiary);}',
+            '.dw-banner{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:12.5px;flex-wrap:wrap;}',
+            '.dw-toast{position:sticky;bottom:0;align-self:flex-start;padding:5px 12px;border-radius:999px;background:#22c55e;color:#fff;font-size:12px;}',
+          ].join('\n')
           document.head.appendChild(tag)
         } catch {
           /* 样式失败不影响功能 */
@@ -296,11 +315,58 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const KIND_LABEL = { image: '图', tokens: '样式', text: '文档' }
+
+      /** 纯文字条目的海报：用自己的配色画一个可辨认的图案，不假装是成品帧。 */
+      function Poster(props) {
+        const e = props.entry
+        const sw = e.swatch
+        return el('div', {
+          className: 'dw-poster' + (props.big === true ? ' dw-poster-big' : ''),
+          'data-pattern': sw.pattern,
+          style: { background: 'linear-gradient(135deg,' + sw.a + ',' + sw.b + ')', color: sw.fg },
+        },
+          el('div', { className: 'dw-poster-pat' }),
+          el('div', { className: 'dw-poster-txt' },
+            el('div', { className: 'dw-poster-tags', style: { color: sw.accent } }, (e.tags || []).join(' · ')),
+          ),
+        )
+      }
+
+
+      /** 卡片/详情共用的视觉区：有封面放图，样式类放换皮预览，纯文字给个摘要。 */
+      function Visual(props) {
+        const e = props.entry
+        const big = props.big === true
+        if (e.kind === 'tokens' && e.style) {
+          return el('iframe', {
+            srcDoc: previewHtml(e.style, big),
+            sandbox: '',
+            style: big ? PREVIEW_FRAME_BIG : PREVIEW_FRAME,
+            scrolling: 'no',
+            title: e.name + ' 预览',
+          })
+        }
+        if (e.kind === 'image' && e.cover) {
+          if (big) {
+            return el('div', { className: 'dw-big' }, el('img', { src: API + '/cover/' + encodeURIComponent(e.id), alt: e.name }))
+          }
+          return el('img', { src: API + '/cover/' + encodeURIComponent(e.id), alt: e.name, loading: 'lazy' })
+        }
+        // 有点配色就用海报；没有才退回文字块
+        if (e.swatch) return el(Poster, { entry: e, big: big })
+        return el('div', { className: 'dw-cover-ph' },
+          (e.bullets || []).slice(0, 2).map(function (b, i) { return el('div', { key: i }, '· ' + b) }),
+          (e.bullets || []).length === 0 ? e.oneLine : null,
+        )
+      }
+
       function Panel() {
         useStyleOnce()
         const [state, setState] = useState(null)
         const [err, setErr] = useState('')
-        const [filter, setFilter] = useState('all')
+        const [layer, setLayer] = useState('')
+        const [tag, setTag] = useState('')
         const [query, setQuery] = useState('')
         const [openId, setOpenId] = useState('')
         const [toast, setToast] = useState('')
@@ -319,22 +385,34 @@ window.__ModuleLoader__.load({
 
         useEffect(function () { load() }, [])
 
-        const styles = (state && state.styles) || []
-        const chips = (state && state.filters) || []
+        const layers = (state && state.layers) || []
         const picked = state && state.picked
+        const activeLayer = layer || (picked && picked.layer) || (layers[0] && layers[0].id) || 'app'
+        const current = layers.filter(function (l) { return l.id === activeLayer })[0] || layers[0] || null
 
         const shown = useMemo(function () {
+          if (current === null) return []
           const q = query.trim().toLowerCase()
-          return styles.filter(function (s) {
-            if (filter !== 'all' && (s.tags || []).indexOf(filter) < 0) return false
+          return current.entries.filter(function (e) {
+            if (tag !== '' && (e.tags || []).indexOf(tag) < 0) return false
             if (q === '') return true
-            return (s.name + ' ' + s.oneLine + ' ' + (s.tags || []).join(' ') + ' ' + s.id).toLowerCase().indexOf(q) >= 0
+            return (e.name + ' ' + e.oneLine + ' ' + (e.tags || []).join(' ') + ' ' + e.id + ' ' + e.source).toLowerCase().indexOf(q) >= 0
           })
-        }, [styles, filter, query])
+        }, [current, tag, query])
 
-        const open = styles.filter(function (s) { return s.id === openId })[0] || null
+        const allTags = useMemo(function () {
+          if (current === null) return []
+          const set = []
+          current.entries.forEach(function (e) { (e.tags || []).forEach(function (t) { if (set.indexOf(t) < 0) set.push(t) }) })
+          return set.slice(0, 10)
+        }, [current])
 
-        const pickStyle = function (id) {
+        const open = (function () {
+          const flat = layers.reduce(function (acc, l) { return acc.concat(l.entries) }, [])
+          return flat.filter(function (e) { return e.id === openId })[0] || null
+        })()
+
+        const pickEntry = function (id) {
           fetch(API + '/pick', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
@@ -357,17 +435,18 @@ window.__ModuleLoader__.load({
           setTimeout(function () { setToast('') }, 2400)
         }
 
+        const counts = (state && state.counts) || []
+
         return el('div', { className: 'dw-wrap' },
           el('div', { className: 'dw-head' },
             el('div', { className: 'dw-title' }, TAB_LABEL),
-            el('span', { className: 'dw-pill' }, '样式 ', el('b', null, String(styles.length))),
-            el('span', { className: 'dw-pill' }, '来源 ', el('b', null, '全部取自本机代码')),
-            picked
-              ? el('span', { className: 'dw-pill' }, '当前 ', el('b', null, picked.name))
-              : el('span', { className: 'dw-muted' }, '还没选样式'),
+            counts.map(function (c) {
+              return el('span', { className: 'dw-pill', key: c.id }, c.name, ' ', el('b', null, String(c.count)))
+            }),
+            picked ? el('span', { className: 'dw-pill' }, '当前 ', el('b', null, picked.name)) : el('span', { className: 'dw-muted' }, '还没选'),
             el('input', {
               className: 'dw-search',
-              placeholder: '搜样式名 / 用途 / 标签…',
+              placeholder: '搜名称 / 用途 / 出处…',
               value: query,
               onChange: function (e) { setQuery(e.target.value) },
             }),
@@ -376,86 +455,70 @@ window.__ModuleLoader__.load({
 
           err ? el('div', { className: 'dw-pill', style: { borderColor: '#ef4444', color: '#ef4444' } }, '接口报错：' + err) : null,
 
-          el('div', { className: 'dw-chips' },
-            chips.map(function (c) {
+          el('div', { className: 'dw-layers' },
+            layers.map(function (l) {
               return el('button', {
-                key: c.id,
-                className: 'dw-chip' + (filter === c.id ? ' dw-chip-on' : ''),
-                onClick: function () { setFilter(c.id) },
-              }, c.label)
+                key: l.id,
+                className: 'dw-layer' + (l.id === activeLayer ? ' dw-layer-on' : ''),
+                onClick: function () { setLayer(l.id); setTag('') },
+                title: l.hint,
+              }, l.name, el('span', { className: 'dw-layer-n' }, String((l.entries || []).length)))
+            }),
+            current ? el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, current.hint) : null,
+          ),
+
+          el('div', { className: 'dw-chips' },
+            el('button', { className: 'dw-chip' + (tag === '' ? ' dw-chip-on' : ''), onClick: function () { setTag('') } }, '全部'),
+            allTags.map(function (t) {
+              return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
             el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 「选中」= 让 AI 知道你要哪一种'),
           ),
 
           el('div', { className: 'dw-grid' },
-            shown.map(function (s) {
-              const isOn = picked && picked.id === s.id
+            shown.map(function (e) {
+              const isOn = picked && picked.id === e.id
               return el('div', {
-                key: s.id,
+                key: e.id,
                 className: 'dw-card' + (isOn ? ' dw-card-on' : ''),
-                onClick: function () { setOpenId(s.id) },
+                onClick: function () { setOpenId(e.id) },
               },
-                el('iframe', { srcDoc: previewHtml(s), sandbox: '', style: PREVIEW_FRAME, scrolling: 'no', title: s.name + ' 预览' }),
+                el('div', { className: 'dw-cover' },
+                  el(Visual, { entry: e }),
+                  el('span', { className: 'dw-kind' }, e.swatch ? '风格' : (KIND_LABEL[e.kind] || e.kind)),
+                ),
                 el('div', { className: 'dw-card-body' },
-                  el('div', { className: 'dw-card-name' },
-                    s.name,
-                    isOn ? el('span', { className: 'dw-tag', style: { color: 'var(--dsw-alias-brand-primary,#4d6bfe)' } }, '当前') : null,
-                  ),
-                  el('div', { className: 'dw-card-line' }, s.oneLine),
-                  el('div', { className: 'dw-tags' },
-                    (s.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) }),
-                  ),
+                  el('div', { className: 'dw-card-name' }, e.name, isOn ? el('span', { className: 'dw-tag', style: { color: 'var(--dsw-alias-brand-primary,#4d6bfe)' } }, '当前') : null),
+                  el('div', { className: 'dw-card-line' }, e.oneLine),
+                  el('div', { className: 'dw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) })),
                 ),
               )
             }),
           ),
 
-          shown.length === 0 ? el('div', { className: 'dw-muted' }, '没有匹配的样式，换个关键词或点「全部」。') : null,
+          shown.length === 0 ? el('div', { className: 'dw-muted' }, '这一层里没有匹配的条目，换个关键词或点「全部」。') : null,
 
           open ? el('div', { className: 'dw-detail' },
             el('div', { className: 'dw-detail-head' },
-              el('b', { style: { fontSize: 14 } }, open.name),
-              el('span', { className: 'dw-muted', style: { fontSize: 11.5 } }, open.id + ' · ' + open.source),
-              el('div', { style: { marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' } },
-                el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { pickStyle(open.id) } }, '选中它 → AI 可见'),
+              el('div', { style: { flex: 1, minWidth: 200 } },
+                el('b', { style: { fontSize: 14 } }, open.name),
+                el('div', { className: 'dw-muted', style: { fontSize: 11.5, marginTop: 2 } }, open.oneLine),
+                el('div', { className: 'dw-src', style: { marginTop: 3 } }, open.source),
+              ),
+              el('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
+                el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { pickEntry(open.id) } }, '选中它 → AI 可见'),
                 el('button', { className: 'dw-btn', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制 引用给 AI'),
-                el('button', { className: 'dw-btn', onClick: function () { copy(open.tokens.join('\n'), 'CSS') } }, '复制 CSS'),
               ),
             ),
 
             el('div', { className: 'dw-two' },
-              el('div', null,
-                el('iframe', { srcDoc: previewHtml(open, true), sandbox: '', style: PREVIEW_FRAME_BIG, scrolling: 'no', title: open.name + ' 大图' }),
-                el('div', { className: 'dw-muted', style: { fontSize: 11, marginTop: 4 } },
-                  '预览是同一块界面的换皮；实际落地时颜色应尽量用 var(--dsw-alias-*)，跟着主题走。'),
-              ),
+              el('div', null, el(Visual, { entry: open, big: true })),
               el('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
-                el('div', { className: 'dw-swatches' },
-                  [['底', open.colors.bg], ['面', open.colors.surface], ['字', open.colors.text], ['次', open.colors.muted], ['强调', open.colors.accent], ['描边', open.colors.border]].map(function (p) {
-                    return el('div', { className: 'dw-swatch', key: p[0], title: p[0] + ' ' + p[1] },
-                      el('i', { style: { background: p[1] } }),
-                      el('div', { className: 'dw-swatch-label' }, p[0]),
-                      el('div', { className: 'dw-swatch-val' }, String(p[1]).replace('rgba(', '').replace(')', '')),
-                    )
-                  }),
-                ),
+                el('div', { style: { fontSize: 12, fontWeight: 600 } }, '要点'),
+                el('ul', { className: 'dw-bullets' }, (open.bullets || []).map(function (b, i) { return el('li', { key: i }, b) })),
                 el('div', { style: { fontSize: 12, lineHeight: 1.6 } },
-                  el('div', null, el('b', null, '圆角 '), open.shape.radius, '　', el('b', null, '小元素 '), open.shape.radiusSm),
-                  el('div', null, el('b', null, '密度 '), open.shape.density + 'px 内边距', '　', el('b', null, '字体 '), open.shape.font),
-                  el('div', { style: { fontFamily: 'ui-monospace,Consolas,monospace', fontSize: 11, marginTop: 2 } }, open.shape.shadow),
-                ),
-                el('div', { style: { fontSize: 12, lineHeight: 1.6 } },
-                  el('div', null, el('b', null, '适合：'), open.when),
-                  el('div', { className: 'dw-muted' }, el('b', null, '别用在：'), open.avoid),
-                ),
+                  el('b', null, '怎么用：'), open.howto),
               ),
-            ),
-
-            el('div', null,
-              el('div', { style: { fontSize: 12, fontWeight: 600, marginBottom: 4 } }, '视觉手法'),
-              el('div', { style: { fontSize: 12, lineHeight: 1.65 } }, (open.craft || []).map(function (x, i) {
-                return el('div', { key: i }, '· ' + x)
-              })),
             ),
 
             el('pre', { className: 'dw-pre' }, open.prompt),
@@ -464,7 +527,7 @@ window.__ModuleLoader__.load({
           picked ? el('div', { className: 'dw-banner' },
             el('span', null, '当前选用：', el('b', null, picked.name)),
             el('span', { className: 'dw-muted' }, when(picked.at) + ' · ' + (picked.by === 'user' ? '工作台里点的' : picked.by)),
-            el('button', { className: 'dw-btn', onClick: function () { copy((state && state.pickedPrompt) || '', '当前样式的引用') } }, '复制引用'),
+            el('button', { className: 'dw-btn', onClick: function () { copy((state && state.pickedPrompt) || '', '当前条目的引用') } }, '复制引用'),
           ) : null,
 
           (state && state.recent && state.recent.length > 1) ? el('div', { className: 'dw-muted', style: { fontSize: 11.5 } },
@@ -485,9 +548,6 @@ window.__ModuleLoader__.load({
     exports.name = PLUGIN_ID
     exports.inject = ['slots']
     exports.apply = apply
-
-    // 给离线校验用：contact sheet / 截图脚本可以拿到同一个模具函数，
-    // 避免"面板里长这样、导出图长那样"的漂移。运行时不读它。
     exports.__preview = previewHtml
 
     return module.exports
