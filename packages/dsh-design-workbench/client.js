@@ -30,6 +30,127 @@ window.__ModuleLoader__.load({
     //
     // 同一块界面（标题 + 计数 pill + 两行列表 + 一个输入框），只换 token。
     // 这样"比"才有意义：看到的是同一个界面在不同风格下的样子。
+    // ── 代码生视频：八种风格的真预览 ─────────────────────────────────
+    //
+    // 这些不是截图，是**能动的 HTML/CSS**：面板里 iframe 一挂，风格自己就在演。
+    // 纯 CSS 动画，无脚本（sandbox=""），所以既安全也不拖慢面板。
+    const DEMOS = {
+      'cv-style-kinetic-type': `<html><body style="margin:0;background:#0e0e10;overflow:hidden;font-family:Inter,system-ui,-apple-system,sans-serif">
+<style>
+.w{position:absolute;inset:0;overflow:hidden}
+.a{position:absolute;left:7%;top:18%;font-size:clamp(34px,11vw,64px);font-weight:900;letter-spacing:-.04em;color:#fff;animation:cycle 4.4s cubic-bezier(.2,.9,.2,1) infinite}
+.b{position:absolute;left:7%;top:50%;font-size:clamp(34px,11vw,64px);font-weight:900;letter-spacing:-.04em;color:#ff4d4d;animation:cycle 4.4s .28s cubic-bezier(.2,.9,.2,1) infinite}
+.t{position:absolute;right:7%;bottom:16%;font-size:10px;letter-spacing:.22em;color:#9a9a9a;animation:fade .8s 1.1s both}
+.bar{position:absolute;left:0;bottom:0;height:4px;width:0;background:#ff4d4d;animation:grow 2.2s ease-out both}
+@keyframes cycle{0%{transform:translateY(60%) scale(.94);opacity:0}12%{transform:none;opacity:1}76%{transform:none;opacity:1}100%{transform:translateY(-8%);opacity:0}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes grow{to{width:100%}}
+</style><div class=w><div class=a>CODE</div><div class=b>VIDEO</div><div class=t>KINETIC TYPE</div><div class=bar></div></div></body></html>`,
+
+      'cv-style-dataviz': `<html><body style="margin:0;background:#0b1220;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#e2e8f0">
+<style>
+.w{position:absolute;inset:0;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.h{font-size:11px;color:#94a3b8;letter-spacing:.06em}
+.n{font-size:26px;font-weight:800;color:#f8fafc;animation:up .8s ease-out both}
+.chart{display:flex;align-items:flex-end;gap:6px;flex:1;min-height:0;border-bottom:1px solid #1e293b}
+.b{flex:1;background:linear-gradient(180deg,#38bdf8,#1d4ed8);border-radius:3px 3px 0 0;transform-origin:bottom;animation:g .9s cubic-bezier(.2,.9,.2,1) both}
+.grid{position:absolute;inset:44px 16px 18px;background-image:linear-gradient(#1e293b 1px,transparent 1px);background-size:100% 25%;opacity:.5;pointer-events:none}
+@keyframes g{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes up{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+</style><div class=w><div class=h>Q3 增长</div><div class=n>+38.4%</div><div class=grid></div><div class=chart>
+<div class=b style="height:28%;animation-delay:.05s"></div><div class=b style="height:44%;animation-delay:.15s"></div>
+<div class=b style="height:36%;animation-delay:.25s"></div><div class=b style="height:62%;animation-delay:.35s"></div>
+<div class=b style="height:74%;animation-delay:.45s"></div><div class=b style="height:56%;animation-delay:.55s"></div>
+<div class=b style="height:88%;animation-delay:.65s"></div></div></div></body></html>`,
+
+      'cv-style-terminal': `<html><body style="margin:0;background:#0b0f14;overflow:hidden;font-family:ui-monospace,Consolas,monospace;color:#c9d4e3">
+<style>
+.w{position:absolute;inset:0;padding:0;display:flex;flex-direction:column}
+.bar{display:flex;gap:5px;padding:7px 9px;background:#121a22;border-bottom:1px solid #1e2a36}
+.d{width:8px;height:8px;border-radius:50%}
+.p{padding:9px 11px;font-size:10.5px;line-height:1.75;flex:1}
+.i{color:#22c55e}.m{color:#94a3b8}.ok{color:#38bdf8}
+.l{width:0;overflow:hidden;white-space:nowrap;animation:type .7s steps(28) both}
+.l:nth-child(2){animation-delay:.5s}.l:nth-child(3){animation-delay:1.1s}.l:nth-child(4){animation-delay:1.7s}
+.c{display:inline-block;width:7px;height:12px;background:#c9d4e3;animation:blink 1s steps(1) infinite;vertical-align:-2px}
+@keyframes type{to{width:100%}}
+@keyframes blink{50%{opacity:0}}
+</style><div class=w><div class=bar><span class=d style="background:#ff5f57"></span><span class=d style="background:#febc2e"></span><span class=d style="background:#28c840"></span></div>
+<div class=p><div class=l><span class=i>$</span> npm run build</div><div class=l><span class=m>→ bundling 42 modules…</span></div><div class=l><span class=ok>✓ built in 1.8s</span></div><div>$ <span class=c></span></div></div></div></body></html>`,
+
+      'cv-style-whiteboard': `<html><body style="margin:0;background:#f7f5f0;overflow:hidden;font-family:Georgia,serif;color:#2b2b2b">
+<style>
+svg{position:absolute;inset:0;width:100%;height:100%}
+path,rect,line{stroke:#2b2b2b;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:600;stroke-dashoffset:600;animation:draw 1.6s ease-out both}
+rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s}
+.t{position:absolute;left:26%;top:26%;font-size:13px;opacity:0;animation:pop .5s 1.6s both}
+.s{position:absolute;right:9%;bottom:12%;font-size:10px;color:#8a7f6a;opacity:0;animation:pop .6s 2s both}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+<svg viewBox="0 0 320 180"><rect x="34" y="46" width="118" height="62" rx="4"/><line x1="152" y1="77" x2="206" y2="77"/><path class=a d="M198 71 L208 77 L198 83"/><circle cx="238" cy="77" r="26"/><path class=a d="M238 63 v28 M224 77 h28"/></svg>
+<div class=t>SIGN UP</div><div class=s>先画问题，再画答案</div></body></html>`,
+
+      'cv-style-product-ui': `<html><body style="margin:0;background:#12151c;overflow:hidden;font-family:Inter,system-ui,sans-serif">
+<style>
+.w{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.phone{width:41%;height:88%;border-radius:18px;background:#0b0e13;border:1px solid #2a3242;overflow:hidden;position:relative}
+.scr{position:absolute;inset:6px;border-radius:13px;background:#f7f8fb;overflow:hidden}
+.list{position:absolute;left:0;right:0;top:0;animation:scroll 4s ease-in-out infinite alternate}
+.row{height:26px;margin:5px 7px;border-radius:6px;background:#e8ecf5;display:flex;align-items:center;padding:0 7px;font-size:8px;color:#5b6478}
+.row.hi{background:#4d6bfe;color:#fff}
+.cur{position:absolute;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 0 0 1.5px #4d6bfe;animation:tap 4s ease-in-out infinite}
+.cap{position:absolute;right:8%;top:14%;font-size:9px;color:#8a93a6;letter-spacing:.14em}
+@keyframes scroll{0%{transform:translateY(0)}100%{transform:translateY(-52px)}}
+@keyframes tap{0%,55%{transform:translate(96px,86px) scale(1)}62%{transform:translate(96px,86px) scale(.82)}70%,100%{transform:translate(96px,86px) scale(1)}}
+</style><div class=w><div class=cap>PRODUCT UI</div><div class=phone><div class=scr><div class=list>
+<div class=row>今日任务</div><div class=row hi>发布新版本</div><div class=row>查看数据</div><div class=row>邀请成员</div><div class=row>设置</div><div class=row>帮助</div></div>
+<div class=cur></div></div></div></div></body></html>`,
+
+      'cv-style-parallax-cards': `<html><body style="margin:0;background:radial-gradient(120% 120% at 30% 20%,#241b3d,#0f0b18);overflow:hidden;font-family:Inter,system-ui,sans-serif">
+<style>
+.w{position:absolute;inset:0;perspective:600px}
+.l{position:absolute;left:50%;top:50%;border-radius:12px;border:1px solid rgba(255,255,255,.16);
+   background:rgba(255,255,255,.06);backdrop-filter:blur(6px);animation:float 6s ease-in-out infinite alternate}
+.a{width:46%;height:58%;transform:translate(-50%,-50%) rotate(-6deg);animation-delay:0s}
+.b{width:34%;height:44%;transform:translate(-50%,-50%) rotate(4deg);animation-delay:.7s;background:rgba(167,139,250,.18)}
+.c{width:22%;height:30%;transform:translate(-50%,-50%) rotate(-2deg);animation-delay:1.4s;background:rgba(255,255,255,.12)}
+.t{position:absolute;left:7%;bottom:9%;color:#e9e2ff;font-size:10px;letter-spacing:.18em;opacity:.8}
+@keyframes float{from{translate:0 -6px}to{translate:0 6px}}
+</style><div class=w><div class="l a"></div><div class="l b"></div><div class="l c"></div><div class=t>PARALLAX DEPTH</div></div></body></html>`,
+
+      'cv-style-logo-reveal': `<html><body style="margin:0;background:#0b0b0d;overflow:hidden;font-family:Inter,system-ui,sans-serif">
+<style>
+.w{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.mark{width:46px;height:46px;border:2px solid #d4af37;border-radius:50%;position:relative;animation:in 1s cubic-bezier(.2,.9,.2,1) both}
+.mark:after{content:'';position:absolute;inset:10px;border-radius:50%;background:#d4af37;animation:in .8s .3s both}
+.word{margin-left:14px;font-size:22px;letter-spacing:.28em;color:#f5f5f5;clip-path:inset(0 100% 0 0);animation:wipe 1.1s .5s cubic-bezier(.2,.9,.2,1) both}
+.sweep{position:absolute;top:0;bottom:0;width:40%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:sw 1.2s 1.3s both}
+@keyframes in{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes wipe{to{clip-path:inset(0 0 0 0)}}
+@keyframes sw{to{left:120%}}
+</style><div class=w><div style="display:flex;align-items:center;position:relative"><div class=mark></div><div class=word>NEXUS</div><div class=sweep></div></div></div></body></html>`,
+
+      'cv-style-sprite-2d': `<html><body style="margin:0;background:#f3e9d2;overflow:hidden;font-family:Inter,system-ui,sans-serif">
+<style>
+.w{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18px}
+.ch{width:56px;height:64px;position:relative;animation:bob .9s ease-in-out infinite alternate}
+.head{position:absolute;left:6px;top:0;width:44px;height:42px;border-radius:22px 22px 18px 18px;background:#e07a5f}
+.eye{position:absolute;top:18px;width:5px;height:6px;border-radius:50%;background:#3a2f22;animation:blink 3.2s infinite}
+.body{position:absolute;left:12px;top:40px;width:32px;height:22px;border-radius:10px;background:#3a2f22}
+.sh{position:absolute;bottom:10px;width:52px;height:6px;border-radius:50%;background:rgba(58,47,34,.16)}
+.bub{position:absolute;left:58%;top:24%;background:#fff;border:2px solid #3a2f22;border-radius:10px;padding:5px 8px;font-size:10px;color:#3a2f22;animation:pop 2.6s ease-in-out infinite}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+@keyframes pop{0%,20%{opacity:0;transform:scale(.9)}30%,80%{opacity:1;transform:none}100%{opacity:0}}
+</style><div class=w><div class=ch><div class=head></div><div class=eye style="left:19px"></div><div class=eye style="left:33px"></div><div class=body></div></div><div class=bub>帧率 12–15 才像手绘</div><div class=sh style="position:absolute"></div></div></body></html>`,
+    }
+
+    function demoHtml(id) {
+      return DEMOS[id] || ''
+    }
+
     function previewHtml(style, big) {
       const c = style.colors
       const s = style.shape
@@ -280,7 +401,7 @@ window.__ModuleLoader__.load({
             '.dw-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;line-height:1.55;background:var(--dsw-alias-bg-layer-2);padding:9px 10px;border-radius:7px;max-height:300px;overflow:auto;}',
             '.dw-bullets{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.6;}',
             '.dw-bullets li:before{content:"· ";color:var(--dsw-alias-label-tertiary);}',
-                        '.dw-toast{position:sticky;bottom:0;align-self:flex-start;padding:5px 12px;border-radius:999px;background:#22c55e;color:#fff;font-size:12px;}',
+                        '.dw-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9600;padding:6px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);}',
           ].join('\n')
           document.head.appendChild(tag)
         } catch {
@@ -288,28 +409,32 @@ window.__ModuleLoader__.load({
         }
       }
 
+      /** 先试 Clipboard API（要 await，失败会 reject），再退回 execCommand。 */
       function copyText(text) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text)
-            return true
+        function legacy() {
+          try {
+            const ta = document.createElement('textarea')
+            ta.value = text
+            ta.style.position = 'fixed'
+            ta.style.left = '-9999px'
+            ta.setAttribute('readonly', '')
+            document.body.appendChild(ta)
+            ta.select()
+            ta.setSelectionRange(0, ta.value.length)
+            const ok = document.execCommand('copy')
+            document.body.removeChild(ta)
+            return ok === true
+          } catch {
+            return false
           }
-        } catch {
-          /* 落到下面的兜底 */
         }
-        try {
-          const ta = document.createElement('textarea')
-          ta.value = text
-          ta.style.position = 'fixed'
-          ta.style.opacity = '0'
-          document.body.appendChild(ta)
-          ta.select()
-          document.execCommand('copy')
-          document.body.removeChild(ta)
-          return true
-        } catch {
-          return false
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          return navigator.clipboard.writeText(text).then(
+            function () { return true },
+            function () { return legacy() },
+          )
         }
+        return Promise.resolve(legacy())
       }
 
       function when(iso) {
@@ -350,6 +475,16 @@ window.__ModuleLoader__.load({
             srcDoc: previewHtml(e.style, big),
             sandbox: '',
             style: big ? PREVIEW_FRAME_BIG : PREVIEW_FRAME,
+            scrolling: 'no',
+            title: e.name + ' 预览',
+          })
+        }
+        // 代码生视频的风格：直接跑一段会动的 HTML/CSS
+        if (e.kind === 'demo' && demoHtml(e.id) !== '') {
+          return el('iframe', {
+            srcDoc: demoHtml(e.id),
+            sandbox: '',
+            style: big ? { width: '100%', height: 280, border: '0', display: 'block' } : { width: '100%', height: 132, border: '0', display: 'block' },
             scrolling: 'no',
             title: e.name + ' 预览',
           })
@@ -421,9 +556,10 @@ window.__ModuleLoader__.load({
         })()
 
         const copy = function (text, what) {
-          const ok = copyText(text)
-          setToast(ok ? what + ' 已复制' : '复制失败，手动选中下面的文本吧')
-          setTimeout(function () { setToast('') }, 2400)
+          copyText(text).then(function (ok) {
+            setToast(ok ? what + ' 已复制' : '复制被拦了：手动选中下面那段文本再 Ctrl+C')
+            setTimeout(function () { setToast('') }, 2600)
+          })
         }
 
         const counts = (state && state.counts) || []
@@ -535,6 +671,24 @@ window.__ModuleLoader__.load({
                     el('span', { style: { width: 16, height: 16, borderRadius: 4, border: '1px solid var(--dsw-alias-border-l2)', background: p[1] } }),
                     p[0])
                 }),
+              ) : null,
+
+              (open.sources && open.sources.length > 0) ? el('div', null,
+                el('div', { style: { fontSize: 12, fontWeight: 600, marginBottom: 4 } }, '原始材料'),
+                el('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11.5, lineHeight: 1.5 } },
+                  open.sources.map(function (src, i) {
+                    const href = src.url || src.path || ''
+                    return el('div', { key: i, style: { display: 'flex', gap: 6, alignItems: 'baseline' } },
+                      el('span', { className: 'dw-muted', style: { flex: '0 0 auto' } }, src.label + '：'),
+                      el('span', { className: 'dw-src', style: { flex: 1 } }, href),
+                      el('button', {
+                        className: 'dw-btn',
+                        style: { flex: '0 0 auto', padding: '0 7px', fontSize: 10.5 },
+                        onClick: function () { copy(href, src.label) },
+                      }, '复制'),
+                    )
+                  }),
+                ),
               ) : null,
 
               el('pre', { className: 'dw-pre' }, open.prompt),

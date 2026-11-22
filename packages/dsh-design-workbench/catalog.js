@@ -713,6 +713,61 @@ const CODEVIDEO = [
  * 远程样张的本地副本（下载自 coverUrl）。面板优先用本地图：
  * 工作台不该因为没网就白屏，也不该每次打开都去抓 GitHub。
  */
+/**
+ * 原生材料：每条指向**原始文档/样张/代码**，不是我的转述。
+ * 面板里列出来、复制引用时也带上——AI 要读就去读原文。
+ */
+const HD_REPO = 'https://github.com/alchaincyf/huashu-design'
+const HD_STYLES = HD_REPO + '/blob/master/references/design-styles.md'
+const HD_SPEC = 'https://raw.githubusercontent.com/alchaincyf/huashu-design/master/assets/style-specimens'
+const OM_REPO = 'https://github.com/nexu-io/openmotion'
+
+const SOURCES = {
+  'app-huasu-paradigms': [{ label: 'huashu · App 原型手册', url: HD_REPO + '/blob/master/references/app-prototype.md' }, { label: 'App 界面范式', url: HD_REPO + '/blob/master/references/app-paradigms.md' }],
+  'app-huasu-app-zone': [{ label: '风格库总表（App 分区 12 条）', url: HD_STYLES }, { label: 'App 样张目录', url: HD_REPO + '/tree/master/assets/style-specimens/app' }],
+  'app-huasu-hardware-panel': [{ label: '样张（jpg）', url: HD_SPEC + '/app/01-hardware-panel.jpg' }, { label: '样张源码（html）', url: HD_SPEC + '/app/01-hardware-panel.html' }, { label: '风格库总表', url: HD_STYLES }],
+  'app-huasu-liquid-glass': [{ label: '样张（jpg）', url: HD_SPEC + '/app/02-liquid-glass.jpg' }, { label: '样张源码（html）', url: HD_SPEC + '/app/02-liquid-glass.html' }, { label: '风格库总表', url: HD_STYLES }],
+  'app-huasu-friendly-fintech': [{ label: '样张（jpg）', url: HD_SPEC + '/app/04-friendly-fintech.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'app-huasu-native-polish': [{ label: '样张（jpg）', url: HD_SPEC + '/app/10-native-polish.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-web-zone': [{ label: '风格库总表（网页分区 20 条）', url: HD_STYLES }, { label: '网页样张目录', url: HD_REPO + '/tree/master/assets/style-specimens/web' }],
+  'fe-huasu-ppt-zone': [{ label: '风格库总表（PPT 分区 20 条）', url: HD_STYLES }, { label: 'PPT 样张目录', url: HD_REPO + '/tree/master/assets/style-specimens/ppt' }],
+  'fe-huasu-info-zone': [{ label: '风格库总表（信息图 20 条）', url: HD_STYLES }, { label: '信息图样张目录', url: HD_REPO + '/tree/master/assets/style-specimens/info' }],
+  'fe-huasu-east-zone': [{ label: '风格库总表（中文与东亚 12 条）', url: HD_STYLES }, { label: '东亚样张目录', url: HD_REPO + '/tree/master/assets/style-specimens/east' }],
+  'fe-huasu-xhs-zone': [{ label: '风格库总表（小红书 8 条）', url: HD_STYLES }, { label: '小红书样张目录', url: HD_REPO + '/tree/master/assets/style-specimens/xhs' }],
+  'fe-huasu-editorial-brutalism': [{ label: '样张（jpg）', url: HD_SPEC + '/web/01-editorial-brutalism.jpg' }, { label: '样张源码（html）', url: HD_SPEC + '/web/01-editorial-brutalism.html' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-neo-brutalism': [{ label: '样张（jpg）', url: HD_SPEC + '/web/02-neo-brutalism.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-warm-editorial': [{ label: '样张（jpg）', url: HD_SPEC + '/web/12-warm-editorial.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-linear-bento': [{ label: '样张（jpg）', url: HD_SPEC + '/web/13-glassmorphism-bento.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-swiss-mono': [{ label: '样张（jpg）', url: HD_SPEC + '/web/19-swiss-monochrome.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-song-block': [{ label: '样张（jpg）', url: HD_SPEC + '/east/02-song-block-print.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-tanaka': [{ label: '样张（jpg）', url: HD_SPEC + '/east/09-tanaka-geometric-poster.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'fe-huasu-hk-signs': [{ label: '样张（jpg）', url: HD_SPEC + '/east/06-hk-street-signs.jpg' }, { label: '风格库总表', url: HD_STYLES }],
+  'cv-openmotion': [{ label: 'OpenMotion README', url: OM_REPO + '/blob/main/README.md' }, { label: 'Motion.md 规范', url: OM_REPO + '/blob/main/docs/motion-md.md' }],
+  'cv-recreate': [{ label: '参考片重构 SKILL', url: OM_REPO + '/blob/main/skills/openmotion-recreate/SKILL.md' }],
+  'cv-templates': [{ label: '模板站', url: 'https://open-design.ai/templates/' }, { label: 'Motion.md 规范', url: OM_REPO + '/blob/main/docs/motion-md.md' }],
+  'cv-stack': [{ label: '渲染/导出校验脚本', url: OM_REPO + '/blob/main/scripts/verify-export.ts' }, { label: 'README（架构）', url: OM_REPO + '/blob/main/README.md' }],
+  'app-mapmate': [{ label: 'README（含截图）', path: 'D:/Android/MapMate/MapMate/README.md' }, { label: '主界面截图', path: 'D:/Android/MapMate/MapMate/docs/screenshot-main.png' }],
+  'app-videoquiz': [{ label: '工程目录', path: 'D:/Android/MapMate/VideoQuiz' }],
+  'app-huajing': [{ label: 'README', path: 'D:/github_project/ZhaoWen_GitHub维护/HuaJing/pet-app/README.md' }, { label: '角色帧', path: 'D:/github_project/ZhaoWen_GitHub维护/HuaJing/pet-app/assets/happy.png' }],
+  'app-ember': [{ label: 'README', path: 'D:/github_project/ZhaoWen_GitHub维护/Ember/README.md' }],
+  'app-aurowendao': [{ label: '设计文档', path: 'D:/github_project/ZhaoWen_GitHub维护/AuroWendao/aurowendao-design.md' }],
+  'app-desktopjelly': [{ label: 'README', path: 'D:/github_project/ZhaoWen_GitHub维护/DesktopJelly/README.md' }],
+  'fe-kaguya-theme': [{ label: '主题 client.js（token 表）', path: 'D:/github_project/ZhaoWen_GitHub维护/zhaowen-dsh/packages/dsh-theme-kaguya-hime/client.js' }],
+  'fe-whalegirl': [{ label: '主题包目录', path: 'D:/github_project/ZhaoWen_GitHub维护/dsh/home/profiles/web/node_modules/dsh-theme-whalegirl' }],
+  'fe-wesight-qa': [{ label: '主题与皮肤 QA', path: 'D:/github_project/ZhaoWen_GitHub维护/wesight/design-qa.md' }, { label: 'dmg 设计 QA', path: 'D:/github_project/ZhaoWen_GitHub维护/wesight/dmg-design-qa.md' }],
+  'vid-bv-ref': [{ label: '参考原片', path: 'D:/github_project/ZhaoWen_GitHub维护/_videos/BV1KHaG6bEb9.mp4' }, { label: '复刻素材（角色参考/首帧）', path: 'D:/github_project/ZhaoWen_GitHub维护/_tools/doubao-video' }],
+  'vid-rea-video': [{ label: 'rea-video 仓库', path: 'D:/github_project/ZhaoWen_GitHub维护/rea-video' }, { label: '判定标准（skill）', path: 'D:/github_project/ZhaoWen_GitHub维护/rea-video/SKILL.md' }],
+  'vid-carl-flat': [{ label: '场景源码（scene.py / engine.json）', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/flat-vector' }],
+  'vid-carl-ink': [{ label: '场景源码', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/chinese-ink-wash' }],
+  'vid-carl-clay': [{ label: '场景源码', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/claymation' }],
+  'vid-carl-blueprint': [{ label: '场景源码', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/blueprint' }],
+  'vid-carl-exploded': [{ label: '场景源码', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/exploded-view' }],
+  'vid-carl-brick': [{ label: '场景源码', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/brick-toy' }],
+  'vid-carl-glass': [{ label: '场景源码（index.html）', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/glassmorphism-ui/index.html' }],
+  'vid-carl-huashu': [{ label: '场景源码', path: 'D:/github_project/ZhaoWen_GitHub维护/agent-skills/carl-motion/scenes/huashu-portraits' }],
+}
+
+
 const LOCAL_COVERS = {
   'app-huasu-app-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-app-zone.jpg',
   'app-huasu-hardware-panel': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-hardware-panel.jpg',
@@ -750,7 +805,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '大字在时间轴上撞、擦、逐字弹出，靠字号与节奏说话，几乎没有画面素材',
     source: '代码生视频通用手法（OpenMotion 模板里大量使用）',
     tags: ['风格', '排版驱动', '零素材'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#111111', b: '#242424', fg: '#ffffff', accent: '#ff4d4d', pattern: 'stripes' },
     bullets: ['一句一个镜头，字比画面重要：字重 800+、字号占屏 60% 以上', '每个 cut 都给一个字级动效（scale / clip-path / 逐字 stagger），别用淡入', '配一两个撞色块做「节拍标记」'],
     howto: '做观点片/金句片/产品卖点片时首选；没有素材也能出片。',
@@ -763,7 +818,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '柱状/折线/地图随时间生长，数字滚动到位，标注卡跟着数据出现',
     source: '代码生视频通用手法（SVG + 时间轴）',
     tags: ['风格', '数据', '信息图'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#0f172a', b: '#1e293b', fg: '#e2e8f0', accent: '#38bdf8', pattern: 'grid' },
     bullets: ['先定格最终画面，再反推每个元素的入场顺序', '数字用 tabular-nums，滚动到位时停 0.3s', '坐标轴与网格低对比，数据高对比'],
     howto: '年报/复盘/发布会数据页用这套；HTML 的 SVG 比 AE 改起来快。',
@@ -776,7 +831,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '黑底等宽字逐行敲出，光标闪烁，diff 绿红块，窗口边框带红黄绿点',
     source: '代码生视频通用手法（开发者向片头/演示）',
     tags: ['风格', '等宽', '开发者'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#0b0f14', b: '#121a22', fg: '#c9d4e3', accent: '#22c55e', pattern: 'grid' },
     bullets: ['打字机效果按字符 stagger，速率不均匀才像人', '只高亮关键 token，别整行染色', '窗口 chrome 用 3 个 8px 圆点'],
     howto: '讲工具/CLI/开源项目的片子用；观众一眼知道「这是给工程师的」。',
@@ -789,7 +844,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '线条像被手画出来，箭头随手标注，元素带轻微抖动',
     source: '代码生视频通用手法（rough.js / SVG stroke-dashoffset）',
     tags: ['风格', '解释性', '手绘'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#f7f5f0', b: '#ece7dc', fg: '#2b2b2b', accent: '#d97706', pattern: 'blot' },
     bullets: ['stroke-dasharray + dashoffset 做「被画出来」，线宽 2.5px', '线条端点用 round cap，路径加 1–2px 抖动', '同一画面最多 4 个元素，讲完一个擦一个'],
     howto: '讲原理/流程/架构时用；比 PPT 有生气，比 3D 便宜。',
@@ -802,7 +857,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '真界面在设备框里滚动、点按出光标、状态切换，镜头沿界面推近',
     source: '代码生视频通用手法（HTML 重绘或真实截图 + 变换）',
     tags: ['风格', '产品', '演示'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#1b1f2a', b: '#2a3242', fg: '#eef2f8', accent: '#6ea8fe', pattern: 'dots' },
     bullets: ['界面要重绘成 HTML，才能精确控制滚动与点击', '光标移动带缓动与回弹，点击时给一次 scale', '镜头推近用 transform: scale + transform-origin，别换分辨率'],
     howto: '产品发布/功能介绍片；比录屏稳，改文案不用重录。',
@@ -815,7 +870,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '多层元素以不同速度移动/缩放，做出「空间在动」的错觉，不需要 3D',
     source: '代码生视频通用手法（CSS transform + perspective）',
     tags: ['风格', '空间感', '零素材'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#171327', b: '#2b2148', fg: '#f0eaff', accent: '#a78bfa', pattern: 'rays' },
     bullets: ['3–4 层足够：底层 bg、中景卡、前景标签、浮尘', '速度比 1 : 0.6 : 1.4 这样错开，不要等速', '加一点 blur 做景深，前景最清晰'],
     howto: '产品 hero/开场/转场用；纯 CSS 就能做出「像 3D」的效果。',
@@ -828,7 +883,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '遮罩擦开、笔画描绘、粒子聚拢，最后字标落位 + 一次光扫',
     source: '代码生视频通用手法（SVG mask / clip-path / canvas）',
     tags: ['风格', '片头', '品牌'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#0d0d0f', b: '#1c1c22', fg: '#f5f5f5', accent: '#d4af37', pattern: 'rays' },
     bullets: ['2.5–4 秒就够，超过 4 秒观众开始等', '结尾定格留 0.5s，别切太快', '光扫只做一次，宁少不多'],
     howto: '每条片子的头/尾；同一套动效复用到所有片子，形成识别度。',
@@ -841,7 +896,7 @@ const CODEVIDEO_STYLES = [
     oneLine: '序列帧或骨骼动画的角色在场景里走位，配对话气泡与拟声字',
     source: '代码生视频通用手法（sprite sheet / Canvas / Spine）',
     tags: ['风格', '角色', '动画'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#f3e9d2', b: '#e2d3b3', fg: '#3a2f22', accent: '#e07a5f', pattern: 'dots' },
     bullets: ['帧率压到 12–15 才像手绘动画，60fps 反而假', '角色只做 3–5 个动作（idle / 走 / 说 / 惊讶 / 笑）', '气泡与拟声字单独一层，别和角色一起动'],
     howto: '做角色向短视频/讲解片；素材可以自己画序列帧，也可以用生成图切帧。',
@@ -865,6 +920,10 @@ for (const e of ALL_ENTRIES) {
   }
 }
 
+for (const e of ALL_ENTRIES) {
+  if (SOURCES[e.id] !== undefined) e.sources = SOURCES[e.id]
+}
+
 export function findEntry(id) {
   return ALL_ENTRIES.find((e) => e.id === id) || null
 }
@@ -879,6 +938,9 @@ export function refOf(entry) {
   const layer = layerOf(entry.id)
   return [
     `用设计工作台里的「${entry.name}」（${layer === null ? '' : layer.name} · ${entry.id}），按这个设计来。`,
+    ...(Array.isArray(entry.sources) && entry.sources.length > 0
+      ? [`原始材料：${entry.sources[0].url ?? entry.sources[0].path}`]
+      : []),
     `要看完整规格：design_style op=get ${entry.id}`,
   ].join('\n')
 }
@@ -913,6 +975,9 @@ export function specOf(entry) {
     lines.push('', '要点：', ...entry.bullets.map((b) => `  - ${b}`))
   }
   if (entry.style !== undefined) lines.push('', `视觉手法：${entry.style.craft.join('；')}`, `适合：${entry.style.when}`, `别用在：${entry.style.avoid}`)
+  if (Array.isArray(entry.sources) && entry.sources.length > 0) {
+    lines.push('', '原始材料：', ...entry.sources.map((x) => `  - ${x.label}：${x.url ?? x.path}`))
+  }
   lines.push('', `怎么用：${entry.howto}`, '', ASK)
   return lines.join('\n')
 }
