@@ -3,15 +3,14 @@
 把**这台电脑上的设计资料**整理成三层，看着挑，点一下就把「我要这种」变成 AI 能读到的记录。
 
 ```
-App 设计（12）     手机 / 桌面应用 + huashu 的 App 风格库（硬件面板 / 液态玻璃 / Monzo / Things 3 …）
-前端设计（24）    本机八种样式 + 主题皮肤 + huashu 的网页/PPT/信息图/中文东亚/小红书风格库
-视频风格（10）    本机复刻与 carl-motion 的八种动效风格
-代码生视频（13）  工程侧：OpenMotion 的工作室 / 参考片重构 / 模板与 Motion.md / 渲染栈 + 选型对照；
-                 风格侧：动力排版 / 数据动起来 / 终端与代码 / 白板手绘 / 产品 UI 演示 /
-                 视差卡片 / 品牌片头 / 2D 角色逐帧（八种都能纯代码落地）
+App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机拉来的桌面端（Jev 浮层 / Pinky / 她不一样）
+前端设计（32）    本机八种样式 + 主题皮肤 + huashu 六区风格库 + 拉来的站（百年京张 / Archify /
+                 Precision Data / Nature 图表理论 / 会议图表规范 / 价格对比站）+ 我自己的站
+视频风格（11）    本机复刻与 carl-motion 八种动效 + 城市设计征集片（影像海报即分镜）
+代码生视频（13）  工程侧：OpenMotion 四条 + 选型对照；风格侧：八种纯代码可落地的动效风格
 ```
 
-共 **59 条**，其中自制 25 条、引用 34 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）。
+共 **71 条**，其中自制 29 条、引用 42 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）。
 
 ## 它解决什么
 
@@ -41,6 +40,12 @@ carl-motion 的八种动效风格（扁平矢量 / 水墨 / 黏土定格 / 技�
 - [huashu-design](https://github.com/alchaincyf/huashu-design)（花叔，MIT）：92 种风格分 6 区，
   这里收 6 条分区总览 + 13 条代表作，样张是它仓库里的 jpg（已下载到 `_design/covers/` 本地副本，无网也能看）
 - [OpenMotion](https://github.com/nexu-io/openmotion)（Apache-2.0）：4 条方法，封面用它的产品截图
+
+**本机拉来的别人的仓**（third-party / _pull_check / github-repositories）也收进来了：
+百年京张城市设计征集站、Archify（带 DESIGN.md 令牌表）、Precision Data 设计哲学、
+Nature 论文图表理论、ML 会议图表规范、真实模型价格对比站；桌面端有 Jev 聊天助手浮层、
+Pinky 产品设计文档、"她不一样" Skill 展示页；视频层加了一条城市设计征集片。
+每条都指本地文件，不联网也能看。
 
 ## 面板怎么用
 
