@@ -140,6 +140,16 @@ window.__ModuleLoader__.load({
         `</div>` +
         `</div>`
 
+      /** 大图里时间线/单行条下方会空出一截，用一句说明把它收住。 */
+      const footNote = !big
+        ? ''
+        : `<div style="margin-top:auto;padding-top:5px;border-top:1px solid ${c.border};font-size:10.5px;color:${muted}">` +
+          `${
+            layout === 'timeline'
+              ? '共 1,284 条 · 这里只画最近 4 条，长文本一律省略号'
+              : '常驻在输入框上方一行：默认不抢视线，hover 才提亮'
+          }</div>`
+
       let content
       if (layout === 'row') {
         content =
@@ -147,9 +157,9 @@ window.__ModuleLoader__.load({
           simpleRow('月相', '四月初七 · 上弦', '月龄 7.2 天', c.text) +
           simpleRow('余额', '¥ 128.40', '今日 +2.10') +
           // 小图只放两行：120px 的卡片框里第三行会被裁掉
-          (big ? simpleRow('状态', '一切正常', '● 在线', c.ok) : '')
+          (big ? simpleRow('状态', '一切正常', '● 在线', c.ok) + footNote : '')
       } else if (layout === 'timeline') {
-        content = header + logs
+        content = header + logs + footNote
       } else if (layout === 'drawer') {
         content = header + drawer
       } else if (layout === 'dashboard') {
@@ -166,9 +176,10 @@ window.__ModuleLoader__.load({
           card(
             // 小图只放一行：卡片框就 120px，宁可少一行也别被裁掉；
             // 大图（详情页 300px）放三行，把卡片撑满。
+            // 玻璃卡是"小面积"风格：大图也只放两行，多了会把底部 composer 顶出框。
             row('session-…9fde4a', ['注入 746 字'], true) +
               (big
-                ? row('session-…7c2a3c', ['注入 0 字'], false) + row('session-…ec2d6e', ['注入 0 字'], false)
+                ? row('session-…7c2a3c', ['注入 0 字'], false) + (layout === 'glass' ? '' : row('session-…ec2d6e', ['注入 0 字'], false))
                 : ''),
           ) +
           (big ? recentBlock() + composer : '')
