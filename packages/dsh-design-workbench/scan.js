@@ -18,6 +18,9 @@ const NOISE_NAMES = new Set([
   'assets', 'asset', 'static', 'public', 'images', 'img', 'media', 'pics', 'screenshots',
   'docs', 'doc', 'apk', 'src', 'lib', 'components', 'pages', 'styles', 'css', 'js',
   'scripts', 'test', 'tests', 'examples', 'example', 'fixtures', 'locales', 'i18n',
+  // 输出/临时目录：一堆图不代表一个设计素材，别让它们进库
+  'out', 'output', 'outputs', 'tmp', 'temp', 'cache', 'logs', 'generated',
+  'generated_images', 'imgs', 'renders', 'exports', 'downloads', 'node-build',
 ])
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'])
@@ -117,7 +120,7 @@ function classify(dir) {
   let layer = 'frontend'
   if (android || electron) layer = 'app'
   else if (videoAsset || motion) layer = 'codevideo'
-  else if (images >= 5 && !frontend) layer = 'video'
+  // 纯图目录（截图集/参考图）算前端素材，不再误判成「视频风格」
 
   const tags = []
   if (designDoc) tags.push('设计文档')
@@ -126,7 +129,7 @@ function classify(dir) {
   if (android) tags.push('Android')
   if (electron) tags.push('桌面')
   if (videoAsset) tags.push('代码生视频')
-  if (images >= 5) tags.push('截图多')
+  if (images >= 5) tags.push('截图集')
 
   return { layer, designDoc, tags }
 }
@@ -207,6 +210,8 @@ export function scanRoot(root, opts = {}) {
     for (const e of entries) {
       if (!e.isDirectory()) continue
       if (SKIP_DIRS.has(e.name) || e.name.startsWith('.')) continue
+      if (/^_(tmp|temp|probe|cache|doubao|zc_tmp|design|mascot|monthly|qwen|profile|wegame|xiaozhi)/i.test(e.name)) continue
+      if (/^(out|output|tmp|temp)-?\d*$/i.test(e.name)) continue
       walk(join(dir, e.name), level + 1)
       if (visited > maxDirs || candidates.length >= maxCandidates) return
     }
