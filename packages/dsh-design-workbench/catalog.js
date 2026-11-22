@@ -1122,11 +1122,98 @@ const LOCAL_PULLED_VIDEO = [
   },
 ]
 
+
+/**
+ * 代码生视频：第三方的「引擎」级条目。
+ * 用户提到「还有一个专门的关于代码生视频的远程库」——扫本机 git remote + 知识库笔记后确认是
+ * HeyGen 的 HyperFrames（wiki 里有 [[Hyperframes]] 笔记，OpenMotion 的渲染引擎也是它那一路）。
+ * 顺带把两条同赛道的引擎也收进来做对照：Remotion（React）与 Manim（Python 数学动画）。
+ */
+const CODEVIDEO_ENGINES = [
+  {
+    id: 'cv-hyperframes',
+    layer: 'codevideo',
+    name: 'HyperFrames（HeyGen）· 写 HTML 出 MP4',
+    oneLine: 'HTML 里用 data 属性标时间轴与轨道，无头 Chrome 抓帧、FFmpeg 封装，Apache-2.0，专为 agent 设计',
+    source: 'https://github.com/heygen-com/hyperframes（Apache-2.0；npm 包 hyperframes；文档 hyperframes.heygen.com）',
+    tags: ['引擎', 'HTML 即视频', '开源', 'agent'],
+    kind: 'text',
+    swatch: { a: '#0b1020', b: '#16233d', fg: '#e6efff', accent: '#5eead4', pattern: 'grid' },
+    bullets: [
+      '组合脚本就是普通 HTML/CSS/JS：不需要构建步骤，index.html 直接能播',
+      '时间轴靠 data 属性（进入点/时长/轨道），动画用 GSAP，做出来是确定性的（同输入同输出）',
+      '自带 agent skills：npx skills add heygen-com/hyperframes，Claude Code 里能用 /hyperframes 命令',
+      '与 Remotion 的差别：HTML 原生 vs React 组件；Apache-2.0 vs 商业授权；无 build vs 要打包',
+    ],
+    howto: '要做「代码写视频」的产品片/解释片时，先用它跑通最小闭环：一个 index.html + 时间轴属性 + 本地渲染 MP4。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/heygen-com/hyperframes' },
+      { label: '文档（llms.txt 入口）', url: 'https://hyperframes.heygen.com/llms.txt' },
+      { label: '本机笔记', path: 'D:/github_project/ZhaoWen_GitHub维护/weflow-cli/output/_wiki-backup-20261109-202714/Hyperframes.md' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cv-remotion',
+    layer: 'codevideo',
+    name: 'Remotion · 用 React 写视频',
+    oneLine: '组件即帧：<Sequence> 排时间、useCurrentFrame 驱动动画，生态与模板最多',
+    source: 'https://github.com/remotion-dev/remotion（注意：商业授权有规模门槛，不是 OSI 开源）',
+    tags: ['引擎', 'React', '生态'],
+    kind: 'text',
+    swatch: { a: '#0f0f14', b: '#1e1b2e', fg: '#f2f2f7', accent: '#8b5cf6', pattern: 'dots' },
+    bullets: [
+      '一切都是 React 组件，能复用前端生态（图表、字体、动画库）',
+      '需要打包（webpack/vite）才能渲染；渲染器为无头 Chrome',
+      '授权：公司规模超阈值要付费——自用没问题，商用前先看许可',
+    ],
+    howto: '团队已经在写 React、又要长期维护视频工程时选它；纯 HTML 场景 HyperFrames 更轻。',
+    sources: [{ label: '仓库', url: 'https://github.com/remotion-dev/remotion' }, { label: '许可说明', url: 'https://www.remotion.dev/license' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'cv-manim',
+    layer: 'codevideo',
+    name: 'Manim · 用 Python 画数学动画',
+    oneLine: '公式、坐标系、几何变换的动画引擎（3Blue1Brown 那套），解释硬概念最快',
+    source: 'https://github.com/ManimCommunity/manim（社区版，MIT）',
+    tags: ['引擎', '数学', '解释性'],
+    kind: 'text',
+    swatch: { a: '#0a0f1a', b: '#132238', fg: '#dbeafe', accent: '#fbbf24', pattern: 'stripes' },
+    bullets: [
+      'Scene + 动画对象（MathTex/Axes/Graph），天生为「讲清楚」服务',
+      '公式用 LaTeX 直接写，不用截图贴图',
+      '渲染慢、样式老派——适合概念演示，不适合品牌片',
+    ],
+    howto: '要讲算法/数学/物理时用它；品牌向的片子别用，画面语言不对路。',
+    sources: [{ label: '仓库', url: 'https://github.com/ManimCommunity/manim' }, { label: '本机笔记', path: 'D:/github_project/ZhaoWen_GitHub维护/weflow-cli/output/_wiki-backup-20261109-202714/Manim.md' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'vid-minimax-mcp',
+    layer: 'video',
+    name: 'minimax-video-mcp · AI 生视频链路（本机）',
+    oneLine: '把 MiniMax H3 的文生视频/图生视频封成 MCP：提交任务、轮询、拿下载链接',
+    source: 'D:/github_project/ZhaoWen_GitHub维护/_audit/minimax-video-mcp（我写的 MCP server）',
+    tags: ['AI 生视频', 'MCP', '本机'],
+    kind: 'text',
+    swatch: { a: '#1a1024', b: '#2d1b3f', fg: '#f3e8ff', accent: '#c084fc', pattern: 'blot' },
+    bullets: [
+      '三个工具覆盖异步全流程：submit_video / query_video / 下载',
+      '与「代码生视频」正好互补：这条是生成素材，那条是排版与时间轴',
+      '短视频里常见组合：AI 出 2–3 个关键画面，代码负责排字、转场、字幕',
+    ],
+    howto: '要「真实质感」的画面时用它生成，再用代码生视频那层把整条片子排出来。',
+    sources: [{ label: 'README', path: 'D:/github_project/ZhaoWen_GitHub维护/_audit/minimax-video-mcp/README.md' }],
+    origin: 'mine',
+  },
+]
+
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
   { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND] },
-  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO] },
-  { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', entries: [...CODEVIDEO, ...CODEVIDEO_STYLES] },
+  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
+  { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
 ]
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)

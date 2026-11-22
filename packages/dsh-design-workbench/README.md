@@ -6,11 +6,12 @@
 App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机拉来的桌面端（Jev 浮层 / Pinky / 她不一样）
 前端设计（32）    本机八种样式 + 主题皮肤 + huashu 六区风格库 + 拉来的站（百年京张 / Archify /
                  Precision Data / Nature 图表理论 / 会议图表规范 / 价格对比站）+ 我自己的站
-视频风格（11）    本机复刻与 carl-motion 八种动效 + 城市设计征集片（影像海报即分镜）
-代码生视频（13）  工程侧：OpenMotion 四条 + 选型对照；风格侧：八种纯代码可落地的动效风格
+视频风格（12）    本机复刻与 carl-motion 八种动效 + 城市设计征集片 + AI 生视频链路（minimax MCP）
+代码生视频（16）  引擎：HyperFrames（HeyGen，HTML→MP4）/ Remotion（React）/ Manim（数学动画）；
+                 工程侧：OpenMotion 四条 + 选型对照；风格侧：八种纯代码可落地的动效风格
 ```
 
-共 **71 条**，其中自制 29 条、引用 42 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）。
+共 **75 条**，其中自制 30 条、引用 45 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）。
 
 ## 它解决什么
 
@@ -31,7 +32,9 @@ VideoQuiz（视频成卷）、Q 版桌宠 HuaJing、余烬 Ember、AuroWendao �
 **视频风格**：BV1KHaG6bEb9 复刻（洗衣机鲸鱼娘）、rea-video 逆向拆解方法、
 carl-motion 的八种动效风格（扁平矢量 / 水墨 / 黏土定格 / 技术蓝图 / 爆炸视图 / 积木玩具 / 玻璃拟态 / 花叔人像）。
 
-**代码生视频**：单独一层，13 条分两半——
+**代码生视频**：单独一层，16 条分三块——
+- **引擎**：HyperFrames（HeyGen，HTML 里用 data 属性标时间轴，无头 Chrome + FFmpeg，Apache-2.0）、
+  Remotion（React 组件即帧，注意商业授权）、Manim（Python 数学动画）
 - **工程侧**：OpenMotion 四条（HTML 即视频、参考片重构五维、模板库与 Motion.md、Chromium+FFmpeg 渲染栈）+ 我写的选型对照
 - **风格侧**：八种纯代码能落地的视觉风格（动力排版 / 数据动起来 / 终端与代码 / 白板手绘 /
   产品 UI 演示 / 视差卡片 / 品牌片头 / 2D 角色逐帧），每条都有「要点」与「怎么用」
