@@ -385,13 +385,353 @@ const VIDEO_ENTRIES = [
   },
 ]
 
+
+/**
+ * ── huashu-design（花叔）风格库 ─────────────────────────────────────
+ * 92 种风格：网页 20 / PPT 20 / 信息图 20 / App 12 / 中文与东亚 12 / 小红书 8。
+ * 这里收 6 条分区总览 + 一批有代表性的单条；样张直接引 GitHub 上的 jpg（远程，不落盘）。
+ * 源：https://github.com/alchaincyf/huashu-design · references/design-styles.md
+ */
+const HD = 'https://raw.githubusercontent.com/alchaincyf/huashu-design/master/assets/style-specimens'
+const HD_REF = 'huashu-design · references/design-styles.md'
+
+const HUASHU_APP = [
+  {
+    id: 'app-huasu-app-zone',
+    layer: 'app',
+    name: 'huashu · App 风格库 12 种',
+    oneLine: '按「这个 App 管的事在现实里长什么样」建屏：硬件面板 / 液态玻璃 / 玩味 3D / 友好金融 / 专业相机 / 地形工具 / 瀑布流 / 命令面板 / 健康色码 / 原生精修 / 柔和鼓励 / 编辑阅读',
+    source: 'huashu-design · assets/style-specimens/app（12 张样张）',
+    tags: ['方法层', 'App 风格库', '12 种'],
+    kind: 'image',
+    coverUrl: HD + '/app/01-hardware-panel.jpg',
+    bullets: ['每条都带样张，先看图再读文字', '样张是「展示板」：2–3 块手机屏，构图本身也是示范', '挑一条当主范式，别把四条缝在一起'],
+    howto: '做 App 原型时先在这一区挑一个风格，再去看对应细节；库里每条都写了纯 HTML 的还原度。',
+    origin: 'referenced',
+  },
+  {
+    id: 'app-huasu-hardware-panel',
+    layer: 'app',
+    name: '硬件面板（Teenage Engineering 式）',
+    oneLine: '近黑屏 + 信号橙 + 米灰按键，点阵读数、方格按键阵列、丝印标签',
+    source: 'huashu · style-specimens/app/01-hardware-panel.jpg（参考 OP-1 / EP-133）',
+    tags: ['App 风格', '工具类', '点阵'],
+    kind: 'image',
+    coverUrl: HD + '/app/01-hardware-panel.jpg',
+    bullets: ['橙色只给「当前激活」，别满屏刷', '按键用 inset 底边阴影表达「压下去的厚度」', '点阵字做读数，标签全大写 + 宽字距'],
+    howto: '音频/创作/极客小工具类 App 用这套；纯 CSS 可还原 85%。',
+    origin: 'referenced',
+  },
+  {
+    id: 'app-huasu-liquid-glass',
+    layer: 'app',
+    name: '液态玻璃（iOS 26 语言）',
+    oneLine: '内容铺满全屏，控件是半透明白玻璃胶囊，浮在内容上',
+    source: 'huashu · style-specimens/app/02-liquid-glass.jpg（参考 Apple Liquid Glass）',
+    tags: ['App 风格', '玻璃', '原生感'],
+    kind: 'image',
+    coverUrl: HD + '/app/02-liquid-glass.jpg',
+    bullets: ['背景必须有色彩层次，玻璃才看得出来；纯色底上等于灰块', 'backdrop-filter: blur(22px) saturate(180%) 是核心', '标签栏做成悬浮胶囊，不是贴底整条'],
+    howto: '天气/运动/媒体类要「内容为主、控件悬浮」时用；折射光效 CSS 做不到，降级为高光描边并在产出里说明。',
+    origin: 'referenced',
+  },
+  {
+    id: 'app-huasu-friendly-fintech',
+    layer: 'app',
+    name: '友好金融（Monzo 式）',
+    oneLine: '珊瑚红满铺顶部 + 白色大圆角面板抬起，余额大字 + 胶囊按钮 + 彩色「罐子」',
+    source: 'huashu · style-specimens/app/04-friendly-fintech.jpg（参考 Monzo）',
+    tags: ['App 风格', '金融', '大圆角'],
+    kind: 'image',
+    coverUrl: HD + '/app/04-friendly-fintech.jpg',
+    bullets: ['圆角 28–34px，两列罐子方块', '余额 58px 以上粗体，口语化小标题', '图标不用画：单字 + 同色系深浅底'],
+    howto: '把「严肃的钱」说得亲切时用；纯 CSS 可 1:1 还原。',
+    origin: 'referenced',
+  },
+  {
+    id: 'app-huasu-native-polish',
+    layer: 'app',
+    name: '原生精修（Things 3 式）',
+    oneLine: '纯白 + 近黑 + 一个蓝，勾选框、缩进发丝线、浮起任务卡',
+    source: 'huashu · style-specimens/app/10-native-polish.jpg（参考 Things 3）',
+    tags: ['App 风格', '效率', '安静'],
+    kind: 'image',
+    coverUrl: HD + '/app/10-native-polish.jpg',
+    bullets: ['行分隔线从复选框右侧起（缩进发丝线）', '任务展开成带大阴影的浮起卡片', '蓝色只给勾选、链接、加号'],
+    howto: '任务/笔记/日程这类「用久了不累」的工具；纯 CSS 可还原 95%。',
+    origin: 'referenced',
+  },
+]
+
+const HUASHU_FRONTEND = [
+  {
+    id: 'fe-huasu-web-zone',
+    layer: 'frontend',
+    name: 'huashu · 网页风格库 20 种',
+    oneLine: '从媒体级粗野主义到瑞士黑白、日式白盒：每条都带样张与「纯 HTML 还原度」',
+    source: HD_REF + '（网页分区 20 条）',
+    tags: ['方法层', '网页风格库', '20 种'],
+    kind: 'image',
+    coverUrl: HD + '/web/01-editorial-brutalism.jpg',
+    bullets: ['每条标了 大胆/中性/安静 与还原度（≥90% 闭眼做）', '先看样张再读文字：只读名字做出来是「平均印象」', '三个方向别都落在同一种气质'],
+    howto: '做网页/落地页/官网时先在这一区挑一条，再按它的「HTML 实现」写。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-ppt-zone',
+    layer: 'frontend',
+    name: 'huashu · PPT 风格库 20 种',
+    oneLine: '新瑞士大字报 / 黑底巨型数字 / 单色撞色海报 / Bento 格 / Tufte 证据页……',
+    source: HD_REF + '（PPT 分区 20 条）',
+    tags: ['方法层', 'PPT 风格库', '20 种'],
+    kind: 'image',
+    coverUrl: HD + '/ppt/01-neo-swiss-billboard.jpg',
+    bullets: ['母版都是「一页一句 + 一个图」', '数字用 tabular-nums 等宽收紧字距', '章节页用大色块一个词'],
+    howto: '做 deck/汇报/路演时来这一区挑；纯 HTML/CSS 就能到 90% 以上。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-info-zone',
+    layer: 'frontend',
+    name: 'huashu · 信息图库 20 种',
+    oneLine: 'McCandless 美丽信息 / Tufte 小倍数 / 地铁拓扑图 / 科学期刊图版 / 瑞士网格年报',
+    source: HD_REF + '（信息图分区 20 条）',
+    tags: ['方法层', '信息图', '20 种'],
+    kind: 'image',
+    coverUrl: HD + '/info/11-beautiful-information.jpg',
+    bullets: ['「一张以数据为主角、能脱离交互独立阅读的图」走这一区', '小倍数必须共用坐标轴范围，否则失去可比性', '地铁图牺牲地理准确性换可读性'],
+    howto: '做数据图/长图/年报时用；全部可用纯 SVG + CSS 画，不需要素材。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-east-zone',
+    layer: 'frontend',
+    name: 'huashu · 中文与东亚 12 种',
+    oneLine: '吕敬人书籍设计 / 宋刻本版式 / 民国书衣 / 上海摩登 / 香港街招 / 田中一光 / 佐藤可士和',
+    source: HD_REF + '（中文与东亚分区 12 条）',
+    tags: ['方法层', '中文版式', '12 种'],
+    kind: 'image',
+    coverUrl: HD + '/east/01-lu-jingren-bookcraft.jpg',
+    bullets: ['中文版面有自己的语法：竖排、版心、界栏、题签', '不是「西方风格 + 换中文字体」', '手写题签/做旧纸张做不到，按条目里的「降级」处理'],
+    howto: '中文内容尤其值得来这一区翻：跨媒介，网页/deck/海报/信息图都能用。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-xhs-zone',
+    layer: 'frontend',
+    name: 'huashu · 小红书图文 8 种',
+    oneLine: '标本志 / 贴纸本 / 索引 / 长卷 / 日报 / 集换卡 / 留白 / 面积信息图',
+    source: HD_REF + '（小红书分区 8 条，每张样张同时是模板）',
+    tags: ['方法层', '小红书', '8 种'],
+    kind: 'image',
+    coverUrl: HD + '/xhs/01-specimen-journal.jpg',
+    bullets: ['3:4 竖图 1242×1660，第一张是封面', '正文 ≥42px、标签 ≥32px，换内容别往下缩', '一组里穿插一两张「留白」换气'],
+    howto: '做图文/封面/轮播时用；样张按 1200×750 打开是样张，按真实尺寸打开交给切图脚本。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-editorial-brutalism',
+    layer: 'frontend',
+    name: '媒体级粗野主义',
+    oneLine: '纯黑白 + 超链接蓝 + 信号橙红，120px 巨号标题直接压 14px 小正文',
+    source: 'huashu · style-specimens/web/01-editorial-brutalism.jpg（参考 Bloomberg Businessweek）',
+    tags: ['网页风格', '大胆', '高密度'],
+    kind: 'image',
+    coverUrl: HD + '/web/01-editorial-brutalism.jpg',
+    bullets: ['极端字号反差是主手法，别把标题缩小', '用 1px 规则线分栏切割，不留白', '零素材依赖，纯 CSS 可 98% 还原'],
+    howto: '媒体/内容出版、观点型长文、发布 hero；要「信息密度 + 态度」时首选。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-neo-brutalism',
+    layer: 'frontend',
+    name: '新粗野主义撞色',
+    oneLine: '电光紫/品红 + 亮黄，3px 粗黑描边 + 4px 硬投影，几乎无圆角',
+    source: 'huashu · style-specimens/web/02-neo-brutalism.jpg（参考 The Verge 2022）',
+    tags: ['网页风格', '大胆', '撞色'],
+    kind: 'image',
+    coverUrl: HD + '/web/02-neo-brutalism.jpg',
+    bullets: ['border: 3px solid #000 + box-shadow: 4px 4px 0 #000', 'hover 撞色翻转（不是变浅）', '卡片化 feed 流、硬色块分区'],
+    howto: '内容站/活动 landing/榜单页；想要「未完成的界面气质」时用。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-warm-editorial',
+    layer: 'frontend',
+    name: '暖色出版物（Anthropic 式）',
+    oneLine: '奶油纸底 #F5F0E8 + 赤陶橙点缀 + 衬线标题×无衬线正文，书籍式单栏',
+    source: 'huashu · style-specimens/web/12-warm-editorial.jpg（参考 Anthropic / Penguin）',
+    tags: ['网页风格', '中性', '长文'],
+    kind: 'image',
+    coverUrl: HD + '/web/12-warm-editorial.jpg',
+    bullets: ['max-width 控阅读宽度，line-height 1.7', '衬线标题 + 无衬线正文混排', '注意：这也是 AI 最容易滑进去的默认外观，别三个方向都挤这里'],
+    howto: 'AI 产品站/长文/白皮书；要「出版物感」又要克制时用。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-linear-bento',
+    layer: 'frontend',
+    name: 'Linear 暗色发光 + Bento',
+    oneLine: '近黑底 + 去饱和蓝紫品牌色 + 发丝分割线的便当盒网格',
+    source: 'huashu · style-specimens/web/13-glassmorphism-bento.jpg（参考 Linear / Cursor）',
+    tags: ['网页风格', '中性', '暗色'],
+    kind: 'image',
+    coverUrl: HD + '/web/13-glassmorphism-bento.jpg',
+    bullets: ['bento 分块 + 1px 发丝线，靠层次不靠阴影', '发光用 radial-gradient 晕，不做霓虹描边', '产品截图位用简化假 UI，别用灰块'],
+    howto: 'SaaS/开发者工具 hero、功能展示；「The Linear Look」已经成流派，配方成熟。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-swiss-mono',
+    layer: 'frontend',
+    name: 'Swiss 极致黑白',
+    oneLine: '纯黑白 + Geist + 直角锐边 + 精密栅格，零彩色或仅一抹蓝链接',
+    source: 'huashu · style-specimens/web/19-swiss-monochrome.jpg（参考 Vercel）',
+    tags: ['网页风格', '安静', '极简'],
+    kind: 'image',
+    coverUrl: HD + '/web/19-swiss-monochrome.jpg',
+    bullets: ['border-radius: 0，发丝边框', 'Geist 已开源，可直接引', '100% 纯 CSS 还原'],
+    howto: '开发者文档/技术官网；最安全也最容易做成「没有主张」——用它就要靠版式取胜。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-song-block',
+    layer: 'frontend',
+    name: '宋刻本版式',
+    oneLine: '一整叶居中：版框外粗内细、竖排界栏、版心鱼尾、朱批点圈',
+    source: 'huashu · style-specimens/east/02-song-block-print.jpg',
+    tags: ['中文版式', '古籍', '竖排'],
+    kind: 'image',
+    coverUrl: HD + '/east/02-song-block-print.jpg',
+    bullets: ['writing-mode: vertical-rl 每列一个 div，从右往左读', '鱼尾用 clip-path 三角，界栏用 border-left', '朱圈用 text-emphasis'],
+    howto: '文献/档案/文化类内容页、deck 引文页；墨色浓淡与纸张破损做不到，降级为均匀墨色。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-tanaka',
+    layer: 'frontend',
+    name: '田中一光几何构成',
+    oneLine: '网格上的方/圆/四分之一圆拼成抽象主图：红、黑、芥黄、一点钢蓝',
+    source: 'huashu · style-specimens/east/09-tanaka-geometric-poster.jpg',
+    tags: ['中文版式', '海报', '几何'],
+    kind: 'image',
+    coverUrl: HD + '/east/09-tanaka-geometric-poster.jpg',
+    bullets: ['70px 为单位在 560 方阵里排', 'border-radius 做四分之一圆，repeating-linear-gradient 做条纹', '竖排粗宋体大标题 + 小红标签信息块'],
+    howto: '展览/演出海报、文化机构首屏；丝网套色质感做不到，降级纯色平涂。',
+    origin: 'referenced',
+  },
+  {
+    id: 'fe-huasu-hk-signs',
+    layer: 'frontend',
+    name: '香港街招与招牌',
+    oneLine: '层层叠放的竖招横招、高饱和底色 + 奶白边框 + 外发光，电线横穿',
+    source: 'huashu · style-specimens/east/06-hk-street-signs.jpg',
+    tags: ['中文版式', '大胆', '霓虹'],
+    kind: 'image',
+    coverUrl: HD + '/east/06-hk-street-signs.jpg',
+    bullets: ['绝对定位逐块摆放，招牌之间要遮挡', 'box-shadow 做灯箱外发光，text-shadow 做硬投影', '竖招用 writing-mode: vertical-rl'],
+    howto: '餐饮/零售/夜市类品牌页、活动海报；北魏体手写笔画做不到，降级 Noto 粗黑。',
+    origin: 'referenced',
+  },
+]
+
+const OPENMOTION = [
+  {
+    id: 'vid-openmotion',
+    layer: 'video',
+    name: 'OpenMotion · HTML 即视频的全栈工作室',
+    oneLine: '把参考片拆成镜头，用 HTML/CSS/JS 重建，Studio 里调时间线，最后渲 MP4——同一份工程',
+    source: 'https://github.com/nexu-io/openmotion（Apache-2.0）',
+    tags: ['视频方法', 'HTML 即视频', '开源'],
+    kind: 'image',
+    coverUrl: 'https://raw.githubusercontent.com/nexu-io/openmotion/main/docs/readme/live-product/editor.en.jpg',
+    bullets: ['视频不是剪出来的，是「用代码写出来」的：场景、字、转场、时间都在 HTML 里', 'Motion.md：镜头顺序/时长/转场的可分享格式', 'BYOA（带自己的 Agent）+ BYOK（带自己的 key）'],
+    howto: '要做产品片/品牌短片/口播剪辑时，按它的路子：先拆参考，再写 HTML 场景，最后渲 MP4。',
+    origin: 'referenced',
+  },
+  {
+    id: 'vid-openmotion-recreate',
+    layer: 'video',
+    name: 'OpenMotion · 参考片重构流程',
+    oneLine: '拆钩子与叙事、拆镜头结构、拆动效节奏、拆字体与色彩、拆声音——再换成你的素材重建',
+    source: 'https://github.com/nexu-io/openmotion/blob/main/skills/openmotion-recreate/SKILL.md',
+    tags: ['视频方法', '复刻', '拆解'],
+    kind: 'text',
+    swatch: { a: '#1f2430', b: '#2f3a4d', fg: '#e8eef7', accent: '#7aa2f7', pattern: 'stripes' },
+    bullets: ['五个维度逐条拆：钩子 / 镜头 / 动效 / 字体色彩 / 声音', '保留「动效意图」，替换成你的品牌与文案', '做完和参考并排对一遍，说明还差什么'],
+    howto: '复刻一条参考片时按这五维写拆解表，再决定哪些保留、哪些替换。',
+    origin: 'referenced',
+  },
+  {
+    id: 'vid-openmotion-templates',
+    layer: 'video',
+    name: 'OpenMotion · 模板库与 Motion.md',
+    oneLine: '一批可编辑的动效模板（OpenAI/Anthropic/Notion/Slack/Stripe/Kimi…），每个带 Motion.md',
+    source: 'https://open-design.ai/templates/ · https://github.com/nexu-io/openmotion/blob/main/docs/motion-md.md',
+    tags: ['视频方法', '模板', 'Motion.md'],
+    kind: 'image',
+    coverUrl: 'https://raw.githubusercontent.com/nexu-io/openmotion/main/docs/readme/live-product/remix.en.jpg',
+    bullets: ['模板不是视频文件，是可编辑的 HTML 工程', 'Motion.md 写清镜头顺序、时长、转场与 Brand Kit', '下载 motion.md 就能照着重做'],
+    howto: '想快速出一个片子时，挑一个同题材模板，改文案/配色/产品截图，再渲。',
+    origin: 'referenced',
+  },
+  {
+    id: 'vid-openmotion-stack',
+    layer: 'video',
+    name: 'OpenMotion · 渲染栈（HTML → MP4）',
+    oneLine: 'Chromium + Puppeteer 渲帧、FFmpeg 编码、GSAP 驱动时间线，导出前做规格校验',
+    source: 'https://github.com/nexu-io/openmotion（hyperframes 引擎 + scripts/verify-export.ts）',
+    tags: ['视频方法', '渲染', '工程'],
+    kind: 'text',
+    swatch: { a: '#151a21', b: '#243040', fg: '#dfe9f5', accent: '#4ec9b0', pattern: 'grid' },
+    bullets: ['时间线用 GSAP，帧由无头 Chromium 抓', '导出走 FFmpeg/FFprobe，并校验分辨率/时长/音轨', '同一工程既能预览也能出片，避免「设计稿和成片两张皮」'],
+    howto: '想知道「HTML 怎么变成片子」时看这条：这就是本机 generate_video 之外的另一条路。',
+    origin: 'referenced',
+  },
+]
+
+
+/**
+ * 远程样张的本地副本（下载自 coverUrl）。面板优先用本地图：
+ * 工作台不该因为没网就白屏，也不该每次打开都去抓 GitHub。
+ */
+const LOCAL_COVERS = {
+  'app-huasu-app-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-app-zone.jpg',
+  'app-huasu-hardware-panel': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-hardware-panel.jpg',
+  'app-huasu-liquid-glass': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-liquid-glass.jpg',
+  'app-huasu-friendly-fintech': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-friendly-fintech.jpg',
+  'app-huasu-native-polish': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/app-huasu-native-polish.jpg',
+  'fe-huasu-web-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-web-zone.jpg',
+  'fe-huasu-ppt-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-ppt-zone.jpg',
+  'fe-huasu-info-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-info-zone.jpg',
+  'fe-huasu-east-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-east-zone.jpg',
+  'fe-huasu-xhs-zone': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-xhs-zone.jpg',
+  'fe-huasu-editorial-brutalism': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-editorial-brutalism.jpg',
+  'fe-huasu-neo-brutalism': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-neo-brutalism.jpg',
+  'fe-huasu-warm-editorial': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-warm-editorial.jpg',
+  'fe-huasu-linear-bento': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-linear-bento.jpg',
+  'fe-huasu-swiss-mono': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-swiss-mono.jpg',
+  'fe-huasu-song-block': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-song-block.jpg',
+  'fe-huasu-tanaka': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-tanaka.jpg',
+  'fe-huasu-hk-signs': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-hk-signs.jpg',
+  'vid-openmotion': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-openmotion.jpg',
+  'vid-openmotion-templates': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-openmotion-templates.jpg',
+}
+
 export const LAYERS = [
-  { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', entries: APP_ENTRIES },
-  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤（八种样式量自本机代码）', entries: [...styleEntries(), ...FRONTEND_EXTRA] },
-  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: VIDEO_ENTRIES },
+  { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', entries: [...APP_ENTRIES, ...HUASHU_APP] },
+  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND] },
+  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: [...VIDEO_ENTRIES, ...OPENMOTION] },
 ]
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
+
+for (const e of ALL_ENTRIES) {
+  if (LOCAL_COVERS[e.id] !== undefined) {
+    e.cover = LOCAL_COVERS[e.id]
+    e.coverUrl = e.coverUrl || ''
+  }
+}
 
 export function findEntry(id) {
   return ALL_ENTRIES.find((e) => e.id === id) || null
@@ -493,7 +833,7 @@ const ORIGIN_NOTE = {
 }
 
 for (const e of ALL_ENTRIES) {
-  e.origin = ORIGIN[e.id] ?? 'mine'
+  e.origin = ORIGIN[e.id] ?? e.origin ?? 'mine'
   if (ORIGIN_NOTE[e.id] !== undefined) e.originNote = ORIGIN_NOTE[e.id]
 }
 

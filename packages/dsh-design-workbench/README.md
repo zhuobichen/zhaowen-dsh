@@ -3,10 +3,12 @@
 把**这台电脑上的设计资料**整理成三层，看着挑，点一下就把「我要这种」变成 AI 能读到的记录。
 
 ```
-App 设计（7）    手机 / 桌面应用的界面与产品设计
-前端设计（11）   网页、面板、主题皮肤（八种样式量自本机代码）
-视频风格（10）   短片 / 动效 / 片头的视觉风格与复刻方法
+App 设计（12）    手机 / 桌面应用 + huashu 的 App 风格库（硬件面板 / 液态玻璃 / Monzo / Things 3 …）
+前端设计（24）   本机八种样式 + 主题皮肤 + huashu 的网页/PPT/信息图/中文东亚/小红书风格库
+视频风格（14）   本机复刻与 carl-motion 动效 + OpenMotion（HTML 即视频 / 参考片重构 / 模板 / 渲染栈）
 ```
+
+共 **50 条**，其中自制 16 条、引用 34 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）。
 
 ## 它解决什么
 
@@ -24,8 +26,14 @@ VideoQuiz（视频成卷）、Q 版桌宠 HuaJing、余烬 Ember、AuroWendao �
 **前端设计**：八种量自本机代码的样式（DSH 原生基线 / 紧凑仪表盘 / 悬浮面板 / 侧滑抽屉 / 暗色玻璃卡 /
 冷蓝绘本 / 等宽时间线 / 极简单行）＋ 超时空辉夜姬皮肤 ＋ 鲸鱼娘主题 ＋ WeSight 主题设计 QA。
 
-**视频风格**：BV1KHaG6bEb9 复刻（洗衣机鲸鱼娘）、rea-video 逆向拆解方法，
-以及 carl-motion 的八种动效风格（扁平矢量 / 水墨 / 黏土定格 / 技术蓝图 / 爆炸视图 / 积木玩具 / 玻璃拟态 / 花叔人像）。
+**视频风格**：BV1KHaG6bEb9 复刻（洗衣机鲸鱼娘）、rea-video 逆向拆解方法、
+carl-motion 的八种动效风格（扁平矢量 / 水墨 / 黏土定格 / 技术蓝图 / 爆炸视图 / 积木玩具 / 玻璃拟态 / 花叔人像），
+以及 OpenMotion 的四条方法（HTML 即视频、参考片重构五维、模板库与 Motion.md、Chromium+FFmpeg 渲染栈）。
+
+**外部两套库怎么进来的**：
+- [huashu-design](https://github.com/alchaincyf/huashu-design)（花叔，MIT）：92 种风格分 6 区，
+  这里收 6 条分区总览 + 13 条代表作，样张是它仓库里的 jpg（已下载到 `_design/covers/` 本地副本，无网也能看）
+- [OpenMotion](https://github.com/nexu-io/openmotion)（Apache-2.0）：4 条方法，封面用它的产品截图
 
 ## 面板怎么用
 

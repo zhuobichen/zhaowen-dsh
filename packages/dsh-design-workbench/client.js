@@ -354,11 +354,12 @@ window.__ModuleLoader__.load({
             title: e.name + ' 预览',
           })
         }
-        if (e.kind === 'image' && e.cover) {
-          if (big) {
-            return el('div', { className: 'dw-big' }, el('img', { src: API + '/cover/' + encodeURIComponent(e.id), alt: e.name }))
-          }
-          return el('img', { src: API + '/cover/' + encodeURIComponent(e.id), alt: e.name, loading: 'lazy' })
+        // 本地副本优先（工作台不该因为没网就白屏），没有才用远程 URL
+        const src = e.cover ? API + '/cover/' + encodeURIComponent(e.id) : e.coverUrl || ''
+        if (e.kind === 'image' && src !== '') {
+          return big
+            ? el('div', { className: 'dw-big' }, el('img', { src: src, alt: e.name }))
+            : el('img', { src: src, alt: e.name, loading: 'lazy' })
         }
         // 有点配色就用海报；没有才退回文字块
         if (e.swatch) return el(Poster, { entry: e, big: big })
@@ -485,8 +486,10 @@ window.__ModuleLoader__.load({
                   el('span', { className: 'dw-kind' }, e.swatch ? '风格' : (KIND_LABEL[e.kind] || e.kind)),
                 ),
                 el('div', { className: 'dw-card-body' },
-                  el('div', { className: 'dw-card-name' }, e.name),
-                  el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
+                  el('div', { className: 'dw-card-name' },
+                    e.name,
+                    el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
+                  ),
                   el('div', { className: 'dw-card-line' }, e.oneLine),
                   el('div', { className: 'dw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) })),
                 ),
