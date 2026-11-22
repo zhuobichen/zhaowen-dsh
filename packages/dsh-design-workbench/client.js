@@ -476,7 +476,7 @@ window.__ModuleLoader__.load({
 
       ctx.slots.inject('conversation.view', function () {
         return ctx.slots.register(
-          { name: 'conversation.view', id: PANEL_ID, order: 75, label: function () { return TAB_LABEL } },
+          { name: 'conversation.view', id: PANEL_ID, order: 25, label: function () { return TAB_LABEL } },
           function (props) { return el(Panel, props) },
         )
       })
