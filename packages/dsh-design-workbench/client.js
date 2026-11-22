@@ -145,6 +145,120 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 @keyframes pop{0%,20%{opacity:0;transform:scale(.9)}30%,80%{opacity:1;transform:none}100%{opacity:0}}
 </style><div class=w><div class=ch><div class=head></div><div class=eye style="left:19px"></div><div class=eye style="left:33px"></div><div class=body></div></div><div class=bub>帧率 12–15 才像手绘</div><div class=sh style="position:absolute"></div></div></body></html>`,
+      // ── 架构设计图：八种视觉语言（都是能动的 HTML/SVG，面板里直接看）────
+      'arch-whiteboard': `<html><body style="margin:0;background:#f7f5f0;overflow:hidden;font-family:'Comic Sans MS',ui-rounded,system-ui">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><filter id="w"><feTurbulence baseFrequency="0.02" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter></defs>
+<g filter="url(#w)" fill="none" stroke="#2b2b2b" stroke-width="2" stroke-linecap="round">
+<rect x="18" y="30" width="74" height="34" rx="6"/><rect x="122" y="30" width="74" height="34" rx="6"/><rect x="226" y="30" width="74" height="34" rx="6"/>
+<rect x="122" y="112" width="74" height="34" rx="6"/>
+<path d="M92 47 H118"/><path d="M112 43 L120 47 L112 51"/>
+<path d="M196 47 H222"/><path d="M216 43 L224 47 L216 51"/>
+<path d="M159 64 V108"/><path d="M155 100 L159 108 L163 100"/>
+</g>
+<g fill="#2b2b2b" font-size="9" text-anchor="middle"><text x="55" y="51">用户</text><text x="159" y="51">网关</text><text x="263" y="51">服务</text><text x="159" y="133">数据库</text></g>
+<text x="18" y="168" font-size="8" fill="#8a7f6a">手绘白板 · 想法期用它，别怕丑</text>
+</svg></body></html>`,
+
+      'arch-d2-light': `<html><body style="margin:0;background:#ffffff;overflow:hidden;font-family:Inter,system-ui">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity=".10"/></filter>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#6b7280"/></marker></defs>
+<g filter="url(#s)">
+<rect x="16" y="26" width="78" height="36" rx="6" fill="#fff" stroke="#c9ced6"/>
+<rect x="120" y="26" width="78" height="36" rx="6" fill="#fff" stroke="#0ea5e9" stroke-width="1.6"/>
+<rect x="224" y="26" width="80" height="36" rx="6" fill="#fff" stroke="#c9ced6"/>
+<rect x="120" y="108" width="78" height="36" rx="6" fill="#fff" stroke="#c9ced6"/>
+</g>
+<g stroke="#6b7280" stroke-width="1.2" fill="none" marker-end="url(#a)">
+<path d="M94 44 H116"/><path d="M198 44 H220"/><path d="M159 62 V104"/></g>
+<g font-size="9.5" fill="#111827" text-anchor="middle"><text x="55" y="49">Client</text><text x="159" y="49">API 网关</text><text x="264" y="49">订单服务</text><text x="159" y="131">PostgreSQL</text></g>
+<g font-size="7.5" fill="#6b7280"><text x="16" y="16">系统架构 · C4 Container</text></g>
+</svg></body></html>`,
+
+      'arch-d2-dark': `<html><body style="margin:0;background:#14141f;overflow:hidden;font-family:ui-monospace,Consolas,monospace">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#7c7c9a"/></marker></defs>
+<rect x="16" y="26" width="78" height="36" rx="8" fill="#1e1e2e" stroke="#c084fc"/>
+<rect x="120" y="26" width="78" height="36" rx="8" fill="#1e1e2e" stroke="#38bdf8"/>
+<rect x="224" y="26" width="80" height="36" rx="8" fill="#1e1e2e" stroke="#a3e635"/>
+<rect x="120" y="108" width="78" height="36" rx="8" fill="#1e1e2e" stroke="#fbbf24"/>
+<g stroke="#7c7c9a" stroke-width="1.1" fill="none" marker-end="url(#ad)"><path d="M94 44 H116"/><path d="M198 44 H220"/><path d="M159 62 V104"/></g>
+<g font-size="9" fill="#e5e7eb" text-anchor="middle"><text x="55" y="49">client</text><text x="159" y="49">gateway</text><text x="264" y="49">orders</text><text x="159" y="131">postgres</text></g>
+<g font-size="7" fill="#7c7c9a"><text x="16" y="16">dark-mauve theme · d2 --theme 200</text></g>
+</svg></body></html>`,
+
+      'arch-c4': `<html><body style="margin:0;background:#f4f6f8;overflow:hidden;font-family:Inter,system-ui">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#707070"/></marker></defs>
+<g><circle cx="42" cy="40" r="11" fill="#08427b"/><path d="M31 58 q11 -10 22 0" fill="#08427b"/></g>
+<text x="42" y="76" font-size="7.5" fill="#08427b" text-anchor="middle">用户</text>
+<rect x="96" y="26" width="120" height="40" rx="4" fill="#1168bd"/>
+<text x="156" y="50" font-size="9.5" fill="#fff" text-anchor="middle">订单系统</text>
+<rect x="234" y="26" width="70" height="40" rx="4" fill="#999999"/>
+<text x="269" y="50" font-size="8.5" fill="#fff" text-anchor="middle">支付网关</text>
+<rect x="60" y="112" width="90" height="34" rx="4" fill="#438dd5"/>
+<text x="105" y="133" font-size="8" fill="#fff" text-anchor="middle">Web 前端</text>
+<rect x="170" y="112" width="90" height="34" rx="4" fill="#85bbf0"/>
+<text x="215" y="133" font-size="8" fill="#0b2b46" text-anchor="middle">订单服务</text>
+<g stroke="#707070" stroke-width="1" fill="none" marker-end="url(#ac)">
+<path d="M62 44 H92"/><path d="M216 46 H230"/>
+<path d="M105 96 V108"/><path d="M215 96 V108"/><path d="M150 129 H166"/></g>
+<g font-size="6.5" fill="#555"><text x="70" y="40">使用</text><text x="218" y="42">调用</text></g>
+</svg></body></html>`,
+
+      'arch-cloud': `<html><body style="margin:0;background:#fbfbfd;overflow:hidden;font-family:Inter,system-ui">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<rect x="10" y="18" width="300" height="150" rx="10" fill="none" stroke="#94a3b8" stroke-dasharray="5 4"/>
+<text x="18" y="32" font-size="7" fill="#64748b">VPC · 10.0.0.0/16</text>
+<g fill="#fff" stroke="#cbd5e1">
+<rect x="26" y="46" width="66" height="42" rx="6"/><rect x="106" y="46" width="66" height="42" rx="6"/>
+<rect x="186" y="46" width="66" height="42" rx="6"/><rect x="106" y="112" width="66" height="42" rx="6"/></g>
+<g fill="#f59e0b"><rect x="36" y="56" width="10" height="10" rx="2"/><rect x="116" y="56" width="10" height="10" rx="2"/></g>
+<g fill="#3b82f6"><rect x="196" y="56" width="10" height="10" rx="2"/><rect x="116" y="122" width="10" height="10" rx="2"/></g>
+<g font-size="8" fill="#334155"><text x="52" y="76">ALB</text><text x="132" y="76">EC2</text><text x="212" y="76">S3</text><text x="132" y="142">RDS</text></g>
+<g stroke="#94a3b8" stroke-width="1.1" fill="none"><path d="M96 67 H102"/><path d="M176 67 H182"/><path d="M139 92 V108"/></g>
+<text x="230" y="150" font-size="6.5" fill="#94a3b8">图标位：官方 cloud icons</text>
+</svg></body></html>`,
+
+      'arch-iso': `<html><body style="margin:0;background:radial-gradient(120% 100% at 30% 10%,#1e293b,#0b1220);overflow:hidden;font-family:Inter,system-ui">
+<style>
+.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:900px}
+.grid{transform:rotateX(58deg) rotateZ(-45deg);display:grid;grid-template-columns:repeat(3,54px);gap:16px}
+.cube{width:54px;height:54px;border-radius:6px;background:linear-gradient(145deg,#38bdf8,#1d4ed8);box-shadow:0 12px 20px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.5);position:relative;animation:hop 3s ease-in-out infinite}
+.cube:nth-child(2){background:linear-gradient(145deg,#a78bfa,#6d28d9);animation-delay:.3s}
+.cube:nth-child(3){background:linear-gradient(145deg,#34d399,#047857);animation-delay:.6s}
+.cube:nth-child(5){background:linear-gradient(145deg,#fbbf24,#b45309);animation-delay:.9s}
+.t{position:absolute;left:14px;bottom:12px;color:#94a3b8;font-size:8.5px;letter-spacing:.14em}
+@keyframes hop{0%,100%{transform:translateZ(0)}50%{transform:translateZ(10px)}}
+</style>
+<div class=scene><div class=grid><div class=cube></div><div class=cube></div><div class=cube></div><div class=cube></div><div class=cube></div><div class=cube></div></div></div>
+<div class=t>ISOMETRIC · 立体块，适合汇报/发布会</div></body></html>`,
+
+      'arch-blueprint': `<html><body style="margin:0;background:#0b2545;overflow:hidden;font-family:ui-monospace,Consolas,monospace">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><pattern id="g" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0 H0 V16" fill="none" stroke="#1b3a63" stroke-width=".6"/></pattern>
+<marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#7fd1ff"/></marker></defs>
+<rect width="320" height="180" fill="url(#g)"/>
+<g fill="none" stroke="#7fd1ff" stroke-width="1.1">
+<rect x="24" y="34" width="72" height="32"/><rect x="124" y="34" width="72" height="32"/><rect x="224" y="34" width="72" height="32"/>
+<rect x="124" y="112" width="72" height="32"/></g>
+<g stroke="#7fd1ff" stroke-width="1" fill="none" marker-end="url(#ab)"><path d="M96 50 H120"/><path d="M196 50 H220"/><path d="M160 66 V108"/></g>
+<g fill="#bfe6ff" font-size="8" text-anchor="middle"><text x="60" y="54">EDGE</text><text x="160" y="54">CORE</text><text x="260" y="54">CACHE</text><text x="160" y="132">STORE</text></g>
+<g fill="#5b86b5" font-size="6"><text x="24" y="26">DWG-01 / 架构总图</text><text x="24" y="168">SCALE 1:1 · REV B</text></g>
+<g stroke="#5b86b5" stroke-width=".6"><path d="M20 160 H300"/></g>
+</svg></body></html>`,
+
+      'arch-mono': `<html><body style="margin:0;background:#fff;overflow:hidden;font-family:Inter,system-ui">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<defs><marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#111"/></marker></defs>
+<g fill="none" stroke="#111" stroke-width="1">
+<rect x="20" y="30" width="76" height="34"/><rect x="122" y="30" width="76" height="34"/><rect x="224" y="30" width="76" height="34"/>
+<rect x="122" y="112" width="76" height="34"/></g>
+<g stroke="#111" stroke-width=".9" fill="none" marker-end="url(#am)"><path d="M96 47 H118"/><path d="M198 47 H220"/><path d="M160 64 V108"/></g>
+<g fill="#111" font-size="8.5" text-anchor="middle"><text x="58" y="51">WEB</text><text x="160" y="51">API</text><text x="262" y="51">WORKER</text><text x="160" y="133">DB</text></g>
+<g fill="#666" font-size="6.5"><text x="20" y="22">最小线框 · 只留结构与层级</text></g>
+</svg></body></html>`,
     }
 
     function demoHtml(id) {
@@ -471,7 +585,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         }
       }
 
-      const KIND_LABEL = { image: '图', tokens: '样式', text: '文档' }
+      const KIND_LABEL = { image: '图', tokens: '样式', text: '文档', demo: '风格' }
 
       /** 纯文字条目的海报：用自己的配色画一个可辨认的图案，不假装是成品帧。 */
       function Poster(props) {

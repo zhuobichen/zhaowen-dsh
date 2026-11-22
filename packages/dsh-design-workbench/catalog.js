@@ -1211,9 +1211,169 @@ const CODEVIDEO_ENGINES = [
   },
 ]
 
+
+/**
+ * 架构设计图：八种视觉语言。
+ * 不是「工具清单」，是「图长什么样」——每条都配一段能动的 HTML/SVG（kind: demo），
+ * 面板里直接看，挑中了再决定用哪个工具画（D2 / Excalidraw / Structurizr / diagrams）。
+ */
+const ARCH_ENTRIES = [
+  {
+    id: 'arch-whiteboard',
+    layer: 'frontend',
+    name: '手绘白板架构图（Excalidraw 风）',
+    oneLine: '米白纸底 + 抖动手绘线条 + 手写体，一看就是「还在讨论」的草图',
+    source: 'Excalidraw（MIT）· rough.js 抖动手法',
+    tags: ['架构图', '风格', '手绘', '草稿'],
+    kind: 'demo',
+    bullets: [
+      '线用 rough.js 抖 1–2.5px，字体走手写体，底色 #F7F5F0',
+      '块内只写名词（用户/网关/服务/库），不写技术栈',
+      '箭头手画感：末端画成两笔折线，不用标准箭头',
+    ],
+    howto: '方案预审、架构脑暴、给非技术同事讲结构时用；要正式交付就别用这套。',
+    sources: [
+      { label: 'Excalidraw', url: 'https://github.com/excalidraw/excalidraw' },
+      { label: 'rough.js', url: 'https://roughjs.com/' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-d2-light',
+    layer: 'frontend',
+    name: '现代 DSL 浅色（D2 默认）',
+    oneLine: '白底圆角卡片 + 柔和投影 + 单色描边强调关键节点，最「技术文档」的一版',
+    source: 'D2（Terrastruct，MPL-2.0）· 默认主题',
+    tags: ['架构图', '风格', '浅色', 'DSL'],
+    kind: 'demo',
+    bullets: [
+      '卡片圆角 6–8px、1px 描边走浅灰，关键节点换品牌色 1.6px',
+      '布局交给引擎（ELK/Dagre），人不手动摆位置',
+      '每张图只讲一层：Container 就别塞 Component 细节',
+    ],
+    howto: '写进 README/设计文档的正式架构图，首选用 D2 生成这套。',
+    sources: [
+      { label: 'D2 官网与主题', url: 'https://d2lang.com/' },
+      { label: '仓库', url: 'https://github.com/terrastruct/d2' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-d2-dark',
+    layer: 'frontend',
+    name: '深色终端架构图（D2 dark）',
+    oneLine: '近黑底 + 霓虹描边 + 等宽标签，像从监控面板里截出来的',
+    source: 'D2 深色主题（dark-mauve / terminal 系）',
+    tags: ['架构图', '风格', '深色', '终端'],
+    kind: 'demo',
+    bullets: [
+      '底 #14141F，卡片 #1E1E2E，描边用紫/青/绿区分角色',
+      '标签等宽小写（client / gateway / orders）更像系统内部视角',
+      '连线灰度压低，信息靠描边色，不靠箭头粗细',
+    ],
+    howto: '内部分享、事故复盘、技术博客配图；投屏到暗环境下特别清楚。',
+    sources: [{ label: 'D2 主题文档', url: 'https://d2lang.com/tour/themes' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-c4',
+    layer: 'frontend',
+    name: 'C4 分层图（Structurizr 风）',
+    oneLine: '深蓝系统块 + 人形 + 灰色外部系统，四级粒度（Context/Container/Component/Code）',
+    source: 'C4 model（Simon Brown）· Structurizr / IcePanel 的官方配色',
+    tags: ['架构图', '风格', 'C4', '分层'],
+    kind: 'demo',
+    bullets: [
+      '人 #08427B、系统 #1168BD、容器 #438DD5、组件 #85BBF0、外部系统 #999999',
+      '每张图左上角标粒度（Level 1/2/3），别混层',
+      '箭头写动词（使用/调用/读取），不写「依赖」这种空话',
+    ],
+    howto: '需要给不同受众讲同一套系统（老板看 L1、开发看 L2/L3）时，用 C4 这套。',
+    sources: [
+      { label: 'C4 model', url: 'https://c4model.com/' },
+      { label: 'Structurizr', url: 'https://structurizr.com/' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-cloud',
+    layer: 'frontend',
+    name: '云资源图标图（AWS/GCP 风）',
+    oneLine: '虚线 VPC 边界 + 官方图标方块 + 正交连线，一图说清部署拓扑',
+    source: 'Python diagrams / Go-Diagrams（官方云图标集）',
+    tags: ['架构图', '风格', '云', '部署'],
+    kind: 'demo',
+    bullets: [
+      '先画边界（VPC/Region/Subnet），再往里放资源',
+      '图标用官方 SVG，别自己画形状代替',
+      '连线走正交折线，跨边界的线要标出协议或端口',
+    ],
+    howto: '画部署拓扑、给运维/客户讲环境时用；比手绘图更可信。',
+    sources: [
+      { label: 'diagrams（Python）', url: 'https://github.com/mingrammer/diagrams' },
+      { label: 'AWS 架构图标', url: 'https://aws.amazon.com/architecture/icons/' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-iso',
+    layer: 'frontend',
+    name: '等距立体架构图（isometric）',
+    oneLine: '斜 45°/58° 投影的立体块，把「层」做成真的高度差，适合汇报与发布会',
+    source: '等距插画风（Figma/Spline 常见做法）',
+    tags: ['架构图', '风格', '立体', '汇报'],
+    kind: 'demo',
+    bullets: [
+      '统一两个角度（rotateX 58° / rotateZ -45°），所有块共用同一套变换',
+      '用高度表达层级：数据层在下、服务层居中、接入层在上',
+      '配色只做「同一材质的深浅」，别每块一个色',
+    ],
+    howto: '对外汇报、发布会、投资人材料；内部评审别用，信息密度低。',
+    sources: [{ label: 'Spline（等距 3D）', url: 'https://spline.design/' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-blueprint',
+    layer: 'frontend',
+    name: '工程蓝图（blueprint）',
+    oneLine: '深蓝底 + 白色细线 + 网格 + 图号/比例标注，把架构当工程图来画',
+    source: '蓝图制图语言（工程图纸转译）',
+    tags: ['架构图', '风格', '蓝图', '怀旧'],
+    kind: 'demo',
+    bullets: [
+      '底 #0B2545、线 #7FD1FF，线宽 1–1.1px，全部细线',
+      '四角带图号/比例/修订号（DWG-01 · REV B）',
+      '文字用等宽大写，字号极小，像图纸标注',
+    ],
+    howto: '给硬件/嵌入式/工业背景的受众，或想要「工程感」的封面页。',
+    sources: [{ label: '参考：C4 与工程制图的结合', url: 'https://c4model.com/' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'arch-mono',
+    layer: 'frontend',
+    name: '极简线框（无填充黑白）',
+    oneLine: '只留方框、细线与名字，没有任何颜色与阴影——信息密度最高的一版',
+    source: 'Mermaid 默认 / Tufte 式极简',
+    tags: ['架构图', '风格', '极简', '黑白'],
+    kind: 'demo',
+    bullets: [
+      '全部 1px 黑线、无填充、无圆角（圆角会让它显得随便）',
+      '标签全大写、8–9px，放框内居中',
+      '一张图里节点 ≤ 9 个，超了就拆图',
+    ],
+    howto: '文档里嵌的图、代码评审附图、打印用；花哨的场合别用。',
+    sources: [
+      { label: 'Mermaid', url: 'https://mermaid.js.org/' },
+      { label: 'likec4（C4 as code）', url: 'https://likec4.dev/' },
+    ],
+    origin: 'referenced',
+  },
+]
+
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
-  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND] },
+  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES] },
   { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
   { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
 ]
