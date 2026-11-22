@@ -371,7 +371,9 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);padding:0;text-align:left;font:inherit;color:inherit;width:100%;}',
             '.dw-card:hover{border-color:var(--dsw-alias-border-l3);}',
             '.dw-card-on{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-1px;}',
-            '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}',
+            '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;}',
+            '.dw-cover iframe,.dw-cover img,.dw-cover .dw-poster,.dw-cover .dw-cover-ph{pointer-events:none;}',
+            '.dw-cover-hit{position:absolute;inset:0;cursor:pointer;}',
             '.dw-cover img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}',
             '.dw-cover-ph{padding:16px;font-size:11.5px;line-height:1.6;color:var(--dsw-alias-label-tertiary);text-align:center;}',
             '.dw-kind{position:absolute;top:6px;left:6px;padding:0 7px;border-radius:999px;font-size:10px;line-height:17px;background:rgba(0,0,0,.55);color:#fff;}',
@@ -493,8 +495,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const src = e.cover ? API + '/cover/' + encodeURIComponent(e.id) : e.coverUrl || ''
         if (e.kind === 'image' && src !== '') {
           return big
-            ? el('div', { className: 'dw-big' }, el('img', { src: src, alt: e.name }))
-            : el('img', { src: src, alt: e.name, loading: 'lazy' })
+            ? el('div', { className: 'dw-big' }, el('img', { src: src, alt: e.name, draggable: false }))
+            : el('img', { src: src, alt: e.name, loading: 'lazy', draggable: false })
         }
         // 有点配色就用海报；没有才退回文字块
         if (e.swatch) return el(Poster, { entry: e, big: big })
@@ -620,6 +622,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                 el('div', { className: 'dw-cover' },
                   el(Visual, { entry: e }),
                   el('span', { className: 'dw-kind' }, e.swatch ? '风格' : (KIND_LABEL[e.kind] || e.kind)),
+                  el('div', { className: 'dw-cover-hit', onClick: function () { setOpenId(e.id) }, title: '看细节' }),
                 ),
                 el('div', { className: 'dw-card-body' },
                   el('div', { className: 'dw-card-name' },
