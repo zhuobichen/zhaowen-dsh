@@ -1257,6 +1257,27 @@ export function refOf(entry) {
   ].join('\n')
 }
 
+/**
+ * 内页里某一项的索引：和整体索引同一个模板，只是多一层「第 N 种」。
+ *
+ * 用设计工作台里的「<库名>」第 N 种「<风格名>」（<还原度>），按这个设计来。
+ * 原始材料：<原图地址>
+ * 要看完整规格：design_style op=get <库 id> member=N
+ */
+export function memberRef(entry, index) {
+  const layer = layerOf(entry.id)
+  const mem = Array.isArray(entry.members) ? entry.members[index] : null
+  if (mem === null || mem === undefined) return refOf(entry)
+  const tier = mem.tier ? `（${mem.tier}）` : ''
+  return [
+    `用设计工作台里的「${entry.name}」第 ${index + 1} 种「${mem.name}」${tier}，按这个设计来。`,
+    `原始材料：${mem.raw || mem.cover || ''}`,
+    `要看完整规格：design_style op=get ${entry.id} member=${index + 1}`,
+  ]
+    .filter((x) => x !== '')
+    .join(String.fromCharCode(10))
+}
+
 /** 完整规格：工具的 get / current 返回它，AI 按需展开。 */
 export function specOf(entry) {
   const layer = layerOf(entry.id)

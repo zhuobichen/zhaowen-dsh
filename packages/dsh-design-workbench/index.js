@@ -15,7 +15,7 @@ import { extname, join } from 'node:path'
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, refOf, specOf } from './catalog.js'
+import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, memberRef, refOf, specOf } from './catalog.js'
 import { classifyEntry } from './classify.js'
 import { scanRoot } from './scan.js'
 
@@ -139,6 +139,7 @@ export function apply(ctx) {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo）、或关键词（search）' },
         nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
+        member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
       },
       output: OUTPUT,
       execute: async (args) => {
@@ -192,6 +193,29 @@ export function apply(ctx) {
             return { ok: false, code: 'UNKNOWN_ENTRY', error: `没有这个条目：${arg}`, note: '用 op=list 看全部 id，或 op=search 搜关键词。' }
           }
           const members = Array.isArray(entry.members) ? entry.members : []
+          const wantMember = Number(args.member)
+          if (Number.isFinite(wantMember) && wantMember >= 1) {
+            const idx = Math.floor(wantMember) - 1
+            const mem = members[idx]
+            if (mem === undefined) {
+              return { ok: false, code: 'MEMBER_OUT_OF_RANGE', error: `这个库只有 ${members.length} 种，收到第 ${wantMember} 种`, note: `member 取 1–${members.length}` }
+            }
+            const text = memberRef(entry, idx)
+            return {
+              ok: true,
+              entry: { id: entry.id, name: entry.name },
+              member: { index: idx + 1, name: mem.name, tier: mem.tier, raw: mem.raw, cover: mem.cover },
+              ref: text,
+              spec: `【设计参考】${entry.name} · 第 ${idx + 1} 种「${mem.name}」${mem.tier ? '（' + mem.tier + '）' : ''}
+` +
+                `出处：${entry.source}
+
+原图：${mem.raw || mem.cover}
+` +
+                `整套的要点与做法沿用库条目（另一次 op=get ${entry.id} 可取全套）。`,
+              note: text,
+            }
+          }
           const memberText =
             members.length > 0
               ? '\n\n内页（' + members.length + ' 种）：\n' + members.map((m, i) => `  ${i + 1}. ${m.name}${m.tier ? '（' + m.tier + '）' : ''}`).join('\n')

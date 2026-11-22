@@ -151,6 +151,18 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       return DEMOS[id] || ''
     }
 
+    /** 内页单项的规范索引（和 catalog.js 的 memberRef 一个模板）。 */
+    function memberIndexText(entry, index) {
+      const mem = entry.members && entry.members[index]
+      if (!mem) return ''
+      const tier = mem.tier ? '（' + mem.tier + '）' : ''
+      return [
+        '用设计工作台里的「' + entry.name + '」第 ' + (index + 1) + ' 种「' + mem.name + '」' + tier + '，按这个设计来。',
+        '原始材料：' + (mem.raw || mem.cover || ''),
+        '要看完整规格：design_style op=get ' + entry.id + ' member=' + (index + 1),
+      ].join(String.fromCharCode(10))
+    }
+
     function previewHtml(style, big) {
       const c = style.colors
       const s = style.shape
@@ -763,9 +775,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                 el('button', { className: 'dw-close', onClick: function () { setMemberOpen(-1) }, title: '关闭' }, '×'),
               ),
               el('img', { src: API + '/member/' + encodeURIComponent(open.id) + '/' + memberOpen, alt: '', style: { width: '100%', display: 'block', borderRadius: 8 } }),
+              el('pre', { className: 'dw-pre', style: { marginTop: 8 } }, memberIndexText(open, memberOpen)),
               el('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
+                el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { copy(memberIndexText(open, memberOpen), '这一条的索引') } }, '复制这一条的索引'),
                 el('button', { className: 'dw-btn', onClick: function () { copy(open.members[memberOpen].raw, '『' + open.members[memberOpen].name + '』原图地址') } }, '复制原图地址'),
-                el('button', { className: 'dw-btn', onClick: function () { copy(open.members[memberOpen].name, '风格名') } }, '复制风格名'),
                 el('button', { className: 'dw-btn', onClick: function () { setMemberOpen(-1) } }, '返回内页'),
               ),
             ),
