@@ -14,7 +14,7 @@
  *   预览一律用 sandbox 的 iframe + srcDoc，样式互不污染，也不去读别人的 DOM。
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-design-workbench',
+  id: '@zhuobichen/dsh-design-workbench',
   factory(require) {
     var module = { exports: {} }
     var exports = module.exports

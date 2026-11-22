@@ -11,7 +11,7 @@
  *   信封里的 require 只认静态表（react / react/jsx-runtime 等）。
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-mowan-console',
+  id: '@zhuobichen/dsh-mowan-console',
   factory(require) {
     var module = { exports: {} }
     var exports = module.exports

@@ -45,6 +45,24 @@ for (const dir of readdirSync(PACKAGES)) {
     if (!exportsField['./client']) problems.push(`${dir}: 声明了 dsh.client 但没有 ./client export`)
     const clientFile = join(pkgDir, 'client.js')
     if (!existsSync(clientFile)) notes.push(`${dir}: 没有根 client.js（可能在 client/ 或 lib/ 下）`)
+
+    // 客户端半身的注册 id 必须**等于包名**。
+    // 2026-11-22 的真实事故：包改名后 client.js 里还是 `id: 'dsh-mowan-console'`，
+    // 而 boot 图里那一行叫 `@zhuobichen/dsh-mowan-console` —— 浏览器侧报
+    // 「loaded without registering "..." via __ModuleLoader__.load」，
+    // 标签整条消失，而且宿主侧完全正常（工具能用、fiberPhase=active），极难察觉。
+    if (existsSync(clientFile)) {
+      const source = readFileSync(clientFile, 'utf8')
+      const hit = source.match(/__ModuleLoader__\s*\.\s*load\s*\(\s*\{\s*id\s*:\s*['"]([^'"]+)['"]/)
+      if (hit === null) {
+        problems.push(`${dir}: client.js 没有 window.__ModuleLoader__.load({id, factory}) 信封`)
+      } else if (hit[1] !== manifest.name) {
+        problems.push(
+          `${dir}: client.js 注册 id「${hit[1]}」≠ 包名「${manifest.name}」` +
+            `（浏览器会报 loaded without registering，标签不出现）`,
+        )
+      }
+    }
   }
 
   // bundle patch 里 insert 的模块名必须能解析：自身 / 依赖 / 宿主自带的 @deepseek-ai/*。

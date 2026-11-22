@@ -7,7 +7,7 @@
  * structural changes, so the layout stays exactly the shipped one.
  */
 window.__ModuleLoader__.load({
-  id: '@local/kaguya-hime-theme',
+  id: '@zhuobichen/dsh-theme-kaguya-hime',
   factory(require) {
     const React = require('react')
     const h = React.createElement
