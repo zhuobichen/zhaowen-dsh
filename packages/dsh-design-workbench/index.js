@@ -174,11 +174,15 @@ export function apply(ctx) {
           if (layer === undefined) {
             return { ok: false, code: 'UNKNOWN_LAYER', error: `层只支持：${LAYERS.map((l) => l.id).join(' / ')}`, note: 'op=layer 需要 id：' + LAYERS.map((l) => l.id).join(' / ') }
           }
+          const kept = layer.entries.filter(keep)
           return {
             ok: true,
-            layer: { id: layer.id, name: layer.name, hint: layer.hint, count: layer.entries.length },
-            entries: layer.entries,
-            note: `【${layer.name}】${layer.entries.length} 条\n` + layer.entries.map((e) => `  ${e.id.padEnd(20)} ${e.name} —— ${e.oneLine}`).join('\n'),
+            layer: { id: layer.id, name: layer.name, hint: layer.hint, count: kept.length, totalInLayer: layer.entries.length },
+            entries: kept,
+            note:
+              `【${layer.name}】${kept.length}${kept.length !== layer.entries.length ? '/' + layer.entries.length : ''} 条（nature=${nature}）\n` +
+              kept.map((e) => `  ${e.id.padEnd(20)} ${e.name} —— ${e.oneLine}`).join('\n') +
+              (kept.length !== layer.entries.length ? '\n（被筛掉的是方法/素材；要看得传 nature=all）' : ''),
           }
         }
 
