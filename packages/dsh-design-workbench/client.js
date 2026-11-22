@@ -107,6 +107,26 @@ window.__ModuleLoader__.load({
           .join('') +
         `</div>`
 
+      /** 大图里补一块「最近操作」：把 300px 的详情框填满，也更接近真实面板。 */
+      const recentBlock = () =>
+        `<div style="border:${line};border-radius:${radius};padding:${pad + 2}px ${pad + 5}px;background:${c.surface}">` +
+        `<b style="font-size:12px;color:${c.text}">最近操作</b>` +
+        `<div style="display:flex;flex-direction:column;gap:1px;margin-top:3px">` +
+        [
+          ['21:04:11', 'inject', 'session-…9fde4a  chars=746', c.ok],
+          ['21:03:02', 'pick', 'design-workbench  dash-compact', c.accent],
+        ]
+          .map(
+            (l) =>
+              `<div style="display:flex;gap:8px;font-family:${mono};font-size:10.5px;white-space:nowrap;overflow:hidden">` +
+              `<span style="color:${muted}">${l[0]}</span>` +
+              `<span style="color:${l[3]};min-width:48px">${l[1]}</span>` +
+              `<span style="color:${muted};overflow:hidden;text-overflow:ellipsis">${l[2]}</span>` +
+              `</div>`,
+          )
+          .join('') +
+        `</div></div>`
+
       // 抽屉：左边压一块"主内容"，右边才是抽屉本身 —— 影子朝左才看得见。
       const drawer =
         `<div style="display:flex;flex:1;min-height:0;align-items:stretch">` +
@@ -115,7 +135,7 @@ window.__ModuleLoader__.load({
         `<div style="width:60%;background:${c.bg};border-left:1px solid ${c.border};box-shadow:${shadow};` +
         `border-radius:${radius} 0 0 ${radius};padding:${pad + 3}px ${pad + 5}px;display:flex;flex-direction:column;gap:4px">` +
         `<b style="font-size:12px;color:${c.text}">读书窗格</b>` +
-        `<div style="font-size:11px;color:${muted};line-height:1.6">他把书签夹回第三卷，窗外的雨刚好停。</div>` +
+        `<div style="font-size:${big ? 11 : 10.5}px;color:${muted};line-height:1.6">他把书签夹回第三卷，窗外的雨刚好停。</div>` +
         (big ? `<div style="font-size:11px;color:${muted};line-height:1.6">这一页读了两遍，还是没记住那个名字。</div>` : '') +
         `</div>` +
         `</div>`
@@ -126,7 +146,8 @@ window.__ModuleLoader__.load({
           header +
           simpleRow('月相', '四月初七 · 上弦', '月龄 7.2 天', c.text) +
           simpleRow('余额', '¥ 128.40', '今日 +2.10') +
-          simpleRow('状态', '一切正常', '● 在线', c.ok)
+          // 小图只放两行：120px 的卡片框里第三行会被裁掉
+          (big ? simpleRow('状态', '一切正常', '● 在线', c.ok) : '')
       } else if (layout === 'timeline') {
         content = header + logs
       } else if (layout === 'drawer') {
@@ -134,17 +155,23 @@ window.__ModuleLoader__.load({
       } else if (layout === 'dashboard') {
         content =
           header +
-          card(row('session-…9fde4a', ['注入 746 字'], true) + (big ? row('session-…7c2a3c', ['注入 0 字'], false) : '')) +
-          (big ? composer : '')
+          card(
+            row('session-…9fde4a', ['注入 746 字'], true) +
+              (big ? row('session-…7c2a3c', ['注入 0 字'], false) + row('session-…ec2d6e', ['注入 0 字'], false) : ''),
+          ) +
+          (big ? recentBlock() + composer : '')
       } else {
         content =
           header +
           card(
-            // 小图只放一行：卡片框在 168px 里必须完整，宁可少一行也别被裁掉
+            // 小图只放一行：卡片框就 120px，宁可少一行也别被裁掉；
+            // 大图（详情页 300px）放三行，把卡片撑满。
             row('session-…9fde4a', ['注入 746 字'], true) +
-              (big ? row('session-…7c2a3c', ['注入 0 字'], false) + row('session-…ec2d6e', ['注入 0 字'], false) : ''),
+              (big
+                ? row('session-…7c2a3c', ['注入 0 字'], false) + row('session-…ec2d6e', ['注入 0 字'], false)
+                : ''),
           ) +
-          (big ? composer : '')
+          (big ? recentBlock() + composer : '')
       }
 
       const body =
@@ -164,8 +191,8 @@ window.__ModuleLoader__.load({
       )
     }
 
-    const PREVIEW_FRAME = { width: '100%', height: 168, border: '0', display: 'block', background: 'transparent' }
-    const PREVIEW_FRAME_BIG = { width: '100%', height: 320, border: '0', display: 'block', background: 'transparent' }
+    const PREVIEW_FRAME = { width: '100%', height: 120, border: '0', display: 'block', background: 'transparent' }
+    const PREVIEW_FRAME_BIG = { width: '100%', height: 300, border: '0', display: 'block', background: 'transparent' }
 
     // ── 面板 ──────────────────────────────────────────────────────────
     function apply(ctx) {
@@ -210,7 +237,9 @@ window.__ModuleLoader__.load({
           @media (max-width:900px){.dw-two{grid-template-columns:1fr;}}
           .dw-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;line-height:1.55;background:var(--dsw-alias-bg-layer-2);padding:9px 10px;border-radius:7px;max-height:300px;overflow:auto;}
           .dw-swatches{display:flex;gap:6px;flex-wrap:wrap;}
-          .dw-swatch{width:52px;text-align:center;font-size:10px;font-family:ui-monospace,Consolas,monospace;color:var(--dsw-alias-label-tertiary);}
+          .dw-swatch{width:60px;text-align:center;color:var(--dsw-alias-label-tertiary);}
+          .dw-swatch-label{font-size:10.5px;}
+          .dw-swatch-val{font-family:ui-monospace,Consolas,monospace;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
           .dw-swatch i{display:block;height:22px;border-radius:5px;border:1px solid var(--dsw-alias-border-l2);margin-bottom:2px;}
           .dw-banner{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);font-size:12.5px;flex-wrap:wrap;}
           .dw-toast{position:sticky;bottom:0;align-self:flex-start;padding:5px 12px;border-radius:999px;background:#22c55e;color:#fff;font-size:12px;}
@@ -392,10 +421,10 @@ window.__ModuleLoader__.load({
               el('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
                 el('div', { className: 'dw-swatches' },
                   [['底', open.colors.bg], ['面', open.colors.surface], ['字', open.colors.text], ['次', open.colors.muted], ['强调', open.colors.accent], ['描边', open.colors.border]].map(function (p) {
-                    return el('div', { className: 'dw-swatch', key: p[0] },
+                    return el('div', { className: 'dw-swatch', key: p[0], title: p[0] + ' ' + p[1] },
                       el('i', { style: { background: p[1] } }),
-                      el('div', null, p[0]),
-                      el('div', null, String(p[1]).replace('rgba', '').slice(0, 12)),
+                      el('div', { className: 'dw-swatch-label' }, p[0]),
+                      el('div', { className: 'dw-swatch-val' }, String(p[1]).replace('rgba(', '').replace(')', '')),
                     )
                   }),
                 ),

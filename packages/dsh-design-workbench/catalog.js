@@ -328,12 +328,13 @@ export function findStyle(id) {
   return STYLES.find((s) => s.id === id) || null
 }
 
-/** 面板顶部的筛选芯片（按用途分，不是按视觉分）。 */
+/** 面板顶部的筛选芯片（按用途分，不是按视觉分）。id 必须与样式里的 tags 对得上。 */
 export const FILTERS = [
   { id: 'all', label: '全部' },
-  { id: '面板', label: '面板' },
   { id: '仪表盘', label: '仪表盘' },
+  { id: '悬浮', label: '悬浮' },
   { id: '抽屉', label: '抽屉' },
   { id: '暗色', label: '暗色' },
+  { id: '等宽', label: '等宽' },
   { id: '极简', label: '极简' },
 ]
