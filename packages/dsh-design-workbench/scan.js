@@ -170,7 +170,12 @@ export function scanRoot(root, opts = {}) {
     const hit = classify(dir)
     if (hit !== null) {
       const key = dir.replace(/\\/g, '/').toLowerCase()
-      if (!known.has(key)) {
+      // 没收录过，且不是「已收录路径的父/子目录」才当候选（避免同一项目报两次）
+      const already = [...known].some((k) => {
+        const kk = k.replace(/\\/g, '/').toLowerCase()
+        return kk === key || kk.startsWith(key + '/') || key.startsWith(kk + '/')
+      })
+      if (!already) {
         const name = basename(dir)
         const cover = pickCover(dir, 1)
         const readme = firstLineOfReadme(dir)

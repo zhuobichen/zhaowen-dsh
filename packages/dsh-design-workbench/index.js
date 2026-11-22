@@ -221,7 +221,11 @@ export function apply(ctx) {
 
         if (op === 'scan') {
           if (arg === '') return { ok: false, code: 'EMPTY_ROOT', error: 'op=scan 需要一个绝对路径，例如 D:/github_project/third-party', note: '给我一个根目录。' }
-          const known = allEntries().flatMap((e) => [e.source, ...(e.sources || []).map((x) => x.path || '')]).filter((x) => typeof x === 'string' && x !== '')
+          // 已知路径：把 source 里「（…）」后面的注解去掉，只留路径；外加 sources[].path
+          const known = allEntries()
+            .flatMap((e) => [e.source, ...(e.sources || []).map((x) => x.path || '')])
+            .filter((x) => typeof x === 'string' && x !== '')
+            .map((x) => x.split(/[（(]/)[0].trim())
           const result = scanRoot(arg, { depth: Number(args.depth) > 0 ? Number(args.depth) : 3, knownPaths: known })
           if (result.ok !== true) return { ...result, note: result.error }
           for (const c of result.candidates) scanProposals.set(c.id, c)
