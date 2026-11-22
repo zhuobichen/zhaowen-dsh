@@ -374,6 +374,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;}',
             '.dw-cover iframe,.dw-cover img,.dw-cover .dw-poster,.dw-cover .dw-cover-ph{pointer-events:none;}',
             '.dw-cover-hit{position:absolute;inset:0;cursor:pointer;}',
+            '.dw-nature{font-size:10px;padding:0 5px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);}',
             '.dw-cover img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}',
             '.dw-cover-ph{padding:16px;font-size:11.5px;line-height:1.6;color:var(--dsw-alias-label-tertiary);text-align:center;}',
             '.dw-kind{position:absolute;top:6px;left:6px;padding:0 7px;border-radius:999px;font-size:10px;line-height:17px;background:rgba(0,0,0,.55);color:#fff;}',
@@ -511,6 +512,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [state, setState] = useState(null)
         const [err, setErr] = useState('')
         const [layer, setLayer] = useState('')
+        const [scope, setScope] = useState('both')
         const [tag, setTag] = useState('')
         const [origin, setOrigin] = useState('')
         const [query, setQuery] = useState('')
@@ -534,16 +536,26 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const activeLayer = layer || (layers[0] && layers[0].id) || 'app'
         const current = layers.filter(function (l) { return l.id === activeLayer })[0] || layers[0] || null
 
+        // scope：只看风格 / 风格+素材（默认，隐藏方法）/ 全部
+        const keepNature = function (e) {
+          const n = e.nature || 'style'
+          if (scope === 'style') return n === 'style'
+          if (scope === 'all') return true
+          return n !== 'method'
+        }
+
         const shown = useMemo(function () {
           if (current === null) return []
           const q = query.trim().toLowerCase()
           return current.entries.filter(function (e) {
             if (origin !== '' && e.origin !== origin) return false
             if (tag !== '' && (e.tags || []).indexOf(tag) < 0) return false
+            if (scope === 'style' && (e.nature || 'style') !== 'style') return false
+            if (scope === 'both' && (e.nature || 'style') === 'method') return false
             if (q === '') return true
             return (e.name + ' ' + e.oneLine + ' ' + (e.tags || []).join(' ') + ' ' + e.id + ' ' + e.source).toLowerCase().indexOf(q) >= 0
           })
-        }, [current, tag, origin, query])
+        }, [current, tag, origin, query, scope])
 
         const allTags = useMemo(function () {
           if (current === null) return []
@@ -601,7 +613,11 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ),
 
           el('div', { className: 'dw-chips' },
-            el('button', { className: 'dw-chip' + (origin === '' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部'),
+            el('button', { className: 'dw-chip' + (scope === 'style' ? ' dw-chip-on' : ''), onClick: function () { setScope('style') }, title: '只显示能照着做的视觉风格' }, '只看风格'),
+            el('button', { className: 'dw-chip' + (scope === 'both' ? ' dw-chip-on' : ''), onClick: function () { setScope('both') }, title: '风格 + 项目素材，隐藏方法与工程' }, '风格+素材'),
+            el('button', { className: 'dw-chip' + (scope === 'all' ? ' dw-chip-on' : ''), onClick: function () { setScope('all') }, title: '连方法/工程一起看' }, '全部'),
+            el('span', { style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
+            el('button', { className: 'dw-chip' + (origin === '' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部来源'),
             el('button', { className: 'dw-chip' + (origin === 'mine' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '只看自制'),
             el('button', { className: 'dw-chip' + (origin === 'referenced' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'referenced' ? '' : 'referenced') } }, '只看引用'),
             allTags.map(function (t) {
@@ -628,6 +644,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { className: 'dw-card-name' },
                     e.name,
                     el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
+                    e.nature === 'method' ? el('span', { className: 'dw-nature' }, '方法') : null,
+                    e.nature === 'reference' ? el('span', { className: 'dw-nature' }, '素材') : null,
                   ),
                   el('div', { className: 'dw-card-line' }, e.oneLine),
                   el('div', { className: 'dw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) })),

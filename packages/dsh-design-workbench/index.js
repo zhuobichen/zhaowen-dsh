@@ -16,6 +16,7 @@ import { extname, join } from 'node:path'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, refOf, specOf } from './catalog.js'
+import { classifyEntry } from './classify.js'
 import { scanRoot } from './scan.js'
 
 const NAME = 'dsh-design-workbench'
@@ -60,11 +61,17 @@ function saveExtra(entries) {
 }
 
 /** catalog + 覆盖层合并后的四层；面板与工具都从这读。 */
+/** 给条目补上 nature（style / method / reference），面板与工具都靠它筛。 */
+function withNature(e) {
+  const r = classifyEntry(e)
+  return { ...e, nature: r.nature, natureScore: r.score }
+}
+
 function mergedLayers() {
   const extra = loadExtra()
   return LAYERS.map((l) => {
-    const added = extra.filter((e) => e.layer === l.id).map((e) => ({ ...e, prompt: refOf(e), spec: specOf(e), added: true }))
-    return { ...l, entries: [...l.entries, ...added] }
+    const added = extra.filter((e) => e.layer === l.id).map((e) => withNature({ ...e, prompt: refOf(e), spec: specOf(e), added: true }))
+    return { ...l, entries: [...l.entries.map(withNature), ...added] }
   })
 }
 
@@ -131,23 +138,31 @@ export function apply(ctx) {
       parameters: {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo）、或关键词（search）' },
+        nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
       },
       output: OUTPUT,
       execute: async (args) => {
         const op = String(args.op ?? '').trim()
         const arg = String(args.id ?? '').trim()
+        const nature = String(args.nature ?? 'style').trim()
+        const keep = (e) => nature === 'all' || nature === '' || e.nature === nature
 
         if (op === 'list') {
           return {
             ok: true,
-            count: allEntries().length,
-            layers: mergedLayers().map((l) => ({
-              id: l.id,
-              name: l.name,
-              hint: l.hint,
-              count: l.entries.length,
-              entries: l.entries.map((e) => ({ id: e.id, name: e.name, oneLine: e.oneLine, origin: e.origin, tags: e.tags })),
-            })),
+            count: allEntries().filter(keep).length,
+            nature,
+            layers: mergedLayers().map((l) => {
+              const kept = l.entries.filter(keep)
+              return {
+                id: l.id,
+                name: l.name,
+                hint: l.hint,
+                count: kept.length,
+                totalInLayer: l.entries.length,
+                entries: kept.map((e) => ({ id: e.id, name: e.name, oneLine: e.oneLine, origin: e.origin, nature: e.nature, tags: e.tags })),
+              }
+            }),
             note: mergedLayers()
               .map((l) => `【${l.name}】${l.entries.length} 条\n` + l.entries.map((e) => `  ${e.id.padEnd(20)} ${e.name} —— ${e.oneLine}`).join('\n'))
               .join('\n\n'),
@@ -178,7 +193,7 @@ export function apply(ctx) {
         if (op === 'search') {
           const q = arg.toLowerCase()
           if (q === '') return { ok: false, code: 'EMPTY_QUERY', error: 'op=search 需要关键词（名称/标签/出处都可以）', note: '例如 op=search id=水墨' }
-          const hits = allEntries().filter((e) => {
+          const hits = allEntries().filter(keep).filter((e) => {
             const hay = [e.id, e.name, e.oneLine, e.source, ...(e.tags ?? [])].join(' ').toLowerCase()
             return hay.includes(q)
           })
