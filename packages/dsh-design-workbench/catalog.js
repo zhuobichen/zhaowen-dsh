@@ -434,8 +434,69 @@ export function promptOf(entry) {
     lines.push('', '要点：', ...entry.bullets.map((b) => `  - ${b}`))
   }
   if (entry.style !== undefined) lines.push('', `视觉手法：${entry.style.craft.join('；')}`, `适合：${entry.style.when}`, `别用在：${entry.style.avoid}`)
-  lines.push('', `怎么用：${entry.howto}`, '', '约束：', ...SHARED_RULES.map((r) => `  - ${r}`))
+  lines.push('', `怎么用：${entry.howto}`)
+  lines.push(
+    '',
+    '来源与边界：',
+    entry.origin === 'referenced'
+      ? '  这是**别人的作品**（见出处），只作参照。不要声称原创，也不要整段照抄它的配色/版式/镜头；只借机制。'
+      : '  这是**我自己项目里的东西**，可以直接复用或延伸；改的时候说明改了哪几处。',
+  )
+  if (entry.originNote !== undefined) lines.push(`  ${entry.originNote}`)
+  lines.push('', '约束：', ...SHARED_RULES.map((r) => `  - ${r}`))
   return lines.join('\n')
+}
+
+/**
+ * 出处归属：mine = 我自己项目里的东西，可以直接复用；
+ * referenced = 别人的作品（开源仓库/第三方主题/他人片子），**只作参照，不得声称原创、不得整段照抄**。
+ *
+ * 这条是用户明确要的：「对于别人的，不能自己自创」——别人的东西必须标清楚是引用。
+ */
+const ORIGIN = {
+  'dsh-native': 'mine',
+  'dash-compact': 'mine',
+  'float-panel': 'mine',
+  'drawer': 'mine',
+  'glass-dark': 'mine',
+  'kaguya-sky': 'mine',
+  'mono-timeline': 'mine',
+  'mini-row': 'mine',
+  'app-huasu-paradigms': 'referenced',
+  'app-mapmate': 'mine',
+  'app-videoquiz': 'mine',
+  'app-huajing': 'mine',
+  'app-ember': 'mine',
+  'app-aurowendao': 'mine',
+  'app-desktopjelly': 'mine',
+  'fe-kaguya-theme': 'mine',
+  'fe-whalegirl': 'referenced',
+  'fe-wesight-qa': 'referenced',
+  'vid-bv-ref': 'mine',
+  'vid-rea-video': 'referenced',
+  'vid-carl-flat': 'referenced',
+  'vid-carl-ink': 'referenced',
+  'vid-carl-clay': 'referenced',
+  'vid-carl-blueprint': 'referenced',
+  'vid-carl-exploded': 'referenced',
+  'vid-carl-brick': 'referenced',
+  'vid-carl-glass': 'referenced',
+  'vid-carl-huashu': 'referenced',
+}
+
+/** 归属的补充说明（IP、许可、哪部分是我做的），会写进 prompt。 */
+const ORIGIN_NOTE = {
+  'fe-kaguya-theme': '皮肤代码是我写的，但视觉素材是《超时空辉夜姬》的 IP，只在自己机器上用，不要分发。',
+  'vid-bv-ref': '原片是 B 站 UP 主做的；复刻版是我用豆包生成的。角色「溟月」为他人原创（CC BY-NC-SA 4.0），只作私人练习。',
+  'vid-rea-video': 'rea-video 是开源工具，插件壳是我写的；拆解方法可以借，产物别当原创。',
+  'fe-wesight-qa': 'WeSight 是别人的项目，这份 QA 文档是照着它的设计源图与实现截图写的对照记录。',
+  'app-huasu-paradigms': '花叔（alchaincyf）的 huashu-design，MIT 协议；这里是方法摘要，不是我的原创。',
+  'fe-whalegirl': '第三方主题包（npm 安装），只是我这边在用。',
+}
+
+for (const e of ALL_ENTRIES) {
+  e.origin = ORIGIN[e.id] ?? 'mine'
+  if (ORIGIN_NOTE[e.id] !== undefined) e.originNote = ORIGIN_NOTE[e.id]
 }
 
 /**

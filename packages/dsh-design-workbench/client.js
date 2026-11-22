@@ -220,7 +220,15 @@ window.__ModuleLoader__.load({
           const tag = document.createElement('style')
           tag.setAttribute('data-design-workbench', '1')
           tag.textContent = [
-            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;font-size:13px;color:var(--dsw-alias-label-primary);}',
+            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:var(--dsw-alias-label-primary);}',
+            '.dw-modal{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px;}',
+            '.dw-modal-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.35);width:min(1040px,100%);max-height:88vh;overflow:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;}',
+            '.dw-modal-head{display:flex;align-items:flex-start;gap:10px;}',
+            '.dw-close{margin-left:auto;width:26px;height:26px;line-height:24px;text-align:center;border-radius:50%;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;font-size:15px;flex:0 0 auto;}',
+            '.dw-close:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.06));}',
+            '.dw-origin{font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;border:1px solid transparent;white-space:nowrap;}',
+            '.dw-origin-mine{color:#0f766e;background:rgba(15,118,110,.10);border-color:rgba(15,118,110,.25);}',
+            '.dw-origin-ref{color:#9a3412;background:rgba(154,52,18,.10);border-color:rgba(154,52,18,.25);}',
             '.dw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
             '.dw-title{font-size:15px;font-weight:600;}',
             '.dw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}',
@@ -238,8 +246,8 @@ window.__ModuleLoader__.load({
             '.dw-chip{padding:1px 9px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);font-size:11.5px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary);}',
             '.dw-chip:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(0,0,0,.05));}',
             '.dw-chip-on{background:var(--dsw-alias-brand-primary,#4d6bfe);border-color:transparent;color:#fff;}',
-            '.dw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}',
-            '.dw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);}',
+            '.dw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:12px;}',
+            '.dw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);padding:0;text-align:left;font:inherit;color:inherit;width:100%;}',
             '.dw-card:hover{border-color:var(--dsw-alias-border-l3);}',
             '.dw-card-on{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-1px;}',
             '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}',
@@ -367,6 +375,7 @@ window.__ModuleLoader__.load({
         const [err, setErr] = useState('')
         const [layer, setLayer] = useState('')
         const [tag, setTag] = useState('')
+        const [origin, setOrigin] = useState('')
         const [query, setQuery] = useState('')
         const [openId, setOpenId] = useState('')
         const [toast, setToast] = useState('')
@@ -378,7 +387,6 @@ window.__ModuleLoader__.load({
               if (!j || j.ok !== true) { setErr((j && j.error) || '状态接口返回异常'); return }
               setErr('')
               setState(j)
-              setOpenId(function (cur) { return cur || (j.picked && j.picked.id) || '' })
             })
             .catch(function (e) { setErr(String((e && e.message) || e)) })
         }
@@ -394,11 +402,12 @@ window.__ModuleLoader__.load({
           if (current === null) return []
           const q = query.trim().toLowerCase()
           return current.entries.filter(function (e) {
+            if (origin !== '' && e.origin !== origin) return false
             if (tag !== '' && (e.tags || []).indexOf(tag) < 0) return false
             if (q === '') return true
             return (e.name + ' ' + e.oneLine + ' ' + (e.tags || []).join(' ') + ' ' + e.id + ' ' + e.source).toLowerCase().indexOf(q) >= 0
           })
-        }, [current, tag, query])
+        }, [current, tag, origin, query])
 
         const allTags = useMemo(function () {
           if (current === null) return []
@@ -436,6 +445,10 @@ window.__ModuleLoader__.load({
         }
 
         const counts = (state && state.counts) || []
+        const layerNameOf = function (entry) {
+          const hit = layers.filter(function (l) { return (l.entries || []).some(function (x) { return x.id === entry.id }) })[0]
+          return hit ? hit.name : ''
+        }
 
         return el('div', { className: 'dw-wrap' },
           el('div', { className: 'dw-head' },
@@ -460,7 +473,7 @@ window.__ModuleLoader__.load({
               return el('button', {
                 key: l.id,
                 className: 'dw-layer' + (l.id === activeLayer ? ' dw-layer-on' : ''),
-                onClick: function () { setLayer(l.id); setTag('') },
+                onClick: function () { setLayer(l.id); setTag(''); setOrigin('') },
                 title: l.hint,
               }, l.name, el('span', { className: 'dw-layer-n' }, String((l.entries || []).length)))
             }),
@@ -468,7 +481,9 @@ window.__ModuleLoader__.load({
           ),
 
           el('div', { className: 'dw-chips' },
-            el('button', { className: 'dw-chip' + (tag === '' ? ' dw-chip-on' : ''), onClick: function () { setTag('') } }, '全部'),
+            el('button', { className: 'dw-chip' + (origin === '' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部'),
+            el('button', { className: 'dw-chip' + (origin === 'mine' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '只看自制'),
+            el('button', { className: 'dw-chip' + (origin === 'referenced' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'referenced' ? '' : 'referenced') } }, '只看引用'),
             allTags.map(function (t) {
               return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
@@ -478,8 +493,10 @@ window.__ModuleLoader__.load({
           el('div', { className: 'dw-grid' },
             shown.map(function (e) {
               const isOn = picked && picked.id === e.id
-              return el('div', {
+              // 用 <button> 而不是 <div>：宿主里按钮的点击最可靠，div 的 onClick 有过不触发的情况
+              return el('button', {
                 key: e.id,
+                type: 'button',
                 className: 'dw-card' + (isOn ? ' dw-card-on' : ''),
                 onClick: function () { setOpenId(e.id) },
               },
@@ -489,6 +506,7 @@ window.__ModuleLoader__.load({
                 ),
                 el('div', { className: 'dw-card-body' },
                   el('div', { className: 'dw-card-name' }, e.name, isOn ? el('span', { className: 'dw-tag', style: { color: 'var(--dsw-alias-brand-primary,#4d6bfe)' } }, '当前') : null),
+                  el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
                   el('div', { className: 'dw-card-line' }, e.oneLine),
                   el('div', { className: 'dw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) })),
                 ),
@@ -498,30 +516,45 @@ window.__ModuleLoader__.load({
 
           shown.length === 0 ? el('div', { className: 'dw-muted' }, '这一层里没有匹配的条目，换个关键词或点「全部」。') : null,
 
-          open ? el('div', { className: 'dw-detail' },
-            el('div', { className: 'dw-detail-head' },
-              el('div', { style: { flex: 1, minWidth: 200 } },
-                el('b', { style: { fontSize: 14 } }, open.name),
-                el('div', { className: 'dw-muted', style: { fontSize: 11.5, marginTop: 2 } }, open.oneLine),
-                el('div', { className: 'dw-src', style: { marginTop: 3 } }, open.source),
+          open ? el('div', {
+            className: 'dw-modal',
+            onClick: function (ev) { if (ev.target === ev.currentTarget) setOpenId('') },
+          },
+            el('div', { className: 'dw-modal-card' },
+              el('div', { className: 'dw-modal-head' },
+                el('div', { style: { flex: 1, minWidth: 0 } },
+                  el('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
+                    el('b', { style: { fontSize: 15 } }, open.name),
+                    el('span', { className: 'dw-origin ' + (open.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, open.origin === 'referenced' ? '引用' : '自制'),
+                    el('span', { className: 'dw-tag' }, (layerNameOf(open) || '')),
+                  ),
+                  el('div', { className: 'dw-muted', style: { fontSize: 12, marginTop: 3 } }, open.oneLine),
+                  el('div', { className: 'dw-src', style: { marginTop: 3 } }, open.source),
+                ),
+                el('button', { className: 'dw-close', onClick: function () { setOpenId('') }, title: '关闭' }, '×'),
               ),
-              el('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap' } },
+
+              el('div', { className: 'dw-two' },
+                el('div', null, el(Visual, { entry: open, big: true })),
+                el('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
+                  el('div', { style: { fontSize: 12, fontWeight: 600 } }, '要点'),
+                  el('ul', { className: 'dw-bullets' }, (open.bullets || []).map(function (b, i) { return el('li', { key: i }, b) })),
+                  el('div', { style: { fontSize: 12, lineHeight: 1.6 } }, el('b', null, '怎么用：'), open.howto),
+                  el('div', { className: 'dw-muted', style: { fontSize: 11.5, lineHeight: 1.6 } },
+                    open.origin === 'referenced'
+                      ? '引用条目：只作参照，不声称原创、不整段照抄。'
+                      : '自制条目：可以直接复用或延伸。'),
+                ),
+              ),
+
+              el('pre', { className: 'dw-pre' }, open.prompt),
+
+              el('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
                 el('button', { className: 'dw-btn dw-btn-primary', onClick: function () { pickEntry(open.id) } }, '选中它 → AI 可见'),
                 el('button', { className: 'dw-btn', onClick: function () { copy(open.prompt, '「引用给 AI」') } }, '复制 引用给 AI'),
+                el('button', { className: 'dw-btn', onClick: function () { setOpenId('') } }, '关闭'),
               ),
             ),
-
-            el('div', { className: 'dw-two' },
-              el('div', null, el(Visual, { entry: open, big: true })),
-              el('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
-                el('div', { style: { fontSize: 12, fontWeight: 600 } }, '要点'),
-                el('ul', { className: 'dw-bullets' }, (open.bullets || []).map(function (b, i) { return el('li', { key: i }, b) })),
-                el('div', { style: { fontSize: 12, lineHeight: 1.6 } },
-                  el('b', null, '怎么用：'), open.howto),
-              ),
-            ),
-
-            el('pre', { className: 'dw-pre' }, open.prompt),
           ) : null,
 
           picked ? el('div', { className: 'dw-banner' },
