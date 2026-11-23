@@ -796,7 +796,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const shown = useMemo(function () {
           if (current === null) return []
           const q = query.trim().toLowerCase()
-          return current.entries.filter(function (e) {
+          const kept = current.entries.filter(function (e) {
             if (!showTrash && !hasVisual(e)) return false
             if (origin !== '' && e.origin !== origin) return false
             if (tag !== '' && (e.tags || []).indexOf(tag) < 0) return false
@@ -804,6 +804,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             if (scope === 'both' && (e.nature || 'style') === 'method') return false
             if (q === '') return true
             return (e.name + ' ' + e.oneLine + ' ' + (e.tags || []).join(' ') + ' ' + e.id + ' ' + e.source).toLowerCase().indexOf(q) >= 0
+          })
+          // 顺序：别人的（referenced）在前，自制的沉到末尾；同组内保持原顺序（sort 稳定）
+          return kept.slice().sort(function (a, b) {
+            return (a.origin === 'mine' ? 1 : 0) - (b.origin === 'mine' ? 1 : 0)
           })
         }, [current, tag, origin, query, scope, showTrash])
 
