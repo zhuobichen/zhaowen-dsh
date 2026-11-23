@@ -757,6 +757,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [openId, setOpenId] = useState('')
         const [memberOpen, setMemberOpen] = useState(-1)
         const [toast, setToast] = useState('')
+        const [moreOpen, setMoreOpen] = useState(false)
 
         const load = function () {
           fetch(API + '/state', { cache: 'no-store' })
@@ -806,11 +807,31 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           }
         }, [current])
 
+        // 这一层全都是风格时，scope 的三个按钮点了也没变化——整组不显示
+        const scopeUseful = scopeCounts.style !== scopeCounts.all
+
+        // 同理：层内来源只有一种（比如整层都是引用），来源筛选也没意义
+        const originUseful = useMemo(function () {
+          if (current === null) return false
+          const kinds = {}
+          current.entries.forEach(function (e) { kinds[e.origin || ''] = 1 })
+          return Object.keys(kinds).length > 1
+        }, [current])
+
+        // 标签芯片：优先用 catalog 给这一层定死的 filters（语义不重叠、每个至少命中 2 条、覆盖主要群体）；
+        // 没定 filters 的层才回退到自动提取（>=2 次、且不是「几乎每条都有」）
         const allTags = useMemo(function () {
           if (current === null) return []
-          const set = []
-          current.entries.forEach(function (e) { (e.tags || []).forEach(function (t) { if (set.indexOf(t) < 0) set.push(t) }) })
-          return set.slice(0, 10)
+          if (Array.isArray(current.filters) && current.filters.length > 0) return current.filters
+          const freq = {}
+          current.entries.forEach(function (e) {
+            (e.tags || []).forEach(function (t) { freq[t] = (freq[t] || 0) + 1 })
+          })
+          const n = current.entries.length || 1
+          return Object.keys(freq)
+            .filter(function (t) { return freq[t] >= 2 && freq[t] < n * 0.6 })
+            .sort(function (a, b) { return freq[b] - freq[a] })
+            .slice(0, 8)
         }, [current])
 
         const open = (function () {
@@ -862,13 +883,27 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ),
 
           el('div', { className: 'dw-chips' },
-            el('button', { className: 'dw-chip' + (scope === 'style' ? ' dw-chip-on' : ''), onClick: function () { setScope('style') }, title: '只显示能照着做的视觉风格' }, '只看风格 ' + scopeCounts.style),
-            el('button', { className: 'dw-chip' + (scope === 'both' ? ' dw-chip-on' : ''), onClick: function () { setScope('both') }, title: '风格 + 项目素材，隐藏方法与工程' }, '风格+素材 ' + scopeCounts.both),
-            el('button', { className: 'dw-chip' + (scope === 'all' ? ' dw-chip-on' : ''), onClick: function () { setScope('all') }, title: '连方法/工程一起看' }, '全部 ' + scopeCounts.all),
-            el('span', { style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
-            el('button', { className: 'dw-chip' + (origin === '' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部来源'),
-            el('button', { className: 'dw-chip' + (origin === 'mine' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '只看自制'),
-            el('button', { className: 'dw-chip' + (origin === 'referenced' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'referenced' ? '' : 'referenced') } }, '只看引用'),
+            // 数据性质筛选（风格/方法/素材、自制/引用）收进「更多筛选」，默认不占版面
+            (scopeUseful || originUseful) ? el('button', {
+              key: 'more',
+              className: 'dw-chip' + (moreOpen || scope !== 'style' || origin !== '' ? ' dw-chip-on' : ''),
+              onClick: function () { setMoreOpen(!moreOpen) },
+              title: '按数据性质筛：风格 / 方法 / 素材，自制 / 引用',
+            }, '更多筛选 ' + (moreOpen ? '▴' : '▾')) : null,
+            // 整层都是风格时不显示 scope 三连（三个数字一样，点了没变化）
+            (moreOpen && scopeUseful) ? [
+              el('button', { key: 'sc-style', className: 'dw-chip' + (scope === 'style' ? ' dw-chip-on' : ''), onClick: function () { setScope('style') }, title: '只显示能照着做的视觉风格' }, '只看风格 ' + scopeCounts.style),
+              el('button', { key: 'sc-both', className: 'dw-chip' + (scope === 'both' ? ' dw-chip-on' : ''), onClick: function () { setScope('both') }, title: '风格 + 项目素材，隐藏方法与工程' }, '风格+素材 ' + scopeCounts.both),
+              el('button', { key: 'sc-all', className: 'dw-chip' + (scope === 'all' ? ' dw-chip-on' : ''), onClick: function () { setScope('all') }, title: '连方法/工程一起看' }, '全部 ' + scopeCounts.all),
+              el('span', { key: 'sc-sep', style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
+            ] : null,
+            // 整层只有一个来源时不显示来源筛选
+            (moreOpen && originUseful) ? [
+              el('button', { key: 'or-all', className: 'dw-chip' + (origin === '' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部来源'),
+              el('button', { key: 'or-mine', className: 'dw-chip' + (origin === 'mine' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '只看自制'),
+              el('button', { key: 'or-ref', className: 'dw-chip' + (origin === 'referenced' ? ' dw-chip-on' : ''), onClick: function () { setOrigin(origin === 'referenced' ? '' : 'referenced') } }, '只看引用'),
+              el('span', { key: 'or-sep', style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
+            ] : null,
             allTags.map(function (t) {
               return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),

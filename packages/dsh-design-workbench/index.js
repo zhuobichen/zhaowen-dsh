@@ -60,7 +60,7 @@ function saveExtra(entries) {
   writeFileSync(extraPath(), JSON.stringify({ entries }, null, 2), 'utf8')
 }
 
-/** catalog + 覆盖层合并后的四层；面板与工具都从这读。 */
+/** catalog + 覆盖层合并后的五层（含每层的 filters）；面板与工具都从这读。 */
 /** 给条目补上 nature（style / method / reference），面板与工具都靠它筛。 */
 function withNature(e) {
   const r = classifyEntry(e)
@@ -130,14 +130,14 @@ export function apply(ctx) {
     defineTool({
       name: 'design_style',
       description:
-        '设计工作台的数据通道：**用户本机的设计资料库，分四层（App 设计 / 前端设计 / 视频风格 / 代码生视频）**。\n' +
+        '设计工作台的数据通道：**用户本机的设计资料库，分五层（App 设计 / 前端设计 / 视频风格 / 代码生视频 / 漫画）**。\n' +
         '工作台面板是给人看的；这是给 AI 读同一份数据的入口。\n' +
-        'op=list 四层全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一层（app | frontend | video | codevideo）；' +
+        'op=list 五层全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一层（app | frontend | video | codevideo | comic）；' +
         'op=get {id} 取完整规格（颜色/圆角/投影/CSS/要点/怎么用，几百字）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
         '用户说「用工作台里那个水墨的」「按那个紧凑仪表盘做」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
       parameters: {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
-        id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo）、或关键词（search）' },
+        id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo|comic）、或关键词（search）' },
         nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
       },

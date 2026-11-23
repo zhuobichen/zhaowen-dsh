@@ -1,17 +1,20 @@
 # 设计工作台（dsh-design-workbench）
 
-把**这台电脑上的设计资料**整理成三层，看着挑，点一下就把「我要这种」变成 AI 能读到的记录。
+把**这台电脑上的设计资料**整理成五层，看着挑，点一下就把「我要这种」变成 AI 能读到的记录。
 
 ```
 App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机拉来的桌面端（Jev 浮层 / Pinky / 她不一样）
-前端设计（32）    本机八种样式 + 主题皮肤 + huashu 六区风格库 + 拉来的站（百年京张 / Archify /
-                 Precision Data / Nature 图表理论 / 会议图表规范 / 价格对比站）+ 我自己的站
+前端设计（40）    本机八种样式 + 主题皮肤 + huashu 六区风格库 + 拉来的站（百年京张 / Archify /
+                 Precision Data / Nature 图表理论 / 会议图表规范 / 价格对比站）+ 十种架构图版式
 视频风格（12）    本机复刻与 carl-motion 八种动效 + 城市设计征集片 + AI 生视频链路（minimax MCP）
 代码生视频（16）  引擎：HyperFrames（HeyGen，HTML→MP4）/ Remotion（React）/ Manim（数学动画）；
                  工程侧：OpenMotion 四条 + 选型对照；风格侧：八种纯代码可落地的动效风格
+漫画（23）        动漫 / 漫画 / 动画视觉语言：赛璐璐 / 浮世绘 / 橡皮管 / UPA / 成人动画 / 网点 /
+                 像素 RPG / HD-2D / 线条沸腾 / 8-bit / 蜡笔绘本 / 等距绘本 / 纸片立体书 /
+                 皮影 / 剪纸 / Riso / 一笔画 / 微游戏 / 综艺扁平 / 综艺花字 / 贴纸人 / Synthwave / 拼贴
 ```
 
-共 **75 条**，其中自制 30 条、引用 45 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）。
+共 **106 条**，其中自制 28 条、引用 78 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）；另有 `design_scan` 扫进来的 4 条。
 
 ## 它解决什么
 
@@ -21,7 +24,7 @@ App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机
 | 想精确指定就得翻仓库找那段 CSS | 卡片里给 token、圆角、密度、阴影、出处路径 |
 | 说了「用那个蓝白的」，AI 还是猜 | 「选中它」落盘，AI 用 `design_style op=current` 直接读 |
 
-## 三层里都有什么
+## 五层里都有什么
 
 **App 设计**：huashu-design 3.4 的八条 App 界面范式（外部方法层，注明来源）、MapMate（会说话的手机地图）、
 VideoQuiz（视频成卷）、Q 版桌宠 HuaJing、余烬 Ember、AuroWendao 设计文档、DesktopJelly。
@@ -39,6 +42,18 @@ carl-motion 的八种动效风格（扁平矢量 / 水墨 / 黏土定格 / 技�
 - **风格侧**：八种纯代码能落地的视觉风格（动力排版 / 数据动起来 / 终端与代码 / 白板手绘 /
   产品 UI 演示 / 视差卡片 / 品牌片头 / 2D 角色逐帧），每条都有「要点」与「怎么用」
 
+**漫画**：动漫 / 漫画 / 动画的视觉语言，23 条。来源是本地参考仓库 `code-to-film/` 下的两套风格库——
+[lemo-opuscar](https://github.com/lemomo-ai/lemo-opuscar)（66 种影片风格，每种一份 STYLE.md）与
+[mg-styles-15](https://github.com/Vincentwei1021/mg-styles-15)（15 种 MG 风格，含完整源码）。
+分五组：
+- **日系 / 美式动画**：80 年代赛璐璐、浮世绘、1930s 橡皮管、50s UPA、成人动画
+- **漫画印刷与线条**：半调网点、孔版印刷（Riso）、一笔画
+- **绘本与手工**：蜡笔儿童绘本、等距绘本、纸片立体书
+- **东方民间动画**：皮影戏、红色窗花剪纸
+- **游戏与综艺**：16-bit 像素 RPG、HD-2D、线条沸腾、8-bit、微游戏快闪、综艺节奏扁平、综艺花字、粗描边贴纸人、80s Synthwave、拼贴剪贴
+
+每条都指回原始 `STYLE.md` 或提示词，本层只做索引，不改原作。有云端的条目 `source` 写云端仓库位置、`sources[0]` 是云端原文 URL，本地副本排在后面。
+
 **外部两套库怎么进来的**：
 - [huashu-design](https://github.com/alchaincyf/huashu-design)（花叔，MIT）：92 种风格分 6 区，
   这里收 6 条分区总览 + 13 条代表作，样张是它仓库里的 jpg（已下载到 `_design/covers/` 本地副本，无网也能看）
@@ -52,7 +67,13 @@ Pinky 产品设计文档、"她不一样" Skill 展示页；视频层加了一�
 
 ## 面板怎么用
 
-1. 顶部三个大标签切层（带条目数）；下面是这一层的标签芯片 + 搜索。
+1. 顶部五个大标签切层（带条目数）；下面是这一层的筛选芯片 + 搜索。
+   **筛选分两类，各归各位**：
+   - **内容维度**（日系 / 架构图 / 极简……）直接铺一排，来自 `catalog.js` 里每层自己的 `filters`：
+     语义不重叠、每个至少命中 2 条、覆盖本层主要群体。不再从条目 tags 自动提取——那些 tags 是写给自己的注释，
+     200 个里 143 个只出现一次，拿来当筛选项一半以上点了只剩一条。条目的 tags 仍原样保留，搜索与 nature 判定照旧。
+   - **数据维度**（只看风格 / 风格+素材 / 全部、全部来源 / 只看自制 / 只看引用）收进「更多筛选 ▾」，默认不占版面；
+     整层都是风格、或整层只有一个来源时，对应的组连下拉里都不出现。选了非默认值，按钮会亮着提示当前有筛选。
 2. 每张卡片的视觉区按条目类型三选一：
    - **图**：条目自带的封面（手机截图 / 主题背景 / 成片首帧），经 `/design-workbench/cover/<id>` 提供；
    - **样式**：同一块迷你界面的换皮预览（`iframe + srcDoc`，样式互不污染）；
@@ -76,10 +97,10 @@ AI 拿到这一行，需要细节时自己 `design_style op=get` 展开——完
 ## 工具
 
 ```
-design_style op=list                        三层全列（按层分组）
-design_style op=layer {app|frontend|video}  只看一层
-design_style op=get {id}                    完整规格（颜色/圆角/CSS/要点/怎么用）
-design_style op=search {关键词}             按名称/标签/出处搜（「水墨」「仪表盘」）
+design_style op=list                                  五层全列（按层分组）
+design_style op=layer {app|frontend|video|codevideo|comic}  只看一层
+design_style op=get {id}                              完整规格（颜色/圆角/CSS/要点/怎么用）
+design_style op=search {关键词}                       按名称/标签/出处搜（「水墨」「仪表盘」）
 ```
 
 **这就是「AI 接触工作台数据的通道」**：面板是给人看的，工具是给 AI 读同一份 `catalog.js` 的。
@@ -139,7 +160,7 @@ design_scan op=remove id=fe-scan-xxx                        # 删掉
 
 判定只看文件名与 manifest：`DESIGN.md`/`style-guide`/`tokens`、`package.json` 里的
 react/vue/next/tailwind/electron、`AndroidManifest.xml`/`.apk`、`remotion.config.*`/`scene.py`、
-截图数量与 `index.html`。分到四层里，封面取目录里最像封面的那张图。
+截图数量与 `index.html`。分到四层里（App / 前端 / 视频 / 代码生视频；漫画层靠手写目录，不参与扫描），封面取目录里最像封面的那张图。
 
 导入的条目写在 `$DSH_HOME/plugins/dsh-design-workbench/extra.json`（覆盖层），
 **不动 catalog.js**；工作台与工具都从「catalog + 覆盖层」合并后的结果读。
@@ -153,6 +174,18 @@ react/vue/next/tailwind/electron、`AndroidManifest.xml`/`.apk`、`remotion.conf
 
 只改 `catalog.js` 一处：在对应层的 `entries` 里加一条 `{ id, name, oneLine, source, tags, kind, cover?|style?|swatch?, bullets, howto }`，
 `prompt` 由 `promptOf()` 统一拼出来。封面只认这个小文件里写死的路径 —— `/cover/` 路由是白名单，不接受任意路径。
+
+**有云端的条目必须标云端，不能只标下载之后的本地路径**：
+
+- `source` 写云端仓库里的位置：`github.com/<org>/<repo> · <路径>`（面板「出处」、`specOf` 的「出处」都读它）
+- `sources[0]` 必须是**云端原文 URL**，本地副本排在后面并加「本地 ·」前缀
+- 原因：`refOf()` 的「复制引用」取 `sources[0]`。粘给 AI 的应该是云端地址 —— 别人能打开、能核对，
+  而不是 `D:/...` 这种只在这台机器上成立、换个环境就断的路径
+- 漫画层就是这么做的（见 `catalog.js` 里 `CLOUD` 那段：从本地路径反推 `blob/main/` 地址，一次补完 10 条）
+
+**加一层时别忘了写 `filters`**：`{ id, name, hint, filters: [...], entries }`。
+`filters` 是这一层面板上显示的那排筛选芯片，要求：语义互不重叠、每个至少命中 2 条、合起来覆盖本层主要群体。
+不写也能用，但会回退到「从 tags 自动提取」，效果通常很差。
 
 ## 改完之后怎么生效（省一次重启）
 

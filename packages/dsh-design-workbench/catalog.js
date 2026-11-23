@@ -1,7 +1,7 @@
 import { MEMBERS } from './collections.js'
 
 /**
- * 设计资料库 —— 三层：App 设计 / 前端设计 / 视频风格。
+ * 设计资料库 —— 五层：App 设计 / 前端设计 / 视频风格 / 代码生视频 / 漫画。
  *
  * 每一条都指到**本机真实存在的东西**（路径可点开核对），少数是外部方法层
  * （huashu-design 的 App 范式），会明确写来源 URL，不冒充本机资产。
@@ -791,6 +791,30 @@ const LOCAL_COVERS = {
   'fe-huasu-hk-signs': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-huasu-hk-signs.jpg',
   'cv-openmotion': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/cv-openmotion.jpg',
   'cv-templates': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/cv-templates.jpg',
+  // 漫画层：直接用风格库自带的样片海报
+  'cm-cel-anime-80s': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/cel-anime-80s/poster.jpg',
+  'cm-ukiyoe': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/ukiyoe/poster.jpg',
+  'cm-rubber-hose': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/rubber-hose/poster.jpg',
+  'cm-midcentury-toon': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/midcentury-toon/poster.jpg',
+  'cm-scifi-toon': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/scifi-toon/poster.jpg',
+  'cm-halftone-dossier': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/halftone-dossier/poster.jpg',
+  'cm-pixel-rpg': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/pixel-rpg/poster.jpg',
+  'cm-hd-2d': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/hd-2d/poster.jpg',
+  'cm-cel-boil': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/05-cel-boil.webp',
+  'cm-pixel-art': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/20-pixel.webp',
+  'cm-crayon-book': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/crayon-book/poster.jpg',
+  'cm-isometric-picture-book': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/isometric-picture-book/poster.jpg',
+  'cm-paper-popup': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/paper-popup/poster.jpg',
+  'cm-shadow-puppet': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/shadow-puppet/poster.jpg',
+  'cm-papercut-red': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/papercut-red/poster.jpg',
+  'cm-risograph': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/risograph/poster.jpg',
+  'cm-one-line': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/one-line/poster.jpg',
+  'cm-microgame': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/microgame/poster.jpg',
+  'cm-game-show': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/game-show/poster.jpg',
+  'cm-variety-hanazi': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/18-hanazi.webp',
+  'cm-sticker-explainer': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/19-paperclip.webp',
+  'cm-synthwave-80s': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/10-synthwave.webp',
+  'cm-collage-cutout': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/06-collage.webp',
 }
 
 
@@ -1371,11 +1395,543 @@ const ARCH_ENTRIES = [
   },
 ]
 
+/**
+ * ── 漫画（comic）─────────────────────────────────────────────────────
+ * 动漫 / 漫画 / 动画的视觉语言。来源是本地参考仓库 code-to-film 下的两套风格库：
+ *   lemo-opuscar  —— 66 种影片风格，每种一份 STYLE.md（材质/色彩/运镜/音色/坑）+ 一张样片海报
+ *   mg-styles-15  —— 15 种 MG 风格，每种一支 10 秒成片 + 完整提示词与源码
+ * 每条都指到原始的 STYLE.md / 提示词，本层只做索引。
+ */
+const COMIC_SRC = 'D:/github_project/ZhaoWen_GitHub维护/code-to-film'
+const LEMO = COMIC_SRC + '/lemo-opuscar/styles'
+const MG15 = COMIC_SRC + '/mg-styles-15'
+
+const COMIC_ENTRIES = [
+  {
+    id: 'cm-cel-anime-80s',
+    layer: 'comic',
+    name: '80 年代赛璐璐动画',
+    oneLine: '日本 OVA 黄金时代：手绘赛璐璐叠在喷绘背景上、背光霓虹、有限动画的节奏，整片录进一盘 CRT 磁带',
+    source: LEMO + '/cel-anime-80s/STYLE.md',
+    tags: ['日系', '赛璐璐', '复古', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '平涂色块叠在喷绘背景上——两者的质感差本身就是年代感，别把背景也画平',
+      '背光：光源永远在角色背后或窗外，脸是暗的，只有轮廓有一道亮边',
+      '有限动画：关键动作只画 2–3 张，靠速度线与抖动补足，不要补成流畅的 24 帧',
+      '最后过一遍 CRT：扫描线、色渗、轻微几何形变，声音也要跟着变糊',
+    ],
+    howto: '做 80 年代怀旧、city pop、机甲/青春题材时用。规范在 STYLE.md（含镜头表与音色表），样片 City Lights, 1987。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/cel-anime-80s/STYLE.md' },
+      { label: '海报', path: LEMO + '/cel-anime-80s/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-ukiyoe',
+    layer: 'comic',
+    name: '浮世绘',
+    oneLine: '江户木版画活过来：平涂色块、刻出来的墨线、晕染天空，镜头像展开手卷一样在画面上移动',
+    source: LEMO + '/ukiyoe/STYLE.md',
+    tags: ['日系', '版画', '东方', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '每一镜都是一整张版画：和纸、细双线边框、竖排题签、朱印',
+      '世界是平的——纵深靠横带堆叠与雾带，不靠透视与光影',
+      '主版墨线压在色块之上，色块之间允许留一线纸白（这就是「印」出来的感觉）',
+      '镜头横移像展开手卷，不推不拉',
+    ],
+    howto: '做日式风物、四季、旅途题材；也可作为日本漫画视觉的源头来引用。样片 Toward the Mountain · 山へ五景。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/ukiyoe/STYLE.md' },
+      { label: '海报', path: LEMO + '/ukiyoe/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-rubber-hose',
+    layer: 'comic',
+    name: '1930s 橡皮管卡通',
+    oneLine: '黑白手绘，所有东西都是活的，跟着热爵士乐队摇摆——弗莱舍工作室那一路',
+    source: LEMO + '/rubber-hose/STYLE.md',
+    tags: ['美式', '复古', '手绘', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '万物有生命：家具、杯子、云都会随手势扭动，肢体是橡皮管没有关节',
+      '黑白墨线 + 手绘毛边，高光靠留白不靠灰度',
+      '动作必须落在爵士乐的拍子上，每个动作一记音效',
+      '允许不可能的变形（身体拉长成桥、头转 360°），这是这一派的语言',
+    ],
+    howto: '做复古、嬉闹、音乐驱动的短片；样片 Coffee Cup Chase。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/rubber-hose/STYLE.md' },
+      { label: '海报', path: LEMO + '/rubber-hose/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-midcentury-toon',
+    layer: 'comic',
+    name: '50s 扁平卡通（UPA）',
+    oneLine: '色与线分在两张片上、刻意印偏几像素；身体不动，只有手在干活；冷静课堂旁白配酷爵士',
+    source: LEMO + '/midcentury-toon/STYLE.md',
+    tags: ['美式', '扁平', '复古', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '颜色故意错开线几像素——这是印刷套版不准，不是失误，别对齐',
+      '几何化的人：圆柱、圆、三角，不要细节',
+      '有限动画：主体静止，只有手/眼在动，靠构图与色彩块推进',
+      '一句话一张图，编号卡片，旁白是课堂式的第二人称',
+    ],
+    howto: '做解释性、教学式、克制的复古动画；样片 Meet Pip。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/midcentury-toon/STYLE.md' },
+      { label: '海报', path: LEMO + '/midcentury-toon/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-scifi-toon',
+    layer: 'comic',
+    name: '成人动画情景喜剧',
+    oneLine: '粗描边线条持续「沸腾」、平涂色、一对反应永远对不上的搭档、每个世界一套配色',
+    source: LEMO + '/scifi-toon/STYLE.md',
+    tags: ['美式', '成人动画', '线条沸腾', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '线条每帧重画，边缘持续抖动（boiling line）——用固定的种子抖动，别让它真的乱跳',
+      '两人对话：一个在认真讲，另一个的反应完全不在频道上，笑点全在反应特写',
+      '科幻硬件当成家用电器画：传送门像微波炉，飞船像吸尘器',
+      '每个世界一套配色，换场景就换色板',
+    ],
+    howto: '做对白驱动的喜剧短片；样片 Coffee Run。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/scifi-toon/STYLE.md' },
+      { label: '海报', path: LEMO + '/scifi-toon/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-halftone-dossier',
+    layer: 'comic',
+    name: '复古半调案卷（漫画网点）',
+    oneLine: '奶油档案纸、几种平涂油墨叠印的网点、大标题带错位的投影、会砸下来的橡皮章',
+    source: LEMO + '/halftone-dossier/STYLE.md',
+    tags: ['漫画', '网点', '印刷风格', '复古'],
+    kind: 'image',
+    bullets: [
+      '网点（halftone）是漫画的印刷语言，不是滤镜：密度决定明暗，角度决定质感',
+      '三种色版叠印，套不准的偏移要保留',
+      '大标题带一层错位重影，字重压到最粗',
+      '橡皮章是节奏工具：一记「砸」下来就是一次分镜切换',
+    ],
+    howto: '做漫画感、档案感、复古印刷感的片子或封面；样片 胖橘案卷 Case File: Chubby。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/halftone-dossier/STYLE.md' },
+      { label: '海报', path: LEMO + '/halftone-dossier/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-pixel-rpg',
+    layer: 'comic',
+    name: '16-bit 像素 RPG',
+    oneLine: '320×180 像素、索引色板、逐字打出的对话框、菜单、存档点、带回声的芯片音乐',
+    source: LEMO + '/pixel-rpg/STYLE.md',
+    tags: ['像素', '游戏', '复古', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '分辨率锁死 320×180，所有元素按整数像素对齐，禁止亚像素移动',
+      '索引色板：调色板换色就是「换场景」，用阶跃淡出不用连续渐变',
+      'UI 是内容的一部分：对话框、菜单、存档点都是叙事工具',
+      '音乐是芯片音源，带一点回声；音效短、干、脆',
+    ],
+    howto: '做游戏怀旧、像素叙事、轻喜剧；样片 The Last Save Point。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/pixel-rpg/STYLE.md' },
+      { label: '海报', path: LEMO + '/pixel-rpg/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-hd-2d',
+    layer: 'comic',
+    name: 'HD-2D',
+    oneLine: '像素小人像纸片一样立在有雾有光的 3D 微缩场景里，俯角四分之三、移轴镜头',
+    source: LEMO + '/hd-2d/STYLE.md',
+    tags: ['像素', '3D', '游戏', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '像素精灵站在真 3D 场景里——材质冲突才是这个风格的核心，别把场景也做成像素',
+      '固定俯角四分之三，移轴景深把上下压虚',
+      '每盏灯都要投出真的影子，雾与泛光要重',
+      '对话用带边框的对话框，是游戏界面语言',
+    ],
+    howto: '做游戏化叙事、微缩世界；样片 The Lampbearer。注意「HD-2D」是 Square Enix 的商标术语，不能用作片名或品牌。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/hd-2d/STYLE.md' },
+      { label: '海报', path: LEMO + '/hd-2d/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-cel-boil',
+    layer: 'comic',
+    name: '逐帧手绘 / 线条沸腾',
+    oneLine: '逐帧重画带来的线条抖动（line boil），手作感最强的赛璐璐动画',
+    source: MG15 + '/prompts/05-cel-boil.md',
+    tags: ['手绘', '逐帧', '线条沸腾', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '线条每帧重画，抖动是特征不是瑕疵——但抖动要受控，不能变成噪点',
+      '先出线稿再上色，笔先起形、按模块描线、擦掉起形、再由浅到深上色',
+      '墨线有压感，完成色要平涂干净（别把马克笔笔道留在色块里）',
+      '这一条已经能在本机跑通：mg-styles-15 + Edge 渲染',
+    ],
+    howto: '想要「手作动画」质感又不想真的手绘时用；样片 手作 HAND MADE。',
+    sources: [
+      { label: '完整提示词', path: MG15 + '/prompts/05-cel-boil.md' },
+      { label: '源码', path: MG15 + '/demos/05-cel-boil' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-pixel-art',
+    layer: 'comic',
+    name: '像素风（8-bit）',
+    oneLine: '8-bit 像素美术，色板克制，每一格像素都算数',
+    source: MG15 + '/prompts/20-pixel.md',
+    tags: ['像素', '8-bit', '游戏', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '色板先定死（8–16 色），之后所有画面只能从这里面取',
+      '像素画不缩放：要么整数倍放大，要么按目标分辨率重画',
+      '动画靠 2–4 帧循环，不是平滑补间',
+      '这一条已经能在本机跑通：mg-styles-15 + Edge 渲染',
+    ],
+    howto: '做怀旧游戏感、轻快叙事；样片 PIXEL QUEST 像素冒险。',
+    sources: [
+      { label: '完整提示词', path: MG15 + '/prompts/20-pixel.md' },
+      { label: '源码', path: MG15 + '/demos/20-pixel' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-crayon-book',
+    layer: 'comic',
+    name: '蜡笔儿童绘本',
+    oneLine: '一页绘本被当场画出来：蜡笔在粗糙纸上、每一帧都微微抖动，水彩晕开把蜡笔藏起来的部分露出来',
+    source: LEMO + '/crayon-book/STYLE.md',
+    tags: ['绘本', '手绘', '蜡笔', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '蜡只沾在纸纹的凸起上——压力决定覆盖多少，这是材质不是滤镜',
+      '每帧重画，线条持续抖动，画面在呼吸',
+      '水彩是客人、蜡笔是主人：晕染只用来揭示，不主导',
+      '画完一页就是一页，不留半成品；叙事靠「这一页被画完」推动',
+    ],
+    howto: '做童年、亲情、睡前故事、无言的温柔；样片 The Moon Can\'t Sleep。参考《雪人》那种无台词抒情。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/crayon-book/STYLE.md' },
+      { label: '海报', path: LEMO + '/crayon-book/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-isometric-picture-book',
+    layer: 'comic',
+    name: '等距绘本',
+    oneLine: '一个日常规则讲成真等距绘本：小人物背对镜头按顺序做事，衬线字一个一个落在地上，像画在地面',
+    source: LEMO + '/isometric-picture-book/STYLE.md',
+    tags: ['绘本', '等距', '信息图', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '真等距、平涂色，人没有脸、一律背对镜头——人是图的一部分，不是角色',
+      '字落在地面上（贴地透视），不是浮在画面前',
+      '节奏很慢：一件事做完再做下一件，不要并置',
+      '遮挡动作的东西要像掀开屋顶一样移走，而不是淡出',
+    ],
+    howto: '讲一条日常规则、公共礼仪、流程「应该是怎样」；样片 Seventy-Two Seats。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/isometric-picture-book/STYLE.md' },
+      { label: '海报', path: LEMO + '/isometric-picture-book/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-paper-popup',
+    layer: 'comic',
+    name: '纸片立体书',
+    oneLine: '桌上翻开一本立体书，纸片角色带白边在弹起的纸景前表演，真台灯、真微距镜头',
+    source: LEMO + '/paper-popup/STYLE.md',
+    tags: ['绘本', '纸艺', '3D', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '两个世界同框：写实的桌面（HDRI 光）＋ 扁平的纸片（厚白边、灰卡纸边）',
+      '靠尺度与材质冲突取胜——让真光和真景深把纸片「做实」',
+      '景片沿底边弹起（V 折），不是淡入',
+      '角色也是纸片，几厘米高，投出剪纸形状的阴影',
+    ],
+    howto: '做手工感、童心、礼物/贺卡式的叙事；样片 The Little Sprite\'s Adventure。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/paper-popup/STYLE.md' },
+      { label: '海报', path: LEMO + '/paper-popup/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-shadow-puppet',
+    layer: 'comic',
+    name: '皮影戏',
+    oneLine: '半透明的染色皮偶贴着棉布幕，油灯在后面打光——镂空得像蕾丝，动作是侧身表演',
+    source: LEMO + '/shadow-puppet/STYLE.md',
+    tags: ['东方', '皮影', '剪影', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '一切都在侧影里发生：角色只有轮廓与镂空，不画正脸',
+      '光从左后方来，皮偶是暗的、镂空是亮的——明暗关系不能反',
+      '关节分段摆动，动作是「操纵」出来的，不是流畅补间',
+      '锣鼓点决定节奏，一个亮相就是一记锣',
+    ],
+    howto: '中国传统故事、神话、民间叙事；样片 Hou Yi Shoots the Suns。也适合做剪影式的抽象叙事。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/shadow-puppet/STYLE.md' },
+      { label: '海报', path: LEMO + '/shadow-puppet/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-papercut-red',
+    layer: 'comic',
+    name: '红色窗花剪纸',
+    oneLine: '中国窗花活起来：关节可动的红色剪纸上场，镂空就是画面，光从洞里进来',
+    source: LEMO + '/papercut-red/STYLE.md',
+    tags: ['东方', '剪纸', '节庆', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '剪就是画：轮廓由剪刀决定，洞的形状就是形体的负形',
+      '阴阳剪法（留红/留白）两套逻辑不能混用',
+      '关节用铆钉式连接，动作幅度大、干脆',
+      '配色克制：正红 + 纸白，最多加一点金',
+    ],
+    howto: '春节、年味、民俗、喜庆题材；样片 Nian Comes to Town。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/papercut-red/STYLE.md' },
+      { label: '海报', path: LEMO + '/papercut-red/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-risograph',
+    layer: 'comic',
+    name: '孔版印刷（Riso）',
+    oneLine: '像在油印机上逐帧印出来的：两三种半透明专色叠印在暖纸上，网点、墨粒、永远对不准的版',
+    source: LEMO + '/risograph/STYLE.md',
+    tags: ['印刷风格', 'zine', '漫画', '复古'],
+    kind: 'image',
+    bullets: [
+      '2–3 种半透明专色，叠印处产生第三色——这是 riso 的核心，别直接画第三种颜色',
+      '错版是签名：色块与线故意错开 1–2mm',
+      '网点、针孔、走纸痕都要留，太干净就不像印的',
+      '人物小、场面大：一个小人在大片色块里',
+    ],
+    howto: '独立漫画、zine、海报、文艺短片——当下最被认可的印刷质感；样片 Sunday Ride。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/risograph/STYLE.md' },
+      { label: '海报', path: LEMO + '/risograph/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-one-line',
+    layer: 'comic',
+    name: '一笔画',
+    oneLine: '一条墨线，从不离开纸面。画面里所有东西都是这条线在画，转场不切、是变形',
+    source: LEMO + '/one-line/STYLE.md',
+    tags: ['线条', '极简', '动画风格', '手绘'],
+    kind: 'image',
+    bullets: [
+      '全片可以真的只是一个点数组：从落笔到最后一帧不断线',
+      '没有填充、没有明暗、没有第二种线宽',
+      '角色、场景、甚至时间都是这条线——变形即转场',
+      '镜头跟着笔尖跑，带一点滞后与预判',
+    ],
+    howto: '做极简、俏皮、音乐驱动的小品；样片 The Line That Never Lifted。参考《La Linea》。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/one-line/STYLE.md' },
+      { label: '海报', path: LEMO + '/one-line/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-microgame',
+    layer: 'comic',
+    name: '微游戏快闪',
+    oneLine: '一个词、几秒钟、一个动作：每个微游戏都是完全不同的画风，片子越来越快',
+    source: LEMO + '/microgame/STYLE.md',
+    tags: ['游戏', '快节奏', '动画风格', '亚文化'],
+    kind: 'image',
+    bullets: [
+      '一条指令字 + 一个动作 = 一个微游戏，2–5 秒结束',
+      '每个微游戏换一套画风（像素/剪纸/涂鸦/3D），风格切换本身就是节奏',
+      '结果用大字判词（成功/失败）一刀切，不留过渡',
+      '全片速度递增，最后一个最荒诞',
+    ],
+    howto: '做快节奏、鬼畜、梗密集的短片；样片 Five-Second Astronaut。参考 WarioWare。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/microgame/STYLE.md' },
+      { label: '海报', path: LEMO + '/microgame/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-game-show',
+    layer: 'comic',
+    name: '综艺节奏扁平',
+    oneLine: '扁平矢量的节奏游戏综艺：厚描边玩偶吉祥物、糖果色条纹与放射线、每一击都落在固定节拍上',
+    source: LEMO + '/game-show/STYLE.md',
+    tags: ['综艺', '扁平', '游戏', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '厚墨线 + 糖果色条纹 + 放射线，是日本综艺 telop 那套视觉',
+      '所有动作对齐固定节拍网格，不自由发挥',
+      '呼麦式来回：cue → answer，一问一答',
+      '每回合结束给一个「判词」大字',
+    ],
+    howto: '做热闹、竞技、综艺感的短片；样片 AI进化节拍 Rhythm of AI 1997 → 2026。',
+    sources: [
+      { label: '风格规范 STYLE.md', path: LEMO + '/game-show/STYLE.md' },
+      { label: '海报', path: LEMO + '/game-show/poster.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-variety-hanazi',
+    layer: 'comic',
+    name: '综艺花字（Hanazi）',
+    oneLine: '日韩综艺式的动态花字：大字带描边与投影砸进画面，跟着语速逐字蹦出，情绪靠字的大小与歪斜',
+    source: MG15 + '/prompts/18-hanazi.md',
+    tags: ['综艺', '花字', '日韩', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '花字是表演：字要有弹入、抖动、歪斜，不能只是淡入',
+      '厚描边 + 硬投影 + 高饱和，保证小屏上也能读',
+      '竖屏 9:16 是原生画幅，字占屏比例比横屏大得多',
+      '每个字跟着语音节奏逐字出现，重音字单独放大',
+    ],
+    howto: '做综艺感、vlog、科普花字、竖屏短视频；原片 喵呜日记 EP.07，AI 评审 7.64/10。',
+    sources: [
+      { label: '完整提示词', path: MG15 + '/prompts/18-hanazi.md' },
+      { label: '源码', path: MG15 + '/demos/18-hanazi' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-sticker-explainer',
+    layer: 'comic',
+    name: '粗描边贴纸人科普',
+    oneLine: '回形针/林超那种贴纸人 MG：粗黑描边的人物贴进真实物件里，靠贴纸的「贴」来讲解',
+    source: MG15 + '/prompts/19-paperclip.md',
+    tags: ['漫画', '贴纸', '科普', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '粗描边 + 纯色填充 + 白边，贴着真实照片或物体走',
+      '人物是「讲解员」不是主角：它的作用是当指针',
+      '信息靠移动贴纸来推进，不靠字幕堆叠',
+      '一个镜头只讲一件事，讲完立刻换贴纸',
+    ],
+    howto: '做科普、拆解、知识类 MG，视觉记忆点强；原片「一部手机里，藏着多少种元素？」AI 评审 7.71/10。',
+    sources: [
+      { label: '完整提示词', path: MG15 + '/prompts/19-paperclip.md' },
+      { label: '源码', path: MG15 + '/demos/19-paperclip' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-synthwave-80s',
+    layer: 'comic',
+    name: '复古 80s Synthwave / VHS',
+    oneLine: '霓虹网格、落日、磁带噪点：80 年代合成器美学，和赛璐璐动画共用同一个年代底色',
+    source: MG15 + '/prompts/10-synthwave.md',
+    tags: ['复古', '80s', '赛博', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '配色锁死：品红 / 青 / 深紫，加一点橙当落日',
+      '透视网格地平线是标志性构图，镜头常做向前推进',
+      'VHS 质感要真：扫描线、色差、噪点、偶尔的磁迹跳动',
+      '字用霓虹描边或铬金属反射，不要现代无衬线',
+    ],
+    howto: '做 80 年代怀旧、合成器音乐、赛博题材；原片 NEON DRIVE 霓虹夜驰 1986，AI 评审 8.21/10（本库最高分之一）。',
+    sources: [
+      { label: '完整提示词', path: MG15 + '/prompts/10-synthwave.md' },
+      { label: '源码', path: MG15 + '/demos/10-synthwave' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'cm-collage-cutout',
+    layer: 'comic',
+    name: '拼贴剪贴',
+    oneLine: '旧杂志剪下来拼在一起：剪口毛边、纸质纹理、每块素材都在轻微地独立抖动',
+    source: MG15 + '/prompts/06-collage.md',
+    tags: ['拼贴', '拼贴风格', '手工', '动画风格'],
+    kind: 'image',
+    bullets: [
+      '每一块都要有剪口毛边与纸张厚度，别做成矢量色块',
+      '拼贴的幽默在「错位」：比例、年代、风格越不搭越好',
+      '各元素轻微独立抖动，像手在一点点挪',
+      '留白用纸底，不要用纯色背景',
+    ],
+    howto: '做脑洞、杂志感、独立风格短片；原片 NOGGIN 脑洞季刊，AI 评审 8.14/10。',
+    sources: [
+      { label: '完整提示词', path: MG15 + '/prompts/06-collage.md' },
+      { label: '源码', path: MG15 + '/demos/06-collage' },
+    ],
+    origin: 'referenced',
+  },
+]
+
+/**
+ * 漫画层的「云端 → 本地」对应。
+ *
+ * 条目上的 source 写的是本地副本路径，但**最初的来源在 GitHub**——不能只标下载之后的位置。
+ * 这里统一补两件事：
+ *   ① source 改写成云端仓库里的位置（面板「出处」、specOf 的「出处」都读它）；
+ *   ② sources 最前面插入云端原文 URL，本地副本降级为「本地 · xxx」排在后面。
+ * refOf 的「复制引用」取 sources[0]，所以粘给 AI 的是云端地址，不是我这台机器的 D 盘路径。
+ */
+const CLOUD = {
+  lemo: 'https://github.com/lemomo-ai/lemo-opuscar',
+  mg: 'https://github.com/Vincentwei1021/mg-styles-15',
+}
+for (const e of COMIC_ENTRIES) {
+  const local = String(e.source)
+  const isMg = local.startsWith(MG15)
+  const repo = isMg ? CLOUD.mg : CLOUD.lemo
+  const rel = (isMg ? '' : 'styles/') + local.slice((isMg ? MG15 : LEMO).length + 1)
+  const cloud = repo + '/blob/main/' + rel
+  e.cloud = cloud
+  e.source = repo.replace('https://', '') + ' · ' + rel.replace(/(\/STYLE\.md|\.md)$/, '')
+  e.sources = [
+    { label: '云端原文', url: cloud },
+    ...(Array.isArray(e.sources) ? e.sources : []).map((s) => ({ ...s, label: '本地 · ' + s.label })),
+  ]
+}
+
+/**
+ * 每层的筛选芯片。
+ *
+ * 条目的 tags 是「写给自己的注释」（200 个里有 143 个只出现一次），不适合直接当筛选维度。
+ * 这里给每层单独定一组**可用作筛选**的标签：语义不重叠、每个至少命中 2 条、覆盖本层主要群体。
+ * 面板只渲染这一组；条目的 tags 仍原样保留，搜索与 nature 判定照旧。
+ */
 export const LAYERS = [
-  { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
-  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES] },
-  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
-  { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
+  { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', filters: ['App 风格', '桌面', 'Android', '动效', '产品设计'], entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
+  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库', filters: ['架构图', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES] },
+  { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', filters: ['动效风格'], entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
+  { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', filters: ['风格', '引擎', '开源', '零素材', '解释性'], entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
+  { id: 'comic', name: '漫画', hint: '动漫 / 漫画 / 动画的视觉语言：赛璐璐、木版画、网点、像素', filters: ['日系', '美式', '东方', '绘本', '漫画', '像素', '复古', '游戏'], entries: COMIC_ENTRIES },
 ]
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
