@@ -16,6 +16,18 @@ import { MEMBERS } from './collections.js'
 /** 规格页只留一句要求；详细数值都在上面，不重复啰嗦。 */
 const ASK = '按上面这套来就行；要新颜色/新档位先问我。'
 
+/**
+ * 「漫画」层引用的两套外部风格库装在哪。
+ *
+ * 它们不是本仓库的东西，是本地参考副本（约 740 MB），所以目录位置可以换：
+ *   - 默认 D:/github_project/ZhaoWen_GitHub维护/code-to-film
+ *   - 用环境变量 DESIGN_COMIC_SRC 指到别处即可（封面、本地副本链接、云端映射都跟着走）
+ *   - 丢了就用 `node scripts/fetch-libs.mjs` 重新拉回来
+ */
+const COMIC_SRC = process.env.DESIGN_COMIC_SRC || 'D:/github_project/ZhaoWen_GitHub维护/code-to-film'
+const LEMO = COMIC_SRC + '/lemo-opuscar/styles'
+const MG15 = COMIC_SRC + '/mg-styles-15'
+
 /** 八种前端样式（量自本机代码，见 README「怎么量出来的」）。 */
 export const STYLES = [
   {
@@ -792,29 +804,29 @@ const LOCAL_COVERS = {
   'cv-openmotion': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/cv-openmotion.jpg',
   'cv-templates': 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/cv-templates.jpg',
   // 漫画层：直接用风格库自带的样片海报
-  'cm-cel-anime-80s': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/cel-anime-80s/poster.jpg',
-  'cm-ukiyoe': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/ukiyoe/poster.jpg',
-  'cm-rubber-hose': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/rubber-hose/poster.jpg',
-  'cm-midcentury-toon': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/midcentury-toon/poster.jpg',
-  'cm-scifi-toon': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/scifi-toon/poster.jpg',
-  'cm-halftone-dossier': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/halftone-dossier/poster.jpg',
-  'cm-pixel-rpg': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/pixel-rpg/poster.jpg',
-  'cm-hd-2d': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/hd-2d/poster.jpg',
-  'cm-cel-boil': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/05-cel-boil.webp',
-  'cm-pixel-art': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/20-pixel.webp',
-  'cm-crayon-book': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/crayon-book/poster.jpg',
-  'cm-isometric-picture-book': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/isometric-picture-book/poster.jpg',
-  'cm-paper-popup': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/paper-popup/poster.jpg',
-  'cm-shadow-puppet': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/shadow-puppet/poster.jpg',
-  'cm-papercut-red': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/papercut-red/poster.jpg',
-  'cm-risograph': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/risograph/poster.jpg',
-  'cm-one-line': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/one-line/poster.jpg',
-  'cm-microgame': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/microgame/poster.jpg',
-  'cm-game-show': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/lemo-opuscar/styles/game-show/poster.jpg',
-  'cm-variety-hanazi': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/18-hanazi.webp',
-  'cm-sticker-explainer': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/19-paperclip.webp',
-  'cm-synthwave-80s': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/10-synthwave.webp',
-  'cm-collage-cutout': 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/mg-styles-15/docs/readme/films/06-collage.webp',
+  'cm-cel-anime-80s': LEMO + '/cel-anime-80s/poster.jpg',
+  'cm-ukiyoe': LEMO + '/ukiyoe/poster.jpg',
+  'cm-rubber-hose': LEMO + '/rubber-hose/poster.jpg',
+  'cm-midcentury-toon': LEMO + '/midcentury-toon/poster.jpg',
+  'cm-scifi-toon': LEMO + '/scifi-toon/poster.jpg',
+  'cm-halftone-dossier': LEMO + '/halftone-dossier/poster.jpg',
+  'cm-pixel-rpg': LEMO + '/pixel-rpg/poster.jpg',
+  'cm-hd-2d': LEMO + '/hd-2d/poster.jpg',
+  'cm-cel-boil': MG15 + '/docs/readme/films/05-cel-boil.webp',
+  'cm-pixel-art': MG15 + '/docs/readme/films/20-pixel.webp',
+  'cm-crayon-book': LEMO + '/crayon-book/poster.jpg',
+  'cm-isometric-picture-book': LEMO + '/isometric-picture-book/poster.jpg',
+  'cm-paper-popup': LEMO + '/paper-popup/poster.jpg',
+  'cm-shadow-puppet': LEMO + '/shadow-puppet/poster.jpg',
+  'cm-papercut-red': LEMO + '/papercut-red/poster.jpg',
+  'cm-risograph': LEMO + '/risograph/poster.jpg',
+  'cm-one-line': LEMO + '/one-line/poster.jpg',
+  'cm-microgame': LEMO + '/microgame/poster.jpg',
+  'cm-game-show': LEMO + '/game-show/poster.jpg',
+  'cm-variety-hanazi': MG15 + '/docs/readme/films/18-hanazi.webp',
+  'cm-sticker-explainer': MG15 + '/docs/readme/films/19-paperclip.webp',
+  'cm-synthwave-80s': MG15 + '/docs/readme/films/10-synthwave.webp',
+  'cm-collage-cutout': MG15 + '/docs/readme/films/06-collage.webp',
 }
 
 
@@ -1402,10 +1414,6 @@ const ARCH_ENTRIES = [
  *   mg-styles-15  —— 15 种 MG 风格，每种一支 10 秒成片 + 完整提示词与源码
  * 每条都指到原始的 STYLE.md / 提示词，本层只做索引。
  */
-const COMIC_SRC = 'D:/github_project/ZhaoWen_GitHub维护/code-to-film'
-const LEMO = COMIC_SRC + '/lemo-opuscar/styles'
-const MG15 = COMIC_SRC + '/mg-styles-15'
-
 const COMIC_ENTRIES = [
   {
     id: 'cm-cel-anime-80s',

@@ -54,6 +54,18 @@ carl-motion 的八种动效风格（扁平矢量 / 水墨 / 黏土定格 / 技�
 
 每条都指回原始 `STYLE.md` 或提示词，本层只做索引，不改原作。有云端的条目 `source` 写云端仓库位置、`sources[0]` 是云端原文 URL，本地副本排在后面。
 
+**参考库丢了怎么重建**：这三个仓库是本地副本（约 740 MB），不进 git。丢了就跑
+
+```bash
+node scripts/fetch-libs.mjs                              # 拉到默认目录，已存在的跳过
+node scripts/fetch-libs.mjs --mirror https://ghfast.top  # GitHub 直连不通时走镜像
+node scripts/fetch-libs.mjs --dir D:/libs --only lemo,mg # 换位置 / 只拉其中几个
+```
+
+换位置后要把 `DESIGN_COMIC_SRC` 指到同一处，`catalog.js` 里 23 条封面与本地副本链接都跟着这个变量走。
+两个踩过的坑都写进脚本注释了：下载用 node 原生 https（某些 curl 构建遇到无 content-length 的镜像响应会「假成功」），
+解压时 GNU tar 必须加 `--force-local`（否则 Windows 盘符 `D:` 被当成远程主机名）。
+
 **外部两套库怎么进来的**：
 - [huashu-design](https://github.com/alchaincyf/huashu-design)（花叔，MIT）：92 种风格分 6 区，
   这里收 6 条分区总览 + 13 条代表作，样张是它仓库里的 jpg（已下载到 `_design/covers/` 本地副本，无网也能看）
