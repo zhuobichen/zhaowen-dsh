@@ -1972,13 +1972,21 @@ export function layerOf(id) {
 /** 索引式引用：只给「用哪一条」，细节让 AI 自己 design_style op=get。 */
 export function refOf(entry) {
   const layer = layerOf(entry.id)
-  return [
+  const src = Array.isArray(entry.sources) ? entry.sources : []
+  const cloud = src.find((s) => typeof s.url === 'string' && s.url !== '')
+  const local = src.find((s) => typeof s.path === 'string' && s.path !== '')
+  const lines = [
     `用设计工作台里的「${entry.name}」（${layer === null ? '' : layer.name} · ${entry.id}），按这个设计来。`,
-    ...(Array.isArray(entry.sources) && entry.sources.length > 0
-      ? [`原始材料：${entry.sources[0].url ?? entry.sources[0].path}`]
-      : []),
-    `要看完整规格：design_style op=get ${entry.id}`,
-  ].join('\n')
+  ]
+  if (cloud !== undefined) {
+    lines.push(`原始材料：${cloud.url}`)
+    // 云端之外还有本地副本的（比如漫画层），一并给出——省得 AI 或人再翻一遍目录
+    if (local !== undefined) lines.push(`本地副本：${local.path}`)
+  } else if (local !== undefined) {
+    lines.push(`原始材料：${local.path}`)
+  }
+  lines.push(`要看完整规格：design_style op=get ${entry.id}`)
+  return lines.join('\n')
 }
 
 /**
