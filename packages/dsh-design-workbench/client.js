@@ -758,6 +758,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [memberOpen, setMemberOpen] = useState(-1)
         const [toast, setToast] = useState('')
         const [moreOpen, setMoreOpen] = useState(false)
+        const [showTrash, setShowTrash] = useState(false)
 
         const load = function () {
           fetch(API + '/state', { cache: 'no-store' })
@@ -784,10 +785,19 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           return n !== 'method'
         }
 
+        // 「有视觉」= 真截图 / 会动的预览 / 换皮预览；只剩色卡和纯文字的收进垃圾箱
+        const hasVisual = function (e) {
+          if (typeof e.cover === 'string' && e.cover !== '') return true
+          if (e.kind === 'demo') return true
+          if (e.kind === 'tokens' && e.style) return true
+          return false
+        }
+
         const shown = useMemo(function () {
           if (current === null) return []
           const q = query.trim().toLowerCase()
           return current.entries.filter(function (e) {
+            if (!showTrash && !hasVisual(e)) return false
             if (origin !== '' && e.origin !== origin) return false
             if (tag !== '' && (e.tags || []).indexOf(tag) < 0) return false
             if (scope === 'style' && (e.nature || 'style') !== 'style') return false
@@ -795,7 +805,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             if (q === '') return true
             return (e.name + ' ' + e.oneLine + ' ' + (e.tags || []).join(' ') + ' ' + e.id + ' ' + e.source).toLowerCase().indexOf(q) >= 0
           })
-        }, [current, tag, origin, query, scope])
+        }, [current, tag, origin, query, scope, showTrash])
 
         // 当前层里各类条目有多少（芯片上显示，知道被藏了多少）
         const scopeCounts = useMemo(function () {
@@ -832,6 +842,12 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             .filter(function (t) { return freq[t] >= 2 && freq[t] < n * 0.6 })
             .sort(function (a, b) { return freq[b] - freq[a] })
             .slice(0, 8)
+        }, [current])
+
+        // 这一层有多少条没有封面（会被收进垃圾箱）
+        const trashCount = useMemo(function () {
+          if (current === null) return 0
+          return current.entries.filter(function (e) { return !hasVisual(e) }).length
         }, [current])
 
         const open = (function () {
@@ -875,7 +891,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               return el('button', {
                 key: l.id,
                 className: 'dw-layer' + (l.id === activeLayer ? ' dw-layer-on' : ''),
-                onClick: function () { setLayer(l.id); setTag(''); setOrigin('') },
+                onClick: function () { setLayer(l.id); setTag(''); setOrigin(''); setShowTrash(false) },
                 title: l.hint,
               }, l.name, el('span', { className: 'dw-layer-n' }, String((l.entries || []).length)))
             }),
@@ -907,6 +923,13 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             allTags.map(function (t) {
               return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
+            // 没有封面的：默认不占版面，收进垃圾箱；点开才会出现
+            trashCount > 0 ? el('button', {
+              key: 'trash',
+              className: 'dw-chip' + (showTrash ? ' dw-chip-on' : ''),
+              onClick: function () { setShowTrash(!showTrash) },
+              title: '没有封面的条目：方法、合集、本机项目——平时不显示',
+            }, '🗑 垃圾箱 ' + trashCount) : null,
             el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 design_style 读、design_scan 把新目录扫进来'),
           ),
 
