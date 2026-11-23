@@ -2161,6 +2161,9 @@ const PERSONAL_HOME = [
   },
 ]
 
+// 这 12 条全是别人的仓库，明确标成引用（origin 字段默认是 'mine'，漏写就会被当成自制）
+for (const e of PERSONAL_HOME) e.origin = 'referenced'
+
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', filters: ['App 风格', '桌面', 'Android', '动效', '产品设计'], entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
   { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库、个人主页', filters: ['架构图', '个人主页', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES, ...PERSONAL_HOME] },
