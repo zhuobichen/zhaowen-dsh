@@ -2302,7 +2302,7 @@ const ORIGIN = {
   'fe-kaguya-theme': 'mine',
   'fe-whalegirl': 'referenced',
   'fe-wesight-qa': 'referenced',
-  'vid-bv-ref': 'mine',
+  'vid-bv-ref': 'referenced',
   'vid-rea-video': 'referenced',
   'vid-carl-flat': 'referenced',
   'vid-carl-ink': 'referenced',
@@ -2312,6 +2312,15 @@ const ORIGIN = {
   'vid-carl-brick': 'referenced',
   'vid-carl-glass': 'referenced',
   'vid-carl-huashu': 'referenced',
+  // 这八种「代码生视频风格」的手法来自 OpenMotion 的模板，我只是整理成条目 —— 不是我做的风格，算引用
+  'cv-style-kinetic-type': 'referenced',
+  'cv-style-dataviz': 'referenced',
+  'cv-style-terminal': 'referenced',
+  'cv-style-whiteboard': 'referenced',
+  'cv-style-product-ui': 'referenced',
+  'cv-style-parallax-cards': 'referenced',
+  'cv-style-logo-reveal': 'referenced',
+  'cv-style-sprite-2d': 'referenced',
 }
 
 /** 归属的补充说明（IP、许可、哪部分是我做的），会写进 prompt。 */
