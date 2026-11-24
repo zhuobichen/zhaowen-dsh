@@ -1,0 +1,6 @@
+# 代码工作台：只挂插件本体，不改宿主任何一行。
+#
+# inject 由 index.js 的 `export const inject` 声明（Cordis 标准做法），这里不重复写。
+- insert:
+    - id: design-workbench
+      name: '@zhuobichen/dsh-code-workbench'

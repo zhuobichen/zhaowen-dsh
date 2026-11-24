@@ -1,0 +1,35 @@
+{
+  "name": "@zhuobichen/dsh-code-workbench",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "代码工作台：把代码相关的资料整理成五层——架构范式 / 工程实践 / 代码风格 / Agent 技能 / 工具链，点一下就能把「按这个来」引用给 AI",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "catalog.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "id": "dsh-code-workbench",
+    "name": "代码工作台",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}
