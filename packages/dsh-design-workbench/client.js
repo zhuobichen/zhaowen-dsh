@@ -368,6 +368,33 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       return DEMOS[id] || ''
     }
 
+    /**
+     * 把一个 demo 的 HTML/CSS 渲染进 Shadow DOM：样式不外泄、动画在宿主文档里跑，
+     * 不依赖 iframe（iframe 会被某些宿主节流，用户看到的就是「有一帧但不动」）。
+     */
+    function DemoHost(props) {
+      const html = demoHtml(props.id)
+      return el('div', {
+        className: 'dw-demo' + (props.big === true ? ' dw-demo-big' : ''),
+        title: props.title || '',
+        ref: function (node) {
+          if (!node) return
+          // 已经注入过就跳过（React 每次渲染都会调用 callback ref）
+          if (node.dataset.demoId === props.id) return
+          try {
+            const root = node.shadowRoot || node.attachShadow({ mode: 'open' })
+            root.innerHTML = html
+            node.dataset.demoId = props.id
+          } catch {
+            // 极老环境没有 shadow DOM：退回 iframe
+            node.innerHTML = '<iframe sandbox="" scrolling="no" style="width:100%;height:100%;border:0" srcdoc="' +
+              html.replace(/"/g, '&quot;') + '"></iframe>'
+            node.dataset.demoId = props.id
+          }
+        },
+      })
+    }
+
     /** 内页单项的规范索引（和 catalog.js 的 memberRef 一个模板）。 */
     function memberIndexText(entry, index) {
       const mem = entry.members && entry.members[index]
@@ -561,6 +588,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       const useState = react.useState
       const useEffect = react.useEffect
       const useMemo = react.useMemo
+      const useRef = react.useRef || null
 
       let styleDone = false
       function useStyleOnce() {
@@ -603,6 +631,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;}',
             '.dw-cover iframe,.dw-cover img,.dw-cover .dw-poster,.dw-cover .dw-cover-ph{pointer-events:none;}',
             '.dw-cover-hit{position:absolute;inset:0;cursor:pointer;}',
+            '.dw-demo{width:100%;height:132px;display:block;overflow:hidden;background:#fff;}',
+            '.dw-demo-big{height:300px;border-radius:8px;}',
             '.dw-nature{font-size:10px;padding:0 5px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary);}',
             '.dw-members{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:340px;overflow:auto;padding:2px;}',
             '.dw-member{display:flex;flex-direction:column;gap:3px;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);cursor:pointer;text-align:left;}',
@@ -720,15 +750,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             title: e.name + ' 预览',
           })
         }
-        // 代码生视频的风格：直接跑一段会动的 HTML/CSS
+        // 动效类：Shadow DOM 内联渲染（不走 iframe —— iframe 在某些宿主里会被节流/拦掉，
+        // 表现就是「画面有一帧但不动」）
         if (e.kind === 'demo' && demoHtml(e.id) !== '') {
-          return el('iframe', {
-            srcDoc: demoHtml(e.id),
-            sandbox: '',
-            style: big ? { width: '100%', height: 280, border: '0', display: 'block' } : { width: '100%', height: 132, border: '0', display: 'block' },
-            scrolling: 'no',
-            title: e.name + ' 预览',
-          })
+          return el(DemoHost, { id: e.id, big: big, title: e.name })
         }
         // 本地副本优先（工作台不该因为没网就白屏），没有才用远程 URL
         const src = e.cover ? API + '/cover/' + encodeURIComponent(e.id) : e.coverUrl || ''
