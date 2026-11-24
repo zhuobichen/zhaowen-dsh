@@ -2176,7 +2176,7 @@ const MOTION_ENTRIES = [
     oneLine: 'timing / easing / choreography 三件套——专为 AI agent 写的动效规范，不是给人看的教程',
     source: 'https://github.com/LottieFiles/motion-design-skill',
     tags: ['动效风格', '原则', 'AI skill'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#141225', b: '#2a2450', fg: '#e8e6ff', accent: '#8b7cf6', pattern: 'grid' },
     bullets: [
       'timing 分三档：微反馈 100–150ms、状态切换 200–300ms、页面转场 300–500ms',
@@ -2192,7 +2192,7 @@ const MOTION_ENTRIES = [
     oneLine: '一套可执行的判断标准：什么时候该动、动多少、什么时候该干脆不动',
     source: 'https://github.com/kylezantos/design-motion-principles',
     tags: ['动效风格', '原则'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#1a1410', b: '#332620', fg: '#f5ece4', accent: '#e08a4a', pattern: 'stripes' },
     bullets: [
       '动效只服务三件事：引导注意力、表达状态变化、维持空间连续',
@@ -2209,7 +2209,7 @@ const MOTION_ENTRIES = [
     oneLine: '所有标准缓动曲线的可视对照：从 easeInSine 到 easeInOutBack，一眼挑对',
     source: 'https://github.com/ai/easings.net',
     tags: ['动效风格', '缓动与转场'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-easing.png',
     bullets: [
       '默认组合：进场 easeOutCubic、出场 easeInCubic、双向过渡 easeInOutCubic',
@@ -2228,7 +2228,7 @@ const MOTION_ENTRIES = [
     oneLine: '让多页站像单页一样无缝切换：旧页先退场、新页再进场，中间不留白',
     source: 'https://github.com/barbajs/barba',
     tags: ['动效风格', '缓动与转场'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-barba.png',
     bullets: [
       '转场总时长 400–600ms；超过 800ms 用户会以为卡住',
@@ -2247,7 +2247,7 @@ const MOTION_ENTRIES = [
     oneLine: '让线条像被笔一点点画出来——logo、插画、流程图的入场最常用手法',
     source: 'https://github.com/maxwellito/vivus',
     tags: ['动效风格', '缓动与转场'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-vivus.png',
     bullets: [
       '基于 stroke-dasharray / stroke-dashoffset，不需要 canvas',
@@ -2266,7 +2266,7 @@ const MOTION_ENTRIES = [
     oneLine: '专做「点下去之后那 500ms」的反馈：按压、涟漪、状态确认',
     source: 'https://github.com/ddoemonn/interior',
     tags: ['动效风格', '微交互'],
-    kind: 'text',
+    kind: 'demo',
     swatch: { a: '#101d1f', b: '#1d3438', fg: '#e4f4f5', accent: '#38d9c4', pattern: 'dots' },
     bullets: [
       '按压反馈 80–120ms、下沉 2px 必须有，否则用户会重复点',
@@ -2282,7 +2282,7 @@ const MOTION_ENTRIES = [
     oneLine: '彩带、粒子、数字跳动——把「你做对了」这件事做成看得见的奖励',
     source: 'https://github.com/thedevelobear/react-rewards',
     tags: ['动效风格', '微交互'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-rewards.png',
     bullets: [
       '只在真正的里程碑用（首次完成、连续打卡），天天放就没感觉了',
@@ -2301,7 +2301,7 @@ const MOTION_ENTRIES = [
     oneLine: '一个 API 覆盖 CSS 属性、SVG、DOM 变换——写复杂时间线最省事',
     source: 'https://github.com/juliangarnier/anime',
     tags: ['动效风格', '动画引擎'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-animejs.png',
     bullets: [
       '时间线（timeline）比一堆 setTimeout 可靠，能统一控制播放/暂停/倍速',
@@ -2320,7 +2320,7 @@ const MOTION_ENTRIES = [
     oneLine: '为「图形运动」设计的库：形状、爆发、路径，做视觉特效比通用引擎顺',
     source: 'https://github.com/mojs/mojs',
     tags: ['动效风格', '动画引擎'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-mojs.png',
     bullets: [
       '内置 burst / swirl / path 这些「图形化」的运动预设',
@@ -2339,7 +2339,7 @@ const MOTION_ENTRIES = [
     oneLine: '浏览器里的 After Effects 简化版：拖元素、打关键帧、导出',
     source: 'https://github.com/alyssaxuu/motionity',
     tags: ['动效风格', '动画引擎'],
-    kind: 'image',
+    kind: 'demo',
     cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-motionity.png',
     bullets: [
       '适合不写代码的人做短动效，也适合快速试版式',

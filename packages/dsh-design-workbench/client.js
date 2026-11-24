@@ -362,6 +362,153 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
 .bar{position:absolute;left:0;right:0;height:34%;bottom:0;background:#e4572e;mix-blend-mode:multiply;opacity:.35}
 </style><div class=bar></div><div class=dots></div><div class=port></div>
 <div style="position:absolute;left:8%;bottom:9%;font-size:9px;color:#4b5563;letter-spacing:.14em">HUASHU PORTRAITS · 半调双色</div></body></html>`,
+      // ── 动效设计（10 条）：每条都配一段会动的预览 ───────────────────────
+      'mo-easing': `<html><body style="margin:0;background:#0f172a;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.row{position:absolute;left:14px;right:14px;height:26px;display:flex;align-items:center;gap:8px}
+.dot{width:14px;height:14px;border-radius:50%;background:#38bdf8;flex:0 0 auto}
+.r1{top:22px}.r2{top:66px}.r3{top:110px}
+.r1 .dot{animation:m1 2.2s infinite}
+.r2 .dot{animation:m2 2.2s infinite}
+.r3 .dot{animation:m3 2.2s infinite}
+.lb{font-size:9px;color:#94a3b8}
+@keyframes m1{0%{transform:translateX(0)}50%,100%{transform:translateX(190px)}}
+@keyframes m2{0%{transform:translateX(0)}50%,100%{transform:translateX(190px)}}
+@keyframes m3{0%{transform:translateX(0)}50%,100%{transform:translateX(190px)}}
+.r1 .dot{animation-timing-function:cubic-bezier(.33,1,.68,1)}
+.r2 .dot{animation-timing-function:cubic-bezier(.34,1.56,.64,1)}
+.r3 .dot{animation-timing-function:cubic-bezier(.87,0,.13,1)}
+</style>
+<div class="row r1"><div class="dot"></div><span class="lb">easeOutCubic</span></div>
+<div class="row r2"><div class="dot"></div><span class="lb">easeOutBack（过冲）</span></div>
+<div class="row r3"><div class="dot"></div><span class="lb">easeInOutQuart</span></div>
+</body></html>`,
+
+      'mo-vivus': `<html><body style="margin:0;background:#faf8f4;overflow:hidden">
+<svg viewBox="0 0 320 180" width="100%" height="100%">
+<g fill="none" stroke="#111827" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+   stroke-dasharray="520" stroke-dashoffset="520" style="animation:draw 3.2s ease-in-out infinite">
+<path d="M60 120 L60 60 L110 60"/><circle cx="150" cy="90" r="32"/><path d="M200 60 L250 60 L250 120 L200 120 Z"/>
+</g>
+<text x="24" y="160" font-size="9" fill="#6b7280">stroke-dashoffset：线条像被笔一点点画出来</text>
+<style>@keyframes draw{0%{stroke-dashoffset:520}60%,100%{stroke-dashoffset:0}}</style>
+</svg></body></html>`,
+
+      'mo-barba': `<html><body style="margin:0;background:#0b1020;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.page{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#e5e7eb;font-size:13px;letter-spacing:.2em}
+.p1{background:#1e293b;animation:out1 4s ease-in-out infinite}
+.p2{background:#312e81;animation:in2 4s ease-in-out infinite;transform:translateX(100%)}
+.curtain{position:absolute;inset:0;background:#6366f1;transform-origin:left;animation:cur 4s ease-in-out infinite}
+@keyframes out1{0%,45%{transform:translateX(0);opacity:1}70%,100%{transform:translateX(-18%);opacity:0}}
+@keyframes in2{0%,45%{transform:translateX(100%)}70%,100%{transform:translateX(0)}}
+@keyframes cur{0%,40%{transform:scaleX(0)}55%{transform:scaleX(1)}70%{transform:scaleX(0);transform-origin:right}
+                 100%{transform:scaleX(0);transform-origin:right}}
+</style>
+<div class="page p1">PAGE A</div><div class="page p2">PAGE B</div><div class="curtain"></div></body></html>`,
+
+      'mo-interior': `<html><body style="margin:0;background:#f8fafc;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.btn{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:120px;height:40px;border-radius:999px;
+     background:#4d6bfe;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;
+     box-shadow:0 6px 18px rgba(77,107,254,.35);animation:press 3s ease-in-out infinite}
+.ripple{position:absolute;left:50%;top:46%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;
+        background:rgba(77,107,254,.35);animation:rip 3s ease-out infinite}
+@keyframes press{0%,20%{transform:translate(-50%,-50%) scale(1)}28%{transform:translate(-50%,-50%) scale(.94)}
+                 36%,100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes rip{0%,24%{transform:scale(1);opacity:0}30%{opacity:1}50%{transform:scale(4);opacity:0}100%{opacity:0}}
+</style><div class=btn>提交</div><div class=ripple></div>
+<div style="position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:9px;color:#94a3b8">点下去那 500ms：按压 → 涟漪 → 状态确认</div></body></html>`,
+
+      'mo-rewards': `<html><body style="margin:0;background:#111827;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.n{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);color:#fff;font-size:34px;font-weight:800;letter-spacing:-.02em}
+.n span{animation:up 3.4s ease-out infinite;display:inline-block}
+.k{position:absolute;left:50%;top:56%;font-size:11px;color:#34d399;transform:translateX(-50%);opacity:0;animation:fade 3.4s infinite}
+.p{position:absolute;width:7px;height:7px;border-radius:2px;left:50%;top:44%;animation:fly 3.4s ease-out infinite}
+.p:nth-child(1){background:#f43f5e}.p:nth-child(2){background:#fbbf24}.p:nth-child(3){background:#34d399}
+.p:nth-child(4){background:#38bdf8}.p:nth-child(5){background:#a78bfa}.p:nth-child(6){background:#f472b6}
+.p:nth-child(2){animation-delay:.06s}.p:nth-child(3){animation-delay:.12s}.p:nth-child(4){animation-delay:.18s}
+.p:nth-child(5){animation-delay:.24s}.p:nth-child(6){animation-delay:.3s}
+@keyframes fly{0%,10%{transform:translate(0,0) rotate(0);opacity:0}18%{opacity:1}
+  60%{transform:translate(var(--x,40px),90px) rotate(220deg);opacity:1}100%{opacity:0}}
+@keyframes up{0%,8%{transform:translateY(8px);opacity:0}22%,100%{transform:none;opacity:1}}
+@keyframes fade{0%,40%{opacity:0}55%,80%{opacity:1}100%{opacity:0}}
+</style>
+<div class=n><span>+1</span></div><div class=k>完成</div>
+<div class=p style="--x:-52px"></div><div class=p style="--x:-20px"></div><div class=p style="--x:16px"></div>
+<div class=p style="--x:46px"></div><div class=p style="--x:-34px"></div><div class=p style="--x:30px"></div>
+</body></html>`,
+
+      'mo-animejs': `<html><body style="margin:0;background:#0b1020;overflow:hidden">
+<style>
+.g{position:absolute;inset:24px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.s{border-radius:6px;background:linear-gradient(135deg,#38bdf8,#6366f1);transform:translateY(0) scale(1);
+   animation:stg 2.6s ease-in-out infinite;animation-delay:calc(var(--i) * 90ms)}
+@keyframes stg{0%,55%{transform:translateY(0) scale(1);opacity:.55}25%{transform:translateY(-14px) scale(1.08);opacity:1}80%,100%{transform:translateY(0) scale(1);opacity:.55}}
+</style>
+<div class=g>
+<div class=s style="--i:0"></div><div class=s style="--i:1"></div><div class=s style="--i:2"></div><div class=s style="--i:3"></div><div class=s style="--i:4"></div>
+<div class=s style="--i:5"></div><div class=s style="--i:6"></div><div class=s style="--i:7"></div><div class=s style="--i:8"></div><div class=s style="--i:9"></div>
+<div class=s style="--i:10"></div><div class=s style="--i:11"></div><div class=s style="--i:12"></div><div class=s style="--i:13"></div><div class=s style="--i:14"></div>
+</div></body></html>`,
+
+      'mo-mojs': `<html><body style="margin:0;background:#1a0f1f;overflow:hidden">
+<style>
+.c{position:absolute;left:50%;top:52%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;
+   background:#f472b6;animation:burst 2.4s cubic-bezier(.2,1.6,.4,1) infinite;animation-delay:calc(var(--d) * 1ms)}
+@keyframes burst{0%{transform:translate(0,0) scale(.4);opacity:0}18%{opacity:1}
+  70%{transform:translate(var(--x),var(--y)) scale(1);opacity:1}100%{transform:translate(var(--x),var(--y)) scale(.2);opacity:0}}
+</style>
+<div class=c style="--x:-70px;--y:-40px;--d:0"></div><div class=c style="--x:-30px;--y:-70px;--d:60"></div>
+<div class=c style="--x:40px;--y:-60px;--d:120"></div><div class=c style="--x:76px;--y:-10px;--d:180"></div>
+<div class=c style="--x:50px;--y:56px;--d:240"></div><div class=c style="--x:-46px;--y:60px;--d:300"></div>
+<div class=c style="--x:-78px;--y:16px;--d:360"></div></body></html>`,
+
+      'mo-motionity': `<html><body style="margin:0;background:#0f1117;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.canvas{position:absolute;left:10px;top:10px;right:10px;height:104px;border-radius:8px;background:#171a23;border:1px solid #2a3142;overflow:hidden}
+.layer{position:absolute;left:18px;top:26px;width:54px;height:54px;border-radius:8px;background:linear-gradient(135deg,#f472b6,#8b5cf6);
+  animation:move 3.4s ease-in-out infinite}
+.path{position:absolute;left:18px;top:56px;width:210px;height:1px;border-top:1px dashed #3b465c}
+.tl{position:absolute;left:10px;right:10px;bottom:12px;height:26px;border-radius:6px;background:#171a23;border:1px solid #2a3142}
+.head{position:absolute;top:0;bottom:0;width:2px;background:#f472b6;animation:head 3.4s linear infinite}
+.kf{position:absolute;top:9px;width:6px;height:6px;background:#3b465c;border-radius:1px}
+.kf.on{background:#f472b6}
+@keyframes move{0%{transform:translateX(0)}50%{transform:translateX(148px)}100%{transform:translateX(0)}}
+@keyframes head{0%{left:0}100%{left:100%}}
+</style>
+<div class=canvas><div class=path></div><div class=layer></div></div>
+<div class=tl><div class=head></div>
+<div class="kf on" style="left:6%"></div><div class="kf on" style="left:50%"></div><div class="kf on" style="left:94%"></div></div>
+</body></html>`,
+
+      'mo-principles': `<html><body style="margin:0;background:#f8fafc;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.half{position:absolute;top:0;bottom:0;width:50%}
+.l{left:0;background:#eff6ff}.r{left:50%;background:#fef2f2}
+.card{position:absolute;top:44px;left:50%;transform:translateX(-50%);width:100px;height:52px;border-radius:8px;background:#fff;border:1px solid #dbeafe;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.l .card{animation:enter 2.6s cubic-bezier(.2,.9,.2,1) infinite}
+.r .card{animation:snap 2.6s steps(1) infinite}
+.t{position:absolute;bottom:16px;width:50%;text-align:center;font-size:9px}
+.tl{left:0;color:#1d4ed8}.tr{left:50%;color:#b91c1c}
+@keyframes enter{0%{transform:translate(-50%,14px) scale(.96);opacity:0}30%,100%{transform:translate(-50%,0) scale(1);opacity:1}}
+@keyframes snap{0%,49%{opacity:0}50%,100%{opacity:1}}
+</style>
+<div class="half l"><div class=card></div></div><div class="half r"><div class=card></div></div>
+<div class="t tl">该动：有空间关系变化 → 给 200–300ms</div><div class="t tr">别动：只是换状态 → 直接切</div></body></html>`,
+
+      'mo-motion-skill': `<html><body style="margin:0;background:#0f172a;overflow:hidden;font-family:Inter,system-ui">
+<style>
+.b{position:absolute;left:24px;width:96px;height:26px;border-radius:6px;background:#1e293b;border:1px solid #334155;
+   display:flex;align-items:center;padding-left:8px;color:#cbd5e1;font-size:9px;
+   animation:slidein 2.8s cubic-bezier(.22,1,.36,1) infinite}
+.b1{top:34px;animation-delay:0ms}.b2{top:74px;animation-delay:80ms}.b3{top:114px;animation-delay:160ms}
+@keyframes slidein{0%,20%{transform:translateX(-16px);opacity:0}45%,100%{transform:translateX(0);opacity:1}}
+.tip{position:absolute;right:14px;bottom:12px;font-size:9px;color:#64748b}
+</style>
+<div class="b b1">timing 0ms</div><div class="b b2">+80ms</div><div class="b b3">+160ms</div>
+<div class=tip>choreography：错开 80ms 就有节奏</div></body></html>`,
     }
 
     function demoHtml(id) {
@@ -372,29 +519,6 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
      * 把一个 demo 的 HTML/CSS 渲染进 Shadow DOM：样式不外泄、动画在宿主文档里跑，
      * 不依赖 iframe（iframe 会被某些宿主节流，用户看到的就是「有一帧但不动」）。
      */
-    function DemoHost(props) {
-      const html = demoHtml(props.id)
-      return el('div', {
-        className: 'dw-demo' + (props.big === true ? ' dw-demo-big' : ''),
-        title: props.title || '',
-        ref: function (node) {
-          if (!node) return
-          // 已经注入过就跳过（React 每次渲染都会调用 callback ref）
-          if (node.dataset.demoId === props.id) return
-          try {
-            const root = node.shadowRoot || node.attachShadow({ mode: 'open' })
-            root.innerHTML = html
-            node.dataset.demoId = props.id
-          } catch {
-            // 极老环境没有 shadow DOM：退回 iframe
-            node.innerHTML = '<iframe sandbox="" scrolling="no" style="width:100%;height:100%;border:0" srcdoc="' +
-              html.replace(/"/g, '&quot;') + '"></iframe>'
-            node.dataset.demoId = props.id
-          }
-        },
-      })
-    }
-
     /** 内页单项的规范索引（和 catalog.js 的 memberRef 一个模板）。 */
     function memberIndexText(entry, index) {
       const mem = entry.members && entry.members[index]
@@ -769,6 +893,40 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           (e.bullets || []).length === 0 ? e.oneLine : null,
         )
       }
+
+      function DemoHost(props) {
+        const html = demoHtml(props.id)
+        return el('div', {
+          className: 'dw-demo' + (props.big === true ? ' dw-demo-big' : ''),
+          title: props.title || '',
+          ref: function (node) {
+            if (!node) return
+            // 已经注入过就跳过（React 每次渲染都会调用 callback ref）
+            if (node.dataset.demoId === props.id) return
+            try {
+              const root = node.shadowRoot || node.attachShadow({ mode: 'open' })
+              // demo 是整页 HTML：剥掉 html/body 外壳，把 body 的 style 挪到 :host。
+              // 不这么做的话绝对定位会以视口为准，画面散掉（表现得就像「不动」）。
+              const m = /<body([^>]*)>([\s\S]*)<\/body>/i.exec(html)
+              const bodyAttrs = m ? m[1] : ''
+              const inner = m ? m[2] : html
+              const bg = /style="([^"]*)"/.exec(bodyAttrs)
+              root.innerHTML =
+                '<style>:host{display:block;width:100%;height:100%;position:relative;overflow:hidden;' +
+                (bg ? bg[1] : '') +
+                '}</style>' +
+                inner
+              node.dataset.demoId = props.id
+            } catch {
+              // 极老环境没有 shadow DOM：退回 iframe
+              node.innerHTML = '<iframe sandbox="" scrolling="no" style="width:100%;height:100%;border:0" srcdoc="' +
+                html.replace(/"/g, '&quot;') + '"></iframe>'
+              node.dataset.demoId = props.id
+            }
+          },
+        })
+      }
+
 
       function Panel() {
         useStyleOnce()
