@@ -1,6 +1,6 @@
 # 设计工作台（dsh-design-workbench）
 
-把**这台电脑上的设计资料**整理成五层，看着挑，点一下就把「我要这种」变成 AI 能读到的记录。
+把**这台电脑上的设计资料**整理成六层，看着挑，点一下就把「我要这种」变成 AI 能读到的记录。
 
 ```
 App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机拉来的桌面端（Jev 浮层 / Pinky / 她不一样）
@@ -12,9 +12,11 @@ App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机
 漫画（23）        动漫 / 漫画 / 动画视觉语言：赛璐璐 / 浮世绘 / 橡皮管 / UPA / 成人动画 / 网点 /
                  像素 RPG / HD-2D / 线条沸腾 / 8-bit / 蜡笔绘本 / 等距绘本 / 纸片立体书 /
                  皮影 / 剪纸 / Riso / 一笔画 / 微游戏 / 综艺扁平 / 综艺花字 / 贴纸人 / Synthwave / 拼贴
+动效设计（10）    时间 / 缓动 / 编排 / 转场：动效原则、缓动曲线、页面转场、SVG 描线、
+                 微交互、奖励动效，以及 anime.js / mo.js / Motionity 三个引擎与工具
 ```
 
-共 **106 条**，其中自制 28 条、引用 78 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）；另有 `design_scan` 扫进来的 4 条。
+共 **128 条**，其中自制 19 条、引用 109 条（huashu-design 与 OpenMotion 都在引用里，卡片上挂「引用」徽标）；另有 `design_scan` 扫进来的 4 条。
 
 ## 它解决什么
 
@@ -24,7 +26,7 @@ App 设计（15）     手机 / 桌面应用 + huashu 的 App 风格库 + 本机
 | 想精确指定就得翻仓库找那段 CSS | 卡片里给 token、圆角、密度、阴影、出处路径 |
 | 说了「用那个蓝白的」，AI 还是猜 | 「选中它」落盘，AI 用 `design_style op=current` 直接读 |
 
-## 五层里都有什么
+## 六层里都有什么
 
 **App 设计**：huashu-design 3.4 的八条 App 界面范式（外部方法层，注明来源）、MapMate（会说话的手机地图）、
 VideoQuiz（视频成卷）、Q 版桌宠 HuaJing、余烬 Ember、AuroWendao 设计文档、DesktopJelly。
@@ -65,6 +67,12 @@ node scripts/fetch-libs.mjs --dir D:/libs --only lemo,mg # 换位置 / 只拉其
 换位置后要把 `DESIGN_COMIC_SRC` 指到同一处，`catalog.js` 里 23 条封面与本地副本链接都跟着这个变量走。
 两个踩过的坑都写进脚本注释了：下载用 node 原生 https（某些 curl 构建遇到无 content-length 的镜像响应会「假成功」），
 解压时 GNU tar 必须加 `--force-local`（否则 Windows 盘符 `D:` 被当成远程主机名）。
+
+**动效设计**：时间、缓动、编排、转场——界面「高级感」的那一半，和视觉风格是两件事。10 条分四组：
+**原则**（LottieFiles 的 motion-design-skill、kylezantos 的 design-motion-principles，都是给 AI 读的规范）、
+**缓动与转场**（easings.net 的曲线速查、barba.js 的页面转场、vivus 的 SVG 描线）、
+**微交互**（点击后的半秒、奖励型反馈）、**引擎**（anime.js / mo.js / Motionity）。
+每条都写了具体时间与距离（100–150ms 的微反馈、30–50ms 的错峰、400px 才用 spring），不是形容词。
 
 **外部两套库怎么进来的**：
 - [huashu-design](https://github.com/alchaincyf/huashu-design)（花叔，MIT）：92 种风格分 6 区，
@@ -109,8 +117,8 @@ AI 拿到这一行，需要细节时自己 `design_style op=get` 展开——完
 ## 工具
 
 ```
-design_style op=list                                  五层全列（按层分组）
-design_style op=layer {app|frontend|video|codevideo|comic}  只看一层
+design_style op=list                                  六层全列（按层分组）
+design_style op=layer {app|frontend|video|codevideo|comic|motion}  只看一层
 design_style op=get {id}                              完整规格（颜色/圆角/CSS/要点/怎么用）
 design_style op=search {关键词}                       按名称/标签/出处搜（「水墨」「仪表盘」）
 ```

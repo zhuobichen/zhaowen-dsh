@@ -2164,12 +2164,206 @@ const PERSONAL_HOME = [
 // 这 12 条全是别人的仓库，明确标成引用（origin 字段默认是 'mine'，漏写就会被当成自制）
 for (const e of PERSONAL_HOME) e.origin = 'referenced'
 
+/**
+ * ── 动效设计（motion）────────────────────────────────────────────────
+ * 时间、缓动、编排、转场——界面「高级感」的那一半，和视觉风格是两件事。
+ * 分四组：原则 / 缓动与转场 / 微交互 / 引擎。全部是别人的开源项目，只作参照。
+ */
+const MOTION_ENTRIES = [
+  {
+    id: 'mo-motion-skill',
+    name: '通用动效原则（Lottie）',
+    oneLine: 'timing / easing / choreography 三件套——专为 AI agent 写的动效规范，不是给人看的教程',
+    source: 'https://github.com/LottieFiles/motion-design-skill',
+    tags: ['动效风格', '原则', 'AI skill'],
+    kind: 'text',
+    swatch: { a: '#141225', b: '#2a2450', fg: '#e8e6ff', accent: '#8b7cf6', pattern: 'grid' },
+    bullets: [
+      'timing 分三档：微反馈 100–150ms、状态切换 200–300ms、页面转场 300–500ms',
+      'easing：进场用 ease-out（快进慢出），出场用 ease-in；位移超过 400px 才考虑 spring',
+      'choreography：同组元素错峰 30–50ms，超过 6 个元素就分组，别一起动',
+    ],
+    howto: '写任何交互动效前先对一遍这三条；它是 skill 形式，可以直接丢给 agent 读。',
+    sources: [{ label: '仓库', url: 'https://github.com/LottieFiles/motion-design-skill' }],
+  },
+  {
+    id: 'mo-principles',
+    name: '动效设计原则（判定标准）',
+    oneLine: '一套可执行的判断标准：什么时候该动、动多少、什么时候该干脆不动',
+    source: 'https://github.com/kylezantos/design-motion-principles',
+    tags: ['动效风格', '原则'],
+    kind: 'text',
+    swatch: { a: '#1a1410', b: '#332620', fg: '#f5ece4', accent: '#e08a4a', pattern: 'stripes' },
+    bullets: [
+      '动效只服务三件事：引导注意力、表达状态变化、维持空间连续',
+      '没有状态变化的动画就是装饰，删掉',
+      '每个动画问一句「去掉它，用户会困惑吗」——不会就删',
+      '同屏同时动的不超过 3 组；组间位移差 40px 以上才看得出层次，否则挤成一团',
+    ],
+    howto: '做交互评审时当 checklist 用；也能挡住「这个能不能加个动效」这类需求。',
+    sources: [{ label: '仓库', url: 'https://github.com/kylezantos/design-motion-principles' }],
+  },
+  {
+    id: 'mo-easing',
+    name: '缓动曲线速查（easings.net）',
+    oneLine: '所有标准缓动曲线的可视对照：从 easeInSine 到 easeInOutBack，一眼挑对',
+    source: 'https://github.com/ai/easings.net',
+    tags: ['动效风格', '缓动与转场'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-easing.png',
+    bullets: [
+      '默认组合：进场 easeOutCubic、出场 easeInCubic、双向过渡 easeInOutCubic',
+      '弹跳感用 easeOutBack（过冲约 10%），别自己手调 cubic-bezier',
+      '同一页面里缓动曲线不超过 3 种，多了就没有「节奏」可言',
+    ],
+    howto: '写 CSS transition 前先在这里挑一条；它是动效里最容易做对、也最容易做砸的一项。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/ai/easings.net' },
+      { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-easing.png' },
+    ],
+  },
+  {
+    id: 'mo-barba',
+    name: '页面转场（barba.js）',
+    oneLine: '让多页站像单页一样无缝切换：旧页先退场、新页再进场，中间不留白',
+    source: 'https://github.com/barbajs/barba',
+    tags: ['动效风格', '缓动与转场'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-barba.png',
+    bullets: [
+      '转场总时长 400–600ms；超过 800ms 用户会以为卡住',
+      '必须有「旧页退场」阶段，直接换页会闪白',
+      '共享元素（同一张图/标题）跨页延续，是最省力的高级感',
+    ],
+    howto: '多页站（文档、作品集）想做出 App 手感时用；单页站不需要。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/barbajs/barba' },
+      { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-barba.png' },
+    ],
+  },
+  {
+    id: 'mo-vivus',
+    name: 'SVG 描线动画（vivus）',
+    oneLine: '让线条像被笔一点点画出来——logo、插画、流程图的入场最常用手法',
+    source: 'https://github.com/maxwellito/vivus',
+    tags: ['动效风格', '缓动与转场'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-vivus.png',
+    bullets: [
+      '基于 stroke-dasharray / stroke-dashoffset，不需要 canvas',
+      '描线速度按路径长度分配：长线快、短线慢，匀速会像机器',
+      '描完再填充（fill 延迟 100–200ms），比同时出现自然',
+    ],
+    howto: 'logo 入场、手绘感插画、流程逐段出现；和「一笔画」那类视觉风格很搭。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/maxwellito/vivus' },
+      { label: '封面（demo 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-vivus.png' },
+    ],
+  },
+  {
+    id: 'mo-interior',
+    name: '点击后的半秒（微交互）',
+    oneLine: '专做「点下去之后那 500ms」的反馈：按压、涟漪、状态确认',
+    source: 'https://github.com/ddoemonn/interior',
+    tags: ['动效风格', '微交互'],
+    kind: 'text',
+    swatch: { a: '#101d1f', b: '#1d3438', fg: '#e4f4f5', accent: '#38d9c4', pattern: 'dots' },
+    bullets: [
+      '按压反馈 80–120ms、下沉 2px 必须有，否则用户会重复点',
+      '成功/失败用颜色 + 形变双重编码，只变色不够',
+      '微交互不该阻塞主流程，动画期间仍可继续操作',
+    ],
+    howto: '按钮、开关、表单提交这些高频操作；这是用户感知「流畅」最直接的地方。',
+    sources: [{ label: '仓库', url: 'https://github.com/ddoemonn/interior' }],
+  },
+  {
+    id: 'mo-rewards',
+    name: '奖励型微交互（react-rewards）',
+    oneLine: '彩带、粒子、数字跳动——把「你做对了」这件事做成看得见的奖励',
+    source: 'https://github.com/thedevelobear/react-rewards',
+    tags: ['动效风格', '微交互'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-rewards.png',
+    bullets: [
+      '只在真正的里程碑用（首次完成、连续打卡），天天放就没感觉了',
+      '粒子 20–40 个足够，超过 100 会掉帧',
+      '提供关闭开关：重复用户和晕动症人群需要它',
+    ],
+    howto: '游戏化、打卡、成就系统；和「微游戏快闪」那类视觉风格可以叠加。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/thedevelobear/react-rewards' },
+      { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-rewards.png' },
+    ],
+  },
+  {
+    id: 'mo-animejs',
+    name: 'anime.js（通用动画引擎）',
+    oneLine: '一个 API 覆盖 CSS 属性、SVG、DOM 变换——写复杂时间线最省事',
+    source: 'https://github.com/juliangarnier/anime',
+    tags: ['动效风格', '动画引擎'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-animejs.png',
+    bullets: [
+      '时间线（timeline）比一堆 setTimeout 可靠，能统一控制播放/暂停/倍速',
+      'stagger 参数直接做错峰，不用手写 delay',
+      '体积约 17KB gzip，比 GSAP 轻；功能够用，生态小一些',
+    ],
+    howto: '需要编排多个元素、或做可暂停的演示时用；简单 hover 用 CSS 就够。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/juliangarnier/anime' },
+      { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-animejs.png' },
+    ],
+  },
+  {
+    id: 'mo-mojs',
+    name: 'mo.js（motion graphics 工具带）',
+    oneLine: '为「图形运动」设计的库：形状、爆发、路径，做视觉特效比通用引擎顺',
+    source: 'https://github.com/mojs/mojs',
+    tags: ['动效风格', '动画引擎'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-mojs.png',
+    bullets: [
+      '内置 burst / swirl / path 这些「图形化」的运动预设',
+      '适合封面动画、加载特效，不适合 UI 状态过渡',
+      '声明式 API，学习曲线比 anime.js 陡',
+    ],
+    howto: '做视觉冲击强的开场/过渡，而不是日常交互；和「代码生视频」那层的动效风格互补。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/mojs/mojs' },
+      { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-mojs.png' },
+    ],
+  },
+  {
+    id: 'mo-motionity',
+    name: 'Motionity（网页动效编辑器）',
+    oneLine: '浏览器里的 After Effects 简化版：拖元素、打关键帧、导出',
+    source: 'https://github.com/alyssaxuu/motionity',
+    tags: ['动效风格', '动画引擎'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-motionity.png',
+    bullets: [
+      '适合不写代码的人做短动效，也适合快速试版式',
+      '关键帧 + 缓动曲线的操作逻辑和 AE 一致，迁移成本低',
+      '导出的是视频/GIF，不是可交互代码——别指望直接上生产',
+    ],
+    howto: '做提案、演示、短视频动效；要落地成代码还得重写一遍。',
+    sources: [
+      { label: '仓库', url: 'https://github.com/alyssaxuu/motionity' },
+      { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-motionity.png' },
+    ],
+  },
+]
+
+// 动效层这 10 条也全是别人的开源项目
+for (const e of MOTION_ENTRIES) e.origin = 'referenced'
+
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', filters: ['App 风格', '桌面', 'Android', '动效', '产品设计'], entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
   { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库、个人主页', filters: ['架构图', '个人主页', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES, ...PERSONAL_HOME] },
   { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', filters: ['动效风格'], entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
   { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', filters: ['风格', '引擎', '开源', '零素材', '解释性'], entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
   { id: 'comic', name: '漫画', hint: '动漫 / 漫画 / 动画的视觉语言：赛璐璐、木版画、网点、像素', filters: ['日系', '美式', '东方', '绘本', '漫画', '像素', '复古', '游戏'], entries: COMIC_ENTRIES },
+  { id: 'motion', name: '动效设计', hint: '时间 / 缓动 / 编排 / 转场：界面「高级感」的那一半', filters: ['原则', '缓动与转场', '微交互', '动画引擎'], entries: MOTION_ENTRIES },
 ]
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
