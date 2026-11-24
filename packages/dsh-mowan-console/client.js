@@ -1,14 +1,15 @@
 /**
  * dsh-mowan-console · 浏览器半边
  *
- * 注册一个「破甲工作台」标签，和「对话 / 轨迹 / IG5 逆向工作台 / QQ 纪实」并排。
- * 数据来自主机侧的 /mowan-state（规则 + 审计日志 + 活会话）。
+ * 注册一个「破甲工作台」标签。数据来自主机侧的 /mowan-state。
  *
- * 目的很具体：**看清楚"当前有哪些会话被动了、动了什么、最近一次是什么时候"**。
+ * 这一版重做了呈现：
+ *   ① 顶部三个数字当 dashboard（规则 / 运行中 / 注入次数），一眼看规模
+ *   ② 每条规则一张卡：状态点 + 标题 + id + 三个指标 + 可展开的注入原文
+ *   ③ 日志按 op 着色，可按类型筛
+ *   ④ 空状态给的是「怎么让它有东西」的说明，不是一行灰字
  *
  * ⚠ DSH 的客户端模块 ABI 是 `window.__ModuleLoader__.load({id, factory})` 信封。
- *   少这层信封会报 `loaded without registering "..." via __ModuleLoader__.load`。
- *   信封里的 require 只认静态表（react / react/jsx-runtime 等）。
  */
 window.__ModuleLoader__.load({
   id: '@zhuobichen/dsh-mowan-console',
@@ -27,12 +28,9 @@ window.__ModuleLoader__.load({
       const el = react.createElement
       const useState = react.useState
       const useEffect = react.useEffect
+      const useMemo = react.useMemo
 
-      // ── 全局修一次：让会话标签栏横向滚动，而不是挤成多行 ──────────────
-      //
-      // 标签栏本身带 `data-conversation-tabs` 属性（不是 CSS Module 的哈希类名），
-      // 所以属性选择器能稳定命中，且对**以后新增的每个工作台标签**都生效。
-      // 不换行 + overflow-x:auto = 一排横向滑动，标签再多也不会把「对话」压成两行。
+      // 会话标签栏横向滚动（标签多了不挤成两行）
       ;(function injectTabBarScroll() {
         try {
           if (document.querySelector('style[data-mowan-tabbar]')) return
@@ -44,7 +42,6 @@ window.__ModuleLoader__.load({
             '[data-conversation-tabs]::-webkit-scrollbar{height:6px;}',
             '[data-conversation-tabs]::-webkit-scrollbar-track{background:transparent;}',
             '[data-conversation-tabs]::-webkit-scrollbar-thumb{background:var(--dsw-alias-border-l3,rgba(128,128,128,.45));border-radius:3px;}',
-            '[data-conversation-tabs]::-webkit-scrollbar-thumb:hover{background:var(--dsw-alias-fg-3,rgba(128,128,128,.65));}',
             '[data-conversation-tabs]{scrollbar-color:var(--dsw-alias-border-l3,rgba(128,128,128,.45)) transparent;}',
           ].join('\n')
           document.head.appendChild(tag)
@@ -59,25 +56,53 @@ window.__ModuleLoader__.load({
         styleDone = true
         try {
           const css = `
-        .mw-wrap{display:flex;flex-direction:column;gap:14px;padding:18px 20px 40px;height:100%;overflow:auto;font-size:13px;color:var(--dsw-alias-fg-1);}
+        .mw-wrap{display:flex;flex-direction:column;gap:16px;padding:20px 22px 48px;height:100%;overflow:auto;font-size:13px;color:var(--dsw-alias-fg-1);}
         .mw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-        .mw-title{font-size:15px;font-weight:600;}
-        .mw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}
+        .mw-title{font-size:16px;font-weight:650;letter-spacing:.01em;}
         .mw-muted{color:var(--dsw-alias-fg-3);}
-        .mw-btn{padding:3px 10px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-fg-1);cursor:pointer;font-size:12px;}
+        .mw-btn{padding:4px 11px;border-radius:7px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-fg-1);cursor:pointer;font-size:12px;transition:background .15s;}
         .mw-btn:hover{background:var(--dsw-alias-bg-l2);}
-        .mw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
-        .mw-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--dsw-alias-border-l2);}
-        .mw-row:last-child{border-bottom:none;}
-        .mw-mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;}
-        .mw-live{color:#22c55e;font-weight:600;}
-        .mw-tag{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-fg-2);}
-        .mw-log{max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:2px;}
-        .mw-logline{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dsw-alias-fg-2);}
+        .mw-btn-on{background:var(--dsw-alias-bg-l2);border-color:var(--dsw-alias-border-l3);}
+
+        .mw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:560px;}
+        .mw-stat{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;}
+        .mw-stat-n{font-size:24px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums;}
+        .mw-stat-k{font-size:11.5px;color:var(--dsw-alias-fg-3);letter-spacing:.02em;}
+
+        .mw-sec{display:flex;flex-direction:column;gap:10px;}
+        .mw-sec-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+        .mw-sec-t{font-size:13px;font-weight:600;}
+
+        .mw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;background:var(--dsw-alias-bg-l1,transparent);}
+        .mw-card-live{border-color:rgba(34,197,94,.35);}
+        .mw-card-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+        .mw-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
+        .mw-dot-live{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.15);}
+        .mw-dot-idle{background:var(--dsw-alias-fg-3);opacity:.45;}
+        .mw-live{color:#22c55e;font-size:12px;font-weight:600;}
+        .mw-sleep{color:var(--dsw-alias-fg-3);font-size:12px;}
+        .mw-sess-title{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46ch;}
+        .mw-mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--dsw-alias-fg-3);}
+        .mw-metrics{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+        .mw-tag{font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-fg-2);white-space:nowrap;}
+        .mw-tag-warn{border-color:rgba(245,158,11,.35);color:#d6a13a;}
+        .mw-tag-model{border-color:rgba(56,189,248,.32);color:#5aa9d6;}
+        .mw-pre{white-space:pre-wrap;word-break:break-word;font-size:11.5px;line-height:1.6;background:var(--dsw-alias-bg-l2);padding:10px 12px;border-radius:8px;max-height:260px;overflow:auto;border-left:2px solid rgba(56,189,248,.4);}
+
+        .mw-log{display:flex;flex-direction:column;gap:1px;max-height:42vh;overflow:auto;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:8px 10px;}
+        .mw-logline{display:flex;gap:8px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;padding:2px 0;}
+        .mw-log-t{color:var(--dsw-alias-fg-3);flex:0 0 auto;}
+        .mw-log-op{flex:0 0 78px;}
+        .mw-log-s{color:var(--dsw-alias-fg-2);flex:0 0 auto;}
+        .mw-log-x{color:var(--dsw-alias-fg-3);overflow:hidden;text-overflow:ellipsis;}
         .mw-op-inject{color:#38bdf8;}
         .mw-op-set{color:#f59e0b;}
-        .mw-op-boot,.mw-op-reload{color:#a3a3a3;}
-        .mw-pre{white-space:pre-wrap;word-break:break-word;font-size:11.5px;line-height:1.5;background:var(--dsw-alias-bg-l2);padding:8px;border-radius:6px;max-height:180px;overflow:auto;}
+        .mw-op-other{color:#a3a3a3;}
+
+        .mw-empty{border:1px dashed var(--dsw-alias-border-l2);border-radius:10px;padding:18px 16px;color:var(--dsw-alias-fg-3);line-height:1.7;font-size:12.5px;}
+        .mw-empty b{color:var(--dsw-alias-fg-2);font-weight:600;}
+        .mw-code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;background:var(--dsw-alias-bg-l2);padding:1px 6px;border-radius:4px;color:var(--dsw-alias-fg-1);}
+        .mw-foot{font-size:11px;color:var(--dsw-alias-fg-3);line-height:1.8;word-break:break-all;}
       `
           const tag = document.createElement('style')
           tag.setAttribute('data-mowan', '1')
@@ -92,26 +117,42 @@ window.__ModuleLoader__.load({
         if (!iso) return '—'
         try {
           const d = new Date(iso)
-          const hh = String(d.getHours()).padStart(2, '0')
-          const mm = String(d.getMinutes()).padStart(2, '0')
-          const ss = String(d.getSeconds()).padStart(2, '0')
-          return hh + ':' + mm + ':' + ss
+          if (Number.isNaN(d.getTime())) return String(iso)
+          const p = (n) => String(n).padStart(2, '0')
+          return p(d.getHours()) + ':' + p(d.getMinutes())
         } catch {
           return String(iso)
         }
       }
 
+      function ago(iso) {
+        if (!iso) return ''
+        try {
+          const t = new Date(iso).getTime()
+          if (Number.isNaN(t)) return ''
+          const s = Math.max(0, Math.round((Date.now() - t) / 1000))
+          const d = Math.round(s / 86400)
+          const h = Math.round(s / 3600)
+          if (d >= 1) return d + ' 天前'
+          if (h >= 1) return h + ' 小时前'
+          return Math.max(s, 1) + ' 秒前'
+        } catch {
+          return ''
+        }
+      }
+
       function opClass(op) {
-        if (op === 'inject') return 'mw-logline mw-op-inject'
-        if (op && op.indexOf('set_') === 0) return 'mw-logline mw-op-set'
-        return 'mw-logline mw-op-boot'
+        if (op === 'inject') return 'mw-log-op mw-op-inject'
+        if (op && op.indexOf('set_') === 0) return 'mw-log-op mw-op-set'
+        return 'mw-log-op mw-op-other'
       }
 
       function Panel() {
         useStyleOnce()
         const [state, setState] = useState(null)
         const [err, setErr] = useState('')
-        const [openText, setOpenText] = useState('')
+        const [openId, setOpenId] = useState('')
+        const [logFilter, setLogFilter] = useState('all')
 
         const load = function () {
           fetch('/mowan-state', { cache: 'no-store' })
@@ -133,66 +174,136 @@ window.__ModuleLoader__.load({
         const rules = (state && state.rules) || []
         const live = (state && state.live) || []
         const titles = (state && state.titles) || {}
-        const log = (state && state.log) || []
-        const injCount = log.filter(function (e) { return e && e.op === 'inject' }).length
+        const meta = (state && state.meta) || {}
+        const logAll = (state && state.log) || []
+
+        const stats = useMemo(function () {
+          const inj = logAll.filter(function (e) { return e && e.op === 'inject' }).length
+          const liveCount = rules.filter(function (r) { return live.indexOf(r.sessionId) >= 0 }).length
+          return { rules: rules.length, live: liveCount, inj: inj }
+        }, [rules, live, logAll])
+
+        const log = useMemo(function () {
+          if (logFilter === 'all') return logAll
+          if (logFilter === 'inject') return logAll.filter(function (e) { return e && e.op === 'inject' })
+          return logAll.filter(function (e) { return e && String(e.op || '').indexOf('set_') === 0 })
+        }, [logAll, logFilter])
 
         return el('div', { className: 'mw-wrap' },
+
+          // ── 头部 ──
           el('div', { className: 'mw-head' },
             el('div', { className: 'mw-title' }, TAB_LABEL),
-            el('span', { className: 'mw-pill' }, '规则 ', el('b', null, String(rules.length))),
-            el('span', { className: 'mw-pill' }, '运行中 ', el('b', null, String(live.length))),
-            el('span', { className: 'mw-pill' }, '注入次数 ', el('b', null, String(injCount))),
             el('span', { className: 'mw-muted' }, state ? ('更新于 ' + when(state.at)) : '加载中…'),
-            el('button', { className: 'mw-btn', onClick: load }, '刷新'),
+            el('button', { className: 'mw-btn', onClick: load, style: { marginLeft: 'auto' } }, '刷新'),
           ),
 
           err ? el('div', { className: 'mw-card', style: { borderColor: '#ef4444' } }, '接口报错：' + err) : null,
 
-          el('div', { className: 'mw-card' },
-            el('div', { className: 'mw-head' },
-              el('b', null, '被改过的会话'),
-              el('span', { className: 'mw-muted' }, '点「看注入」可以看原文'),
+          // ── 三个数字 ──
+          el('div', { className: 'mw-stats' },
+            el('div', { className: 'mw-stat' },
+              el('div', { className: 'mw-stat-n' }, String(stats.rules)),
+              el('div', { className: 'mw-stat-k' }, '被改过的会话'),
+            ),
+            el('div', { className: 'mw-stat' },
+              el('div', { className: 'mw-stat-n', style: { color: stats.live > 0 ? '#22c55e' : undefined } }, String(stats.live)),
+              el('div', { className: 'mw-stat-k' }, '正在运行'),
+            ),
+            el('div', { className: 'mw-stat' },
+              el('div', { className: 'mw-stat-n' }, String(stats.inj)),
+              el('div', { className: 'mw-stat-k' }, '规则被用过'),
+            ),
+          ),
+
+          // ── 规则卡 ──
+          el('div', { className: 'mw-sec' },
+            el('div', { className: 'mw-sec-head' },
+              el('div', { className: 'mw-sec-t' }, '规则'),
+              el('span', { className: 'mw-muted', style: { fontSize: 11.5 } }, '每条只对指定会话生效；下一轮组装时读取'),
             ),
             rules.length === 0
-              ? el('div', { className: 'mw-muted' }, '还没有任何会话被改过。用 mowan 工具 set_prompt / set_model 指定 session_id 即可。')
+              ? el('div', { className: 'mw-empty' },
+                  el('div', null, '还没有任何会话被改过。'),
+                  el('div', { style: { marginTop: 6 } },
+                    '用 ',
+                    el('span', { className: 'mw-code' }, 'mowan'),
+                    ' 工具指定 ',
+                    el('span', { className: 'mw-code' }, 'session_id'),
+                    ' 后调用 ',
+                    el('span', { className: 'mw-code' }, 'op=set_prompt'),
+                    '（软注入）或 ',
+                    el('span', { className: 'mw-code' }, 'op=set_model'),
+                    '（换模型）。',
+                  ),
+                )
               : rules.map(function (r) {
                   const isLive = live.indexOf(r.sessionId) >= 0
-                  return el('div', { className: 'mw-row', key: r.sessionId },
-                    el('span', { className: 'mw-mono' }, r.session),
-                    isLive ? el('span', { className: 'mw-live' }, '● 运行中') : el('span', { className: 'mw-muted' }, '○ 休眠'),
-                    el('span', { className: 'mw-tag' }, '注入 ' + r.promptChars + ' 字'),
-                    el('span', { className: 'mw-tag' }, '模型 ' + (r.model && r.model.model ? r.model.model : '默认')),
-                    el('span', { className: 'mw-muted' }, (titles[r.sessionId] || '') + ' · ' + when(r.changedAt)),
-                    el('button', {
-                      className: 'mw-btn',
-                      onClick: function () { setOpenText(openText === r.sessionId ? '' : r.sessionId) },
-                    }, openText === r.sessionId ? '收起' : '看注入'),
-                    openText === r.sessionId ? el('div', { className: 'mw-pre', style: { flexBasis: '100%' } }, r.promptText || '（空）') : null,
+                  const m = meta[r.sessionId] || {}
+                  const open = openId === r.sessionId
+                  return el('div', { className: 'mw-card' + (isLive ? ' mw-card-live' : ''), key: r.sessionId },
+                    el('div', { className: 'mw-card-top' },
+                      el('span', { className: 'mw-dot ' + (isLive ? 'mw-dot-live' : 'mw-dot-idle') }),
+                      isLive ? el('span', { className: 'mw-live' }, '运行中') : el('span', { className: 'mw-sleep' }, '休眠'),
+                      el('span', { className: 'mw-sess-title' }, titles[r.sessionId] || '(无标题)'),
+                      el('span', { className: 'mw-mono' }, r.session),
+                    ),
+                    el('div', { className: 'mw-metrics' },
+                      el('span', { className: 'mw-tag' + (r.promptChars > 0 ? ' mw-tag-warn' : '') }, '注入 ' + r.promptChars + ' 字'),
+                      el('span', { className: 'mw-tag mw-tag-model' }, '模型 ' + (r.model && r.model.model ? r.model.model : '默认')),
+                      el('span', { className: 'mw-muted', style: { fontSize: 11.5 } },
+                        '最后改动 ' + when(r.changedAt) +
+                        (m.lastActive ? ' · 会话活跃 ' + ago(m.lastActive) : '') +
+                        (typeof m.messages === 'number' ? ' · ' + m.messages + ' 条消息' : '')),
+                      el('button', {
+                        className: 'mw-btn' + (open ? ' mw-btn-on' : ''),
+                        style: { marginLeft: 'auto' },
+                        onClick: function () { setOpenId(open ? '' : r.sessionId) },
+                      }, open ? '收起' : '看注入'),
+                    ),
+                    open
+                      ? el('div', { className: 'mw-pre' }, r.promptText || '（这条规则没有注入文本，只换了模型）')
+                      : null,
                   )
                 }),
           ),
 
-          el('div', { className: 'mw-card' },
-            el('div', { className: 'mw-head' },
-              el('b', null, '最近操作（实时）'),
-              el('span', { className: 'mw-muted' }, 'set_prompt = 改了规则；inject = 规则真的被用上了'),
+          // ── 日志 ──
+          el('div', { className: 'mw-sec' },
+            el('div', { className: 'mw-sec-head' },
+              el('div', { className: 'mw-sec-t' }, '操作记录'),
+              el('span', { className: 'mw-muted', style: { fontSize: 11.5 } }, 'set_ = 改规则，inject = 规则真的被用上了'),
+              el('div', { style: { marginLeft: 'auto', display: 'flex', gap: 6 } },
+                el('button', { className: 'mw-btn' + (logFilter === 'all' ? ' mw-btn-on' : ''), onClick: function () { setLogFilter('all') } }, '全部'),
+                el('button', { className: 'mw-btn' + (logFilter === 'inject' ? ' mw-btn-on' : ''), onClick: function () { setLogFilter('inject') } }, '注入'),
+                el('button', { className: 'mw-btn' + (logFilter === 'set' ? ' mw-btn-on' : ''), onClick: function () { setLogFilter('set') } }, '改动'),
+              ),
             ),
             el('div', { className: 'mw-log' },
               log.length === 0
-                ? el('div', { className: 'mw-muted' }, '（还没有记录）')
+                ? el('div', { className: 'mw-muted', style: { padding: '6px 2px' } }, '（没有匹配的记录）')
                 : log.slice().reverse().map(function (e, i) {
-                    const parts = [when(e.at), (e.op || '?'), e.session || '']
-                    if (e.chars) parts.push('chars=' + e.chars)
-                    if (e.model) parts.push('model=' + e.model)
-                    if (e.to && e.to.model) parts.push('→ ' + e.to.model)
-                    if (e.note) parts.push('· ' + e.note)
-                    return el('div', { className: opClass(e.op), key: e.at + '-' + i }, parts.join('  '))
+                    const extra = []
+                    if (e.chars) extra.push('chars=' + e.chars)
+                    if (e.model) extra.push('model=' + e.model)
+                    if (e.to && e.to.model) extra.push('→ ' + e.to.model)
+                    if (e.note) extra.push(e.note)
+                    return el('div', { className: 'mw-logline', key: (e.at || '') + '-' + i },
+                      el('span', { className: 'mw-log-t' }, when(e.at)),
+                      el('span', { className: opClass(e.op) }, e.op || '?'),
+                      el('span', { className: 'mw-log-s' }, e.session || ''),
+                      el('span', { className: 'mw-log-x' }, extra.join(' · ')),
+                    )
                   }),
             ),
           ),
 
-          state ? el('div', { className: 'mw-muted', style: { fontSize: 11 } },
-            '规则文件：' + state.rulesPath + '　审计：' + state.logPath) : null,
+          // ── 底部路径 ──
+          state ? el('div', { className: 'mw-foot' },
+            '规则：' + state.rulesPath,
+            el('br'),
+            '审计：' + state.logPath,
+          ) : null,
         )
       }
 

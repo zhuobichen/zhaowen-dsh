@@ -395,7 +395,17 @@ export function apply(ctx, config = {}) {
   //    拿到的 body 是空的）。所以这里全是 readFileSync / 内存读取。
   const ws = ctx.webServer
   if (ws && typeof ws.register === 'function') {
-    ws.register({
+    // 热重载时旧路由不会被释放，重复注册会抛 duplicate prefix route，
+    // 那会让整个插件激活失败（面板和 mowan 工具一起没了）。这里吞掉，等下次重启 DSH 才换新 handler。
+    const safeRegister = (opts) => {
+      try {
+        ws.register(opts)
+      } catch (error) {
+        const msg = String(error?.message ?? error)
+        console.warn('[mowan-console] 路由注册被拒（多半是热重载残留）：' + msg)
+      }
+    }
+    safeRegister({
       kind: 'prefix',
       path: '/mowan-state',
       handler: (req, res) => {
@@ -421,17 +431,29 @@ export function apply(ctx, config = {}) {
             live = []
           }
 
-          // 会话标题（拿不到就算了，不阻塞面板）
+          // 会话标题与元信息（拿不到就算了，不阻塞面板）
           let titles = {}
+          let meta = {}
           try {
             const store = ctx.get?.('sessions')
             const all = store && typeof store.list === 'function' ? Array.from(store.list() ?? []) : []
             for (const s of all) {
               const id = String(s?.id ?? s?.sessionId ?? '')
-              if (id !== '') titles[id] = String(s?.title ?? '') || '(无标题)'
+              if (id === '') continue
+              titles[id] = String(s?.title ?? '') || '(无标题)'
+              meta[id] = {
+                lastActive: s?.updatedAt ?? s?.lastActiveAt ?? s?.lastMessageAt ?? null,
+                messages:
+                  typeof s?.messageCount === 'number'
+                    ? s.messageCount
+                    : Array.isArray(s?.messages)
+                      ? s.messages.length
+                      : null,
+              }
             }
           } catch {
             titles = {}
+            meta = {}
           }
 
           body = JSON.stringify({
@@ -442,7 +464,8 @@ export function apply(ctx, config = {}) {
             rules: ruleRows,
             live,
             titles,
-            log: readLog(80),
+            meta,
+            log: readLog(120),
           })
         } catch (error) {
           body = JSON.stringify({ ok: false, error: String(error?.message ?? error) })
