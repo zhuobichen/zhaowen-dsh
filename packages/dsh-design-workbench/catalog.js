@@ -293,6 +293,28 @@ const FRONTEND_EXTRA = [
 
 const VIDEO_ENTRIES = [
   {
+    id: 'vid-sweety-handdraw',
+    name: '手绘口播（sweety-handdraw-video）',
+    oneLine: '给一个主题或一篇文章，做成「边画边讲」的有声视频：先出线稿、按模块描线、马克笔上色、配音逐句对齐',
+    source: 'https://github.com/threerocks/sweety-handdraw-video',
+    tags: ['视频风格', '手绘', '口播', 'skill'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-sweety-handdraw.jpg',
+    bullets: [
+      '先线稿后上色：笔先起形 → 按模块描线 → 橡皮擦掉起形 → 再由浅到深马克笔上色，墨线有压感',
+      '旁白先行：先写完整口播稿 → 按段落生成配音 → 画面按**真实时间戳**对齐，不手写时间轴',
+      '有门禁：按实际配音算时长预算，笔忙占比 ≤70%，单幅停留 ≥1 秒；出图前先过「可画性」检查',
+      '默认竖屏 1280×1920 / 30fps；六款声音、六种手臂（含仅笔不露手），水印自动避开画面',
+    ],
+    howto: '做知识科普、故事讲述、文章转视频；它是 Skill 形态（不是库），需要 Claude Code / Codex 宿主，官方只承诺 macOS / Linux。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/threerocks/sweety-handdraw-video' },
+      { label: '本地副本', path: 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/sweety-handdraw-video' },
+      { label: '封面（README 样片）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-sweety-handdraw.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
     id: 'vid-bv-ref',
     name: 'BV1KHaG6bEb9 复刻 · 洗衣机鲸鱼娘',
     oneLine: '10.07 秒竖屏 AI 短片：同一角色、固定机位、单镜到底——先有角色参考再生成',
