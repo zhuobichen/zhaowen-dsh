@@ -752,6 +752,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);padding:0;text-align:left;font:inherit;color:inherit;width:100%;}',
             '.dw-card:hover{border-color:var(--dsw-alias-border-l3);}',
             '.dw-card-on{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-1px;}',
+            '.dw-card-flat{display:flex;flex-direction:column;}',
+            '.dw-card-flat .dw-card-body{padding-top:10px;}',
+            '.dw-stripe{height:4px;width:100%;flex:0 0 auto;border-radius:6px 6px 0 0;opacity:.9;}',
+            '.dw-one{display:block;}',
             '.dw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;}',
             '.dw-cover iframe,.dw-cover img,.dw-cover .dw-poster,.dw-cover .dw-cover-ph{pointer-events:none;}',
             '.dw-cover-hit{position:absolute;inset:0;cursor:pointer;}',
@@ -941,7 +945,6 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [memberOpen, setMemberOpen] = useState(-1)
         const [toast, setToast] = useState('')
         const [moreOpen, setMoreOpen] = useState(false)
-        const [showTrash, setShowTrash] = useState(false)
 
         const load = function () {
           fetch(API + '/state', { cache: 'no-store' })
@@ -969,20 +972,11 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         }
 
         // 「有视觉」= 真截图 / 会动的预览 / 换皮预览；只剩色卡和纯文字的收进垃圾箱
-        const hasVisual = function (e) {
-          if (typeof e.cover === 'string' && e.cover !== '') return true
-          if (e.kind === 'demo') return true
-          if (e.kind === 'tokens' && e.style) return true
-          // 有海报配色的 text 条目也算「有画面」——代码库里的架构/实践条目都是这种
-          if (e.swatch && typeof e.swatch === 'object') return true
-          return false
-        }
 
         const shown = useMemo(function () {
           if (current === null) return []
           const q = query.trim().toLowerCase()
           const kept = current.entries.filter(function (e) {
-            if (!showTrash && !hasVisual(e)) return false
             if (origin !== '' && e.origin !== origin) return false
             if (tag !== '' && (e.tags || []).indexOf(tag) < 0) return false
             if (scope === 'style' && (e.nature || 'style') !== 'style') return false
@@ -994,7 +988,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           return kept.slice().sort(function (a, b) {
             return (a.origin === 'mine' ? 1 : 0) - (b.origin === 'mine' ? 1 : 0)
           })
-        }, [current, tag, origin, query, scope, showTrash])
+        }, [current, tag, origin, query, scope])
 
         // 当前层里各类条目有多少（芯片上显示，知道被藏了多少）
         const scopeCounts = useMemo(function () {
@@ -1031,12 +1025,6 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             .filter(function (t) { return freq[t] >= 2 && freq[t] < n * 0.6 })
             .sort(function (a, b) { return freq[b] - freq[a] })
             .slice(0, 8)
-        }, [current])
-
-        // 这一层有多少条没有封面（会被收进垃圾箱）
-        const trashCount = useMemo(function () {
-          if (current === null) return 0
-          return current.entries.filter(function (e) { return !hasVisual(e) }).length
         }, [current])
 
         const open = (function () {
@@ -1112,14 +1100,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             allTags.map(function (t) {
               return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
-            // 没有封面的：默认不占版面，收进垃圾箱；点开才会出现
-            trashCount > 0 ? el('button', {
-              key: 'trash',
-              className: 'dw-chip' + (showTrash ? ' dw-chip-on' : ''),
-              onClick: function () { setShowTrash(!showTrash) },
-              title: '没有封面的条目：方法、合集、本机项目——平时不显示',
-            }, '🗑 垃圾箱 ' + trashCount) : null,
-            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 code_style 读、design_scan 把新目录扫进来'),
+            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 code_style 读、code_scan 把新目录扫进来'),
           ),
 
           el('div', { className: 'dw-grid' },
@@ -1128,14 +1109,14 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               return el('button', {
                 key: e.id,
                 type: 'button',
-                className: 'dw-card',
+                className: 'dw-card dw-card-flat',
                 onClick: function () { setOpenId(e.id) },
               },
-                el('div', { className: 'dw-cover' },
-                  el(Visual, { entry: e }),
-                  el('span', { className: 'dw-kind' }, KIND_LABEL[e.kind] || e.kind),
-                  el('div', { className: 'dw-cover-hit', onClick: function () { setOpenId(e.id) }, title: '看细节' }),
-                ),
+                // 代码库不摆示意图：顶部一条强调色代替封面，卡片就是「一条资料」
+                el('div', {
+                  className: 'dw-stripe',
+                  style: { background: (e.swatch && e.swatch.accent) || 'var(--dsw-alias-brand-primary,#4d6bfe)' },
+                }),
                 el('div', { className: 'dw-card-body' },
                   el('div', { className: 'dw-card-name' },
                     e.name,
@@ -1170,8 +1151,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                 el('button', { className: 'dw-close', onClick: function () { setOpenId('') }, title: '关闭' }, '×'),
               ),
 
-              el('div', { className: 'dw-two' },
-                el('div', null, el(Visual, { entry: open, big: true })),
+              el('div', { className: (open.kind === 'image' || open.kind === 'demo' || open.kind === 'tokens') ? 'dw-two' : 'dw-one' },
+                (open.kind === 'image' || open.kind === 'demo' || open.kind === 'tokens')
+                  ? el('div', null, el(Visual, { entry: open, big: true }))
+                  : null,
                 el('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
                   el('div', { style: { fontSize: 12, fontWeight: 600 } }, '要点'),
                   el('ul', { className: 'dw-bullets' }, (open.bullets || []).map(function (b, i) { return el('li', { key: i }, b) })),
