@@ -729,14 +729,14 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         styleDone = true
         try {
           const tag = document.createElement('style')
-          tag.setAttribute('data-design-workbench', '1')
+          tag.setAttribute('data-cw-scope', '1')
           tag.textContent = [
             // developerFolio 全深色：在本面板内覆盖宿主 token，下面所有用 var(--dsw-alias-*) 的元素一起变深
-            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:#e8eef6;background:#131c2b;--dsw-alias-label-primary:#e8eef6;--dsw-alias-label-secondary:#b3c2d6;--dsw-alias-label-tertiary:#8fa1b8;--dsw-alias-bg-layer-1:#1b283c;--dsw-alias-bg-layer-2:#25364e;--dsw-alias-bg-layer-3:#344860;--dsw-alias-bg-base:#131c2b;--dsw-alias-border-l1:#2b3b52;--dsw-alias-border-l2:#3a4d68;--dsw-alias-border-l3:#4a5f7c;--dsw-alias-border-l4:#5c7191;--dsw-alias-brand-primary:#38bdf8;--dsw-alias-interactive-bg-hover:rgba(56,189,248,.10);}',
-            '.dw-modal-card{background:#1b283c;border-color:#3a4d68;}',
-            '.dw-origin-mine{color:#5eead4;background:rgba(94,234,212,.10);border-color:rgba(94,234,212,.25);}',
-            '.dw-origin-ref{color:#fbbf24;background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.25);}',
-            '.dw-toast{background:#0f766e;}',
+            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:var(--dsw-alias-label-primary);}',
+            '.dw-modal-card{background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);}',
+            
+            
+            
 
             '.dw-modal{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px;}',
             '.dw-modal-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.35);width:min(1040px,100%);max-height:88vh;overflow:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;}',
@@ -818,17 +818,17 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                         '.dw-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9600;padding:6px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);}',
 
             // ── developerFolio 皮肤（局部，只作用于本面板）────────────────
-            '.df-hero{position:relative;display:flex;gap:18px;align-items:center;padding:16px 18px;border-radius:14px;overflow:hidden;background:radial-gradient(120% 140% at 12% 0%,#132038 0%,#0b1220 55%,#0a0f1c 100%);border:1px solid #1e293b;color:#e6edf3;}',
-            '.df-hero:after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(148,163,184,.12) 1px,transparent 1px);background-size:18px 18px;pointer-events:none;}',
+            '.df-hero{position:relative;display:flex;gap:18px;align-items:center;padding:16px 18px;border-radius:14px;overflow:hidden;background:linear-gradient(120deg,#eef4ff 0%,#f6f2ff 55%,#eef9f7 100%);border:1px solid var(--dsw-alias-border-l2);color:#1f2937;}',
+            '.df-hero:after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(59,89,130,.10) 1px,transparent 1px);background-size:18px 18px;pointer-events:none;}',
             '.df-hero-art{flex:0 0 200px;height:108px;opacity:.95;}',
             '.df-hero-copy{position:relative;z-index:1;flex:1;min-width:0;}',
             '.df-kicker{font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.22em;color:#38bdf8;}',
-            '.df-title{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:3px 0 4px;background:linear-gradient(92deg,#fff,#93c5fd 55%,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent;}',
-            '.df-line{font-size:12px;color:#93a4bd;line-height:1.5;}',
+            '.df-title{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:3px 0 4px;color:#1f2937;}',
+            '.df-line{font-size:12px;color:#5b6b82;line-height:1.5;}',
             '.df-skills{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;}',
             '.df-skill{display:flex;align-items:center;gap:6px;min-width:130px;flex:1 1 130px;max-width:210px;}',
-            '.df-skill-name{font-size:10.5px;color:#cbd5e1;white-space:nowrap;}',
-            '.df-skill-bar{flex:1;height:4px;border-radius:999px;background:#1e293b;overflow:hidden;}',
+            '.df-skill-name{font-size:10.5px;color:#415069;white-space:nowrap;}',
+            '.df-skill-bar{flex:1;height:4px;border-radius:999px;background:#dbe3ef;overflow:hidden;}',
             '.df-skill-fill{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#a78bfa);transform-origin:left;animation:dfGrow .9s ease-out both;}',
             '.df-skill-n{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#64748b;}',
             '@keyframes dfGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}',
@@ -841,10 +841,22 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '@keyframes dfRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}',
             // 皮肤内的 chips / 卡片微调，贴近 developerFolio 的「标签化技能」
             '.df-hero + .dw-head .dw-title{font-size:14px;font-weight:700;}',
-            '.df-hero + .dw-head .dw-pill{border-color:#1e293b;color:#93c5fd;}',
-            '.dw-card .dw-tag{border-color:#1e293b;color:#7dd3fc;}',
+            
+            
 
-          ].join('\n')
+          ].map(function (rule) {
+            var t = rule.trim()
+            if (t === '' || t.charAt(0) === '/' || t.charAt(0) === '@') return rule
+            var brace = rule.indexOf('{')
+            if (brace < 0) return rule
+            var sel = rule.slice(0, brace)
+            if (/^(from|to|\d+(?:\.\d+)?%)\s*$/.test(sel.trim())) return rule
+            var parts = sel.split(',').map(function (one) {
+              var v = one.trim()
+              return v === '' ? one : '.cw-scope ' + v
+            })
+            return parts.join(',') + rule.slice(brace)
+          }).join('\n')
           document.head.appendChild(tag)
         } catch {
           /* 样式失败不影响功能 */
@@ -1159,7 +1171,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           return hit ? hit.name : ''
         }
 
-        return el('div', { className: 'dw-wrap' },
+        return el('div', { className: 'cw-scope', style: { display: 'contents' } },
+          el('div', { className: 'dw-wrap' },
           el(Hero, { counts: counts, total: state ? state.total : 0 }),
           el('div', { className: 'dw-head' },
             el('div', { className: 'dw-title' }, TAB_LABEL),
@@ -1358,6 +1371,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ) : null,
 
           toast ? el('div', { className: 'dw-toast' }, toast) : null,
+          )
         )
       }
 

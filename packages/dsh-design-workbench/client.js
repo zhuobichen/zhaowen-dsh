@@ -729,7 +729,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         styleDone = true
         try {
           const tag = document.createElement('style')
-          tag.setAttribute('data-design-workbench', '1')
+          tag.setAttribute('data-dw-scope', '1')
           tag.textContent = [
             '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:var(--dsw-alias-label-primary);}',
             '.dw-modal{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px;}',
@@ -853,7 +853,19 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-btn{color:#1f1b16;border-color:#a89b84;}',
 
 
-          ].join('\n')
+          ].map(function (rule) {
+            var t = rule.trim()
+            if (t === '' || t.charAt(0) === '/' || t.charAt(0) === '@') return rule
+            var brace = rule.indexOf('{')
+            if (brace < 0) return rule
+            var sel = rule.slice(0, brace)
+            if (/^(from|to|\d+(?:\.\d+)?%)\s*$/.test(sel.trim())) return rule
+            var parts = sel.split(',').map(function (one) {
+              var v = one.trim()
+              return v === '' ? one : '.dw-scope ' + v
+            })
+            return parts.join(',') + rule.slice(brace)
+          }).join('\n')
           document.head.appendChild(tag)
         } catch {
           /* 样式失败不影响功能 */
@@ -1134,7 +1146,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           return hit ? hit.name : ''
         }
 
-        return el('div', { className: 'dw-wrap' },
+        return el('div', { className: 'dw-scope', style: { display: 'contents' } },
+          el('div', { className: 'dw-wrap' },
           el(CollageHero, { counts: counts, total: state ? state.total : 0 }),
           el('div', { className: 'dw-head' },
             el('div', { className: 'dw-title' }, TAB_LABEL),
@@ -1338,6 +1351,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ) : null,
 
           toast ? el('div', { className: 'dw-toast' }, toast) : null,
+          )
         )
       }
 
