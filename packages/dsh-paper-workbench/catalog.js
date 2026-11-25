@@ -448,6 +448,11 @@ for (const e of ALL_ENTRIES) {
     sources.push({ label: '插件目录', path: PLUGINS_HOME + '\\' + PLUGIN_DIR[e.id] })
   }
   if (sources.length > 0) e.sources = sources
+  // origin 标记（对齐设计工作台的「自制/引用」）：本机已装（有 SKILL.md 或插件目录）
+  // = mine，UI 显示「自制」；市面精选（只有仓库 URL、本机未装）= referenced，显示「引用」。
+  // 之前所有条目都默认 referenced，导致 Zotero 等本机 skill 被误标成「引用」。
+  if (SKILL_DIR[e.id] !== undefined || PLUGIN_DIR[e.id] !== undefined) e.origin = 'mine'
+  else if ((e.tags || []).includes('市面精选')) e.origin = 'referenced'
 }
 
 
