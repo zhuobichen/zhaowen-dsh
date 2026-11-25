@@ -219,11 +219,11 @@ export function apply(ctx) {
     defineTool({
       name: 'code_style',
       description:
-        '代码工作台的数据通道：**用户本机的代码资料库，分四类（软件开发 / 网页开发 / 数据分析 / CLI）**。\n' +
+        '代码工作台的数据通道：**别人做好的东西**：skill 包 / MCP 服务 / 开发工具 / 别人总结的规范；分四类（软件开发 / 网页开发 / 数据分析 / CLI）。\n' +
         '工作台面板是给人看的；这是给 AI 读同一份数据的入口。\n' +
         'op=list 四类全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一类（dev | web | data | cli）；' +
         'op=get {id} 取完整规格；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
-        '写：op=add / update / remove / pin / unpin / hide / unhide（写进 extra.json 覆盖层，不动 catalog.js）；op=stats / export 看状态与导出。\n' +
+        '写：add / update / remove / pin / unpin / hide / unhide / reorder（写进 extra.json 覆盖层，不动 catalog.js）；运维：stats / export / import。\n' +
         '用户说「用那个 superpowers」「按 playwright MCP 来」「有没有能查库的 MCP」时，先用 op=search 或 op=list 找到 id，再 op=get 拿它的用法与出处。',
       parameters: {
         op: { type: 'string', required: true, description: '读：list | layer | get | search；写：add | update | remove | pin | unpin | hide | unhide；运维：stats | export | import | reorder' },
