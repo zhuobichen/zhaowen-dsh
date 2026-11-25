@@ -232,7 +232,7 @@ export function apply(ctx) {
         nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
         // 写操作（add / update）
-        layer: { type: 'string', description: 'op=add 时必填：dev | web | data | cli' },
+        layer: { type: 'string', description: 'op=add 时必填：app | frontend | video | codevideo | comic | motion' },
         name: { type: 'string', description: 'op=add 时必填：名称' },
         oneLine: { type: 'string', description: 'op=add 时必填：一句话它替你做什么' },
         source: { type: 'string', description: '出处：谁做的、什么形态' },
