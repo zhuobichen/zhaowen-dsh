@@ -1,0 +1,37 @@
+{
+  "name": "@zhuobichen/dsh-favorite-sessions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "常用会话标记：在会话省略号菜单加「标记常用」，在侧栏 More 菜单加「只显示常用」开关，不常用又不想归档的会话一键收起",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "id": "dsh-favorite-sessions",
+    "name": "常用会话标记",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-store",
+        "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-workspace"
+      ]
+    }
+  }
+}

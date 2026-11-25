@@ -1,0 +1,5 @@
+# 常用会话标记：只挂插件本体，不改宿主任何一行。
+# inject 由 client.js 的 apply() 通过 ctx.slots.inject 声明，这里不重复写。
+- insert:
+    - id: favorite-sessions
+      name: '@zhuobichen/dsh-favorite-sessions'
