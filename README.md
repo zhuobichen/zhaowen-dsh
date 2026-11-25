@@ -93,6 +93,43 @@ git tag dsh-team-v0.2.1   && git push origin dsh-team-v0.2.1
 | `team-ci.yml` | 改 `packages/dsh-team/**` | npm 构建（`tsc` 出 `lib/`） |
 | `term-ci.yml` | 改 `packages/dsh-term/**` | npm 安装 + `tsc --noEmit` |
 
+## 排障：插件激活失败（实测三类）
+
+启动日志里 `dsh: warning: N entries did not activate` 或页面顶部 `HARNESS / Failed to load plugins`，按下面三类对号入座。
+
+### 1. `ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-tools'`
+
+**症状**：`paper-workbench`、`rea-video` 这类纯 ESM 插件的 `index.js` 顶部 `import { defineTool } from '@deepseek-ai/dsh-tools'`，但**包目录里没有 `node_modules/`**。本仓库大多数插件是 link 安装、不需要构建，但**声明了 npm dependencies 的包必须自己装一次**：
+
+```sh
+cd packages/dsh-paper-workbench && npm install     # rea-video 同理
+```
+
+装完重启。注意 `@deepseek-ai/dsh-tools` 虽在 DSH 全局安装目录里也有一份，但 `link:` 安装的包在自己的目录树里解析依赖，不会往上找到全局那份。
+
+### 2. `ERR_MODULE_NOT_FOUND: Cannot find package '@local/...'` / client 报错 `loaded without registering`
+
+**症状**：插件包叫 `@zhuobichen/dsh-xxx`，但 `cordis.patch.yml` 的 insert `name:` 或 `client.js` 的 `window.__ModuleLoader__.load({ id: ... })` 里还写着旧名 `@local/dsh-xxx`。两端必须和 `package.json` 的 `name` **完全一致**，client 半身否则会 `loaded without registering` 并连带跳过同批的其他 bundle。
+
+```sh
+grep -rn '@local/' packages/*/  # 应该没有输出（排除 node_modules）
+```
+
+### 3. 页面 `Failed to load plugins / <pkg>: failed`，但 bundle 能 200 加载
+
+**症状**：client bundle 成功执行、factory 也注册了，但激活阶段失败；try/catch 包住 factory 也捕获不到（因为异常在 runner 的 activation 阶段）。
+
+**根因**：client 半身的 `exports.inject = {}` 是空的，而 `apply(ctx)` 里用了 `ctx.slots` / `ctx.locale` / `ctx.timer` 等服务。DSH 的动态插件系统要求**显式声明**才能访问服务，未声明会在 activation 时抛 `service "xxx" is not declared by your plugin`。修法：
+
+```js
+exports.apply = apply
+exports.inject = ['slots', 'locale']   // 按实际用到的服务列，参考 dsh-image-gen 的 ['slots']
+```
+
+另外：`package.json` 的 `dsh.client.inject` 只列**真正的独立插件入口**。像 `@deepseek-ai/dsh-client-store`、`@deepseek-ai/dsh-client-ui-primitives` 这类已内嵌进主 frontend bundle 的模块虽然能被 `require()`，但不是独立 bundle 条目，列进去会让 boot 的依赖图判定失败；`require` 它们不需要在 `dsh.client.inject` 里声明。
+
+**调试提示**：DSH 的 bundle rev 是基于 **client artifact 文件元数据**（mtime/ctime/size）算的，不是内容哈希；改了 `client.js` 才会换 rev，只改 `package.json` 的某些字段 rev 不变。页面硬刷新 `Ctrl+Shift+R` 才会拉新 bundle。
+
 ## 历史
 
 由三个仓库合并而来，各自完整提交历史保留（`git subtree`）：

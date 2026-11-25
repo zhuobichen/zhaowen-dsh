@@ -173,7 +173,7 @@ window.__ModuleLoader__.load({
     }
 
     exports.apply = apply
-    exports.inject = {}
+    exports.inject = ['slots', 'locale']
     return module.exports
   },
 })
