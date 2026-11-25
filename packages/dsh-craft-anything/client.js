@@ -34,25 +34,14 @@ window.__ModuleLoader__.load({
       workflowHint: '一条指令一个阶段；复制粘给 AI 即可。',
     }
 
-    // ── 实战案例：4399 首页 clean-room 逆向（2026-11-25 真实抓取）────
-    // 每条 finding 都挂证据：截图像素、HTML class、外链 CSS 的具体数值。
-    const CASE = {
+    // ── 实战案例：数据从 host 的 /craft-anything/cases 读，和 AI 工具同一份 ──
+    const CASE_FALLBACK = {
       name: '4399 首页信息架构逆向',
       url: 'https://www.4399.com/',
       mode: 'clean-room · 不读源码，只用可见 DOM/CSS/截图',
-      evidence: [
-        { k: '技术栈', v: 'XHTML 1.0 Transitional + charset=gb2312（2000 年代栈）', src: '4399.html <!DOCTYPE>' },
-        { k: '主容器', v: 'width:980px 固定宽，两侧留巨幅广告', src: 'index20250612.css `.wrap{width:980px}`' },
-        { k: '正文', v: 'font:12px/24px 宋体，color:#484848', src: 'CSS `body{...}`' },
-        { k: '主色', v: '#c0eb7c（浅绿底）×18 次 + #fb6400（橙）×15 次', src: 'CSS 颜色频次统计' },
-        { k: '辅助色', v: '#448230 深绿、#389904 亮绿、#eeffd9 浅绿块', src: 'CSS 颜色频次' },
-        { k: '导航', v: '17 类文字链（首页/动作/体育/益智/射击…）横排，非下拉', src: 'HTML 顶部导航文本' },
-        { k: '游戏流', v: '每格=70px 缩略图 + 名称，8 列 × N 行，用 lz_src 懒加载', src: 'HTML `<img lz_src=...>` / `class=tm_list li`' },
-        { k: '结构命名', v: 'tm_list / tm_tit / mi_web / game_w 老式 class，无 flex/grid', src: 'HTML class 频次' },
-        { k: '信息密度', v: '首屏 4 行分类矩阵 + 热门推荐 24 格 + 最新列表，零留白', src: '4399-home.png 截图' },
-      ],
-      conclusion: '复刻它不能用现代卡片栅格——要「固定 980px + 多列文字链矩阵 + 小缩略图 + 12px 宋体」才能对齐信息密度。',
-      copy: '按代码工作台/设计工作台的同构方式复刻 4399 首页：固定 980px 容器、绿橙配色、17 类导航矩阵、游戏图标流。',
+      evidence: [],
+      conclusion: '案例数据读取中…（刷新面板重试）',
+      copy: '复刻 4399 首页：固定 980px + 绿橙配色 + 17 类导航矩阵 + 游戏图标流。',
     }
 
     // 工作流四步（每步一条可复制指令）
@@ -168,6 +157,7 @@ window.__ModuleLoader__.load({
         const [state, setState] = useState({ loading: true, data: null, error: null })
         const [openSet, setOpenSet] = useState('')
         const [toast, setToast] = useState('')
+        const [caseData, setCaseData] = useState(null)
 
         useEffect(() => {
           let alive = true
@@ -178,6 +168,10 @@ window.__ModuleLoader__.load({
               .catch((e) => { if (alive) setState({ loading: false, data: null, error: String((e && e.message) || e) }) })
           }
           load(false)
+          fetch('/craft-anything/cases', { headers: { accept: 'application/json' } })
+            .then((r) => r.json())
+            .then((d) => { if (alive && d && d.ok && d.case) setCaseData(d.case) })
+            .catch(() => {})
           const timer = setInterval(() => load(true), 60000)
           return () => { alive = false; clearInterval(timer) }
         }, [])
@@ -190,6 +184,7 @@ window.__ModuleLoader__.load({
         }
 
         const data = state.data || {}
+        const CASE = caseData || CASE_FALLBACK
         const toolsets = data.toolsets || []
         const engines = data.engines || []
         const installed = engines.filter((e) => e.found)

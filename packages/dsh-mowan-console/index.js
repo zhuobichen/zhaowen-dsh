@@ -269,6 +269,70 @@ export function apply(ctx, config = {}) {
     return ''
   }
 
+  // AI 读面板同款数据的通道（与 /mowan-state 共用 snapshot()）
+  ctx.tools.register(
+    defineTool({
+      name: 'mowan_view',
+      description:
+        '破甲工作台的数据通道：**人看到的面板内容，AI 用这个读同一份**。\n' +
+        'op=state 全部状态（规则卡/会话标题/运行中/三个统计/审计日志）；' +
+        'op=rules 只看规则；op=log 只看改动记录（可按 op 筛）；op=stats 只看统计；' +
+        'op=export 导出整包 JSON。\n' +
+        '要**改**规则请用 mowan 工具；这个工具只读。',
+      parameters: {
+        op: { type: 'string', required: true, description: 'state | rules | log | stats | export' },
+        filter: { type: 'string', description: 'op=log 时按动作筛：inject | set_*' },
+        limit: { type: 'number', description: 'op=log 返回条数，默认 30' },
+      },
+      output: {
+        schema: { type: 'object', additionalProperties: true },
+        render: (_args, value) => [{ type: 'text', text: typeof value?.note === 'string' ? value.note : JSON.stringify(value, null, 2) }],
+      },
+      execute: async (args) => {
+        const op = String(args.op ?? 'state').trim()
+        const snap = snapshot()
+        if (op === 'state' || op === 'export') {
+          return { ...snap, note: JSON.stringify(snap, null, 2) }
+        }
+        if (op === 'rules') {
+          const rows = snap.rules.map((r) => ({
+            session: r.session,
+            title: snap.titles[r.sessionId] || '',
+            live: snap.live.indexOf(r.sessionId) >= 0,
+            chars: r.promptChars,
+            model: r.model?.model ?? '默认',
+            prompt: r.promptText,
+          }))
+          return {
+            ok: true,
+            count: rows.length,
+            rules: rows,
+            note: rows.length === 0
+              ? '还没有任何规则。用 mowan op=set_prompt 给某个会话加一条。'
+              : rows.map((r) => `[${r.live ? '运行中' : '休眠'}] ${r.title} (${r.session}) · 注入${r.chars}字 · 模型${r.model}\n  ${r.prompt.slice(0, 120)}`).join('\n'),
+          }
+        }
+        if (op === 'log') {
+          const filter = String(args.filter ?? '').trim()
+          const limit = Number(args.limit) > 0 ? Math.floor(Number(args.limit)) : 30
+          let rows = snap.log
+          if (filter !== '') rows = rows.filter((e) => filter === 'inject' ? e.op === 'inject' : String(e.op ?? '').indexOf('set_') === 0)
+          rows = rows.slice(0, limit)
+          return {
+            ok: true,
+            count: rows.length,
+            log: rows,
+            note: rows.length === 0 ? '没有匹配的记录。' : rows.map((e) => `${e.at || ''} ${e.op || '?'} ${e.session || ''} ${e.note || ''}`).join('\n'),
+          }
+        }
+        if (op === 'stats') {
+          return { ok: true, ...snap.stats, at: snap.at, note: `被改会话 ${snap.stats.rules} · 运行中 ${snap.stats.live} · 注入次数 ${snap.stats.injected}` }
+        }
+        return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 state | rules | log | stats | export，收到：${op}` }
+      },
+    }),
+  )
+
   ctx.tools.register(
     defineTool({
       name: 'mowan',
@@ -397,6 +461,74 @@ export function apply(ctx, config = {}) {
   if (ws && typeof ws.register === 'function') {
     // 热重载时旧路由不会被释放，重复注册会抛 duplicate prefix route，
     // 那会让整个插件激活失败（面板和 mowan 工具一起没了）。这里吞掉，等下次重启 DSH 才换新 handler。
+    /**
+     * 面板与 AI 工具共用的状态快照——这是「AI base 工作台」的基础：
+     * 人看到的规则卡/日志/统计，和 AI 通过 mowan_view 读到的是同一份数据。
+     */
+    const snapshot = () => {
+      loadIfChanged()
+      const ruleRows = Object.entries(rules.sessions ?? {}).map(([id, r]) => ({
+        sessionId: id,
+        session: shortId(id),
+        promptText: Array.isArray(r?.prompt) ? (r.prompt.find((f) => f && f.enabled !== false)?.text ?? '') : '',
+        promptChars: Array.isArray(r?.prompt)
+          ? r.prompt.reduce((n, f) => n + String(f?.text ?? '').length, 0)
+          : 0,
+        model: r?.model ?? null,
+        changedAt: r?.prompt?.[0]?.at ?? r?.model?.at ?? null,
+      }))
+
+      let live = []
+      try {
+        live = (ctx.agents?.list?.() ?? []).map((a) => String(a?.id ?? '')).filter(Boolean)
+      } catch {
+        live = []
+      }
+
+      let titles = {}
+      let meta = {}
+      try {
+        const store = ctx.get?.('sessions')
+        const all = store && typeof store.list === 'function' ? Array.from(store.list() ?? []) : []
+        for (const item of all) {
+          const id = String(item?.id ?? item?.sessionId ?? '')
+          if (id === '') continue
+          titles[id] = String(item?.title ?? '') || '(无标题)'
+          meta[id] = {
+            lastActive: item?.updatedAt ?? item?.lastActiveAt ?? item?.lastMessageAt ?? null,
+            messages:
+              typeof item?.messageCount === 'number'
+                ? item.messageCount
+                : Array.isArray(item?.messages)
+                  ? item.messages.length
+                  : null,
+          }
+        }
+      } catch {
+        titles = {}
+        meta = {}
+      }
+
+      const log = readLog(120)
+      return {
+        ok: true,
+        at: new Date().toISOString(),
+        rulesPath: rulesPath(),
+        logPath: logPath(),
+        rules: ruleRows,
+        live,
+        titles,
+        meta,
+        log,
+        // 面板顶栏那三个数字，AI 也该能读到同一份口径
+        stats: {
+          rules: ruleRows.length,
+          live: ruleRows.filter((r) => live.indexOf(r.sessionId) >= 0).length,
+          injected: log.filter((e) => e && e.op === 'inject').length,
+        },
+      }
+    }
+
     const safeRegister = (opts) => {
       try {
         ws.register(opts)
@@ -411,62 +543,7 @@ export function apply(ctx, config = {}) {
       handler: (req, res) => {
         let body
         try {
-          loadIfChanged()
-          const ruleRows = Object.entries(rules.sessions ?? {}).map(([id, r]) => ({
-            sessionId: id,
-            session: shortId(id),
-            promptText: Array.isArray(r?.prompt) ? (r.prompt.find((f) => f && f.enabled !== false)?.text ?? '') : '',
-            promptChars: Array.isArray(r?.prompt)
-              ? r.prompt.reduce((n, f) => n + String(f?.text ?? '').length, 0)
-              : 0,
-            model: r?.model ?? null,
-            changedAt: r?.prompt?.[0]?.at ?? r?.model?.at ?? null,
-          }))
-
-          // 活着的会话（用于在面板上标"运行中"）
-          let live = []
-          try {
-            live = (ctx.agents?.list?.() ?? []).map((a) => String(a?.id ?? '')).filter(Boolean)
-          } catch {
-            live = []
-          }
-
-          // 会话标题与元信息（拿不到就算了，不阻塞面板）
-          let titles = {}
-          let meta = {}
-          try {
-            const store = ctx.get?.('sessions')
-            const all = store && typeof store.list === 'function' ? Array.from(store.list() ?? []) : []
-            for (const s of all) {
-              const id = String(s?.id ?? s?.sessionId ?? '')
-              if (id === '') continue
-              titles[id] = String(s?.title ?? '') || '(无标题)'
-              meta[id] = {
-                lastActive: s?.updatedAt ?? s?.lastActiveAt ?? s?.lastMessageAt ?? null,
-                messages:
-                  typeof s?.messageCount === 'number'
-                    ? s.messageCount
-                    : Array.isArray(s?.messages)
-                      ? s.messages.length
-                      : null,
-              }
-            }
-          } catch {
-            titles = {}
-            meta = {}
-          }
-
-          body = JSON.stringify({
-            ok: true,
-            at: new Date().toISOString(),
-            rulesPath: rulesPath(),
-            logPath: logPath(),
-            rules: ruleRows,
-            live,
-            titles,
-            meta,
-            log: readLog(120),
-          })
+          body = JSON.stringify(snapshot())
         } catch (error) {
           body = JSON.stringify({ ok: false, error: String(error?.message ?? error) })
         }
