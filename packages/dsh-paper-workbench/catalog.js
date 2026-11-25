@@ -332,6 +332,65 @@ export const LAYERS = [
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
 
+/* ══════ 原始材料 / 本地副本映射（对齐设计工作台的 sources 字段）══════
+ * 每条 skill：本地副本 = ~/.agents/skills/<name>/SKILL.md（真实存在）。
+ * 原始材料：只有确有可靠公开 URL 的才给（tavily / web-access），
+ * 其余是本机自建或来源不明，不编造 URL——原始材料退回 skill 名说明。
+ * MCP 条目：本地副本 = 本机插件目录。
+ * ════════════════════════════════════════════════════════════════════ */
+const SKILL_DIR = {
+  "w-anti-defensive": "anti-defensive-writing",
+  "w-latex": "latex-paper-writing",
+  "w-prompt-auditor": "prompt-auditor",
+  "w-khazix": "khazix-writer",
+  "i-scoop": "scoop-check",
+  "i-hv": "hv-analysis",
+  "i-paper-search": "paper-search",
+  "m-stats": "statistical-analysis",
+  "m-critical": "scientific-critical-thinking",
+  "m-units": "uncertainty-and-units",
+  "m-pm25": "process-daily-pm25",
+  "z-core": "zotero",
+  "z-db": "zotero-db",
+  "z-research": "zotero-research",
+  "c-search": "cnki-search",
+  "c-advanced": "cnki-advanced-search",
+  "c-download": "cnki-download",
+  "c-export": "cnki-export",
+  "c-detail": "cnki-paper-detail",
+  "c-journal-search": "cnki-journal-search",
+  "c-journal-index": "cnki-journal-index",
+  "c-journal-toc": "cnki-journal-toc",
+  "c-nav": "cnki-navigate-pages",
+  "c-parse": "cnki-parse-results",
+  "s-tavily": "tavily",
+  "s-web-access": "web-access",
+  "s-extractor": "article-extractor",
+  "s-hf-publish": "huggingface-paper-publisher"
+}
+const CLOUD_URL = {
+  "s-tavily": "https://tavily.com",
+  "s-web-access": "https://github.com/eze-is/web-access"
+}
+const PLUGIN_DIR = {
+  "mcp-zotero": "dsh-zotero-mcp",
+  "mcp-docs": "dsh-tencent-mcp"
+}
+const SKILLS_HOME = '~/.agents/skills'
+const PLUGINS_HOME = 'E:/CodeProject/zhaowen-dsh/packages'
+
+for (const e of ALL_ENTRIES) {
+  const sources = []
+  if (CLOUD_URL[e.id] !== undefined) sources.push({ label: '官方站点', url: CLOUD_URL[e.id] })
+  if (SKILL_DIR[e.id] !== undefined) {
+    sources.push({ label: 'SKILL.md', path: SKILLS_HOME + '/' + SKILL_DIR[e.id] + '/SKILL.md' })
+  } else if (PLUGIN_DIR[e.id] !== undefined) {
+    sources.push({ label: '插件目录', path: PLUGINS_HOME + '/' + PLUGIN_DIR[e.id] })
+  }
+  if (sources.length > 0) e.sources = sources
+}
+
+
 export function findEntry(id) { return ALL_ENTRIES.find((e) => e.id === id) || null }
 export function layerOf(id) { return LAYERS.find((l) => l.entries.some((e) => e.id === id)) || null }
 
@@ -339,14 +398,28 @@ export function layerOf(id) { return LAYERS.find((l) => l.entries.some((e) => e.
 const ASK = '按上面这套来就行；要换个工具或调做法先问我。'
 
 /** 索引式引用：面板复制这一行，AI 需要细节时自己 paper_style op=get。
- *  与设计工作台同构：用X工作台「名」（层 · id）→ 原始材料 → 要看完整规格。 */
+ *  与设计工作台完全同构：用X工作台「名」（层 · id）→ 原始材料(url) →
+ *  本地副本(path) → 要看完整规格。没有云端 URL 的条目退回用 source 描述当原始材料。 */
 export function refOf(entry) {
   const layer = layerOf(entry.id)
+  const src = Array.isArray(entry.sources) ? entry.sources : []
+  const cloud = src.find((s) => typeof s.url === 'string' && s.url !== '')
+  const local = src.find((s) => typeof s.path === 'string' && s.path !== '')
   const lines = [
     `用论文工作台里的「${entry.name}」（${layer === null ? '论文工具' : layer.name} · ${entry.id}），按这个设计来。`,
-    `原始材料：${entry.source}`,
-    `要看完整规格：paper_style op=get ${entry.id}`,
   ]
+  if (cloud !== undefined) {
+    lines.push(`原始材料：${cloud.url}`)
+    if (local !== undefined) lines.push(`本地副本：${local.path}`)
+  } else if (local !== undefined) {
+    // 本机自建 skill：原始材料就是本地的 SKILL.md，再点一次「本地副本」会重复，
+    // 所以用 source 说明当原始材料，本地路径单列一行——和漫画层「原始材料+本地副本」双行一致。
+    lines.push(`原始材料：${entry.source}`)
+    lines.push(`本地副本：${local.path}`)
+  } else {
+    lines.push(`原始材料：${entry.source}`)
+  }
+  lines.push(`要看完整规格：paper_style op=get ${entry.id}`)
   return lines.join('\n')
 }
 

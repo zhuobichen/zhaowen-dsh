@@ -25,15 +25,18 @@ paper_style op=get {id}                     完整规格（要点 / 出处 / 怎
 paper_style op=search {关键词}              按名称 / 标签 / 出处搜
 ```
 
-引用是索引式的，**格式与设计/代码工作台统一**（首行「用X工作台里的『名』（层 · id），按这个设计来」→ 原始材料 → 要看完整规格）；四个 op 的返回元数据字段也与它们同构（count / nature / layers / entries / ref / spec / members）。
+引用是索引式的，**格式与设计工作台逐行同构**（首行「用X工作台里的『名』（层 · id），按这个设计来」→ 原始材料（URL）→ 本地副本（真实路径）→ 要看完整规格）；四个 op 的返回元数据字段也与它们同构（count / nature / layers / entries / ref / spec / members）。
 
 ```
-用论文工作台里的「反防御性写作」（写作与润色 · w-anti-defensive），按这个设计来。
-原始材料：anti-defensive-writing · 本机自建（~/.agents/skills）
-要看完整规格：paper_style op=get w-anti-defensive
+用论文工作台里的「Tavily 网络检索」（检索与发布 · s-tavily），按这个设计来。
+原始材料：https://tavily.com
+本地副本：~/.agents/skills/tavily/SKILL.md
+要看完整规格：paper_style op=get s-tavily
 ```
 
-完整规格 `op=get` 的结构也统一：【论文参考】名（层）→ 一句话 → 出处 → 要点 → 原始材料 → 怎么用 → 统一收尾话术。AI 拿到索引行，需要细节时自己 `op=get` 展开，不把整页塞进对话。
+和设计工作台的「浮世绘」引用（原始材料 GitHub URL + 本地副本 D 盘路径）完全同一个结构。本机自建、无公开来源的 skill 没有云端 URL，原始材料退回 skill 来源说明，本地副本仍给真实路径；不编造 URL。
+
+完整规格 `op=get` 的结构也统一：【论文参考】名（层）→ 一句话 → 出处 → 要点 → 原始材料（列表：官方站点/本地 SKILL.md）→ 怎么用 → 统一收尾话术。AI 拿到索引行，需要细节时自己 `op=get` 展开，不把整页塞进对话。
 
 ## 与设计工作台的关系
 
