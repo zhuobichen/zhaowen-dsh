@@ -342,7 +342,7 @@ export const LAYERS = [
 // 接入市面精选：新层追加、merge 组并入现有层；条目补 sources（只有仓库 URL，无本地副本）。
 for (const group of MARKET_GROUPS) {
   for (const e of group.entries) {
-    if (MARKET_URL[e.id] !== undefined) e.sources = [{ label: '仓库', url: MARKET_URL[e.id] }]
+    if (MARKET_URL[e.id] !== undefined) e.sources = [{ label: '原始出处', url: MARKET_URL[e.id] }]
     e.tags = [...new Set([...(e.tags || []), '市面精选'])]
   }
   if (group.layer.merge === true) {
@@ -428,7 +428,7 @@ const PLUGINS_HOME = 'E:\\CodeProject\\zhaowen-dsh\\packages'
 
 for (const e of ALL_ENTRIES) {
   const sources = []
-  if (CLOUD_URL[e.id] !== undefined) sources.push({ label: '官方站点', url: CLOUD_URL[e.id] })
+  if (CLOUD_URL[e.id] !== undefined) sources.push({ label: '原始出处', url: CLOUD_URL[e.id] })
   if (SKILL_DIR[e.id] !== undefined) {
     sources.push({ label: 'SKILL.md', path: SKILLS_HOME + '\\' + SKILL_DIR[e.id] + '\\SKILL.md' })
   } else if (PLUGIN_DIR[e.id] !== undefined) {
@@ -484,10 +484,18 @@ export function specOf(entry) {
   if (Array.isArray(entry.bullets) && entry.bullets.length > 0) {
     lines.push('', '要点：', ...entry.bullets.map((b) => '  - ' + b))
   }
-  if (Array.isArray(entry.sources) && entry.sources.length > 0) {
-    lines.push('', '原始材料：', ...entry.sources.map((x) => `  - ${x.label}：${x.url ?? x.path}`))
+  // 与设计工作台同构：云端 URL 进「原始材料」，本地路径进「本地副本」——
+  // 不把本地 SKILL.md 塞进原始材料（用户明确要求，浮世绘那条就是 URL+路径两行）。
+  const src = Array.isArray(entry.sources) ? entry.sources : []
+  const clouds = src.filter((x) => typeof x.url === 'string' && x.url !== '')
+  const locals = src.filter((x) => typeof x.path === 'string' && x.path !== '')
+  if (clouds.length > 0) {
+    lines.push('', '原始材料：', ...clouds.map((x) => `  - ${x.label}：${x.url}`))
   } else {
     lines.push('', `原始材料：${entry.source}`)
+  }
+  if (locals.length > 0) {
+    lines.push('', '本地副本：', ...locals.map((x) => `  - ${x.label}：${x.path}`))
   }
   lines.push('', `怎么用：${entry.howto}`, '', ASK)
   return lines.join('\n')
