@@ -10,6 +10,7 @@
  *   origin  —— mine（本机自建）/ referenced（社区或内置）
  */
 import { homedir } from 'node:os'
+import { MARKET_GROUPS, MARKET_URL } from './market.js'
 
 // 注意：扫描本机后确认这些 skill 全部在 ~/.agents/skills（不在 ~/.dsh/skills），
 // 所以来源统一写「本机 skill（~/.agents/skills）」，不再误称「内置 skill（~/.dsh 技能目录）」。
@@ -324,15 +325,33 @@ const MCP = [
   },
 ]
 
+// 基础 7 层（本机已装能力）。条目数组后面会被市面精选的 merge 组追加。
+const WRITING_ALL = [...WRITING]
+const METHOD_ALL = [...METHOD]
+
 export const LAYERS = [
-  { id: 'writing', name: '写作与润色', hint: '叙事、LaTeX、摘要/引言/结论、PPT 审计', filters: ['写作', '润色', '叙事', '投稿', '核查'], entries: WRITING },
+  { id: 'writing', name: '写作与润色', hint: '叙事、LaTeX、摘要/引言/结论、PPT 审计', filters: ['写作', '润色', '叙事', '投稿', '核查'], entries: WRITING_ALL },
   { id: 'idea', name: '选题与创新', hint: '撞题检查、横纵分析、多库检索', filters: ['选题', '创新', '调研', '检索'], entries: IDEA },
-  { id: 'method', name: '统计与方法', hint: '统计分析、批判性思维、单位不确定度、PM2.5 数据', filters: ['统计', '方法', '证据', '环境'], entries: METHOD },
+  { id: 'method', name: '统计与方法', hint: '统计分析、批判性思维、单位不确定度、PM2.5 数据', filters: ['统计', '方法', '证据', '环境'], entries: METHOD_ALL },
   { id: 'zotero', name: '文献 · Zotero', hint: '文献管理、直连 SQLite、全文检索', filters: ['Zotero', '文献', '引用'], entries: ZOTERO },
   { id: 'cnki', name: '文献 · CNKI', hint: '检索、下载、导出、期刊评估、目录', filters: ['CNKI', '检索', '期刊', '导出'], entries: CNKI },
   { id: 'search', name: '检索与发布', hint: 'Tavily、网页抓取、正文提取、HF 发布', filters: ['检索', '抓取', '发布'], entries: SEARCH },
   { id: 'mcp', name: 'MCP 工具', hint: '本机可用的论文相关 MCP', filters: ['MCP', '自建'], entries: MCP },
 ]
+
+// 接入市面精选：新层追加、merge 组并入现有层；条目补 sources（只有仓库 URL，无本地副本）。
+for (const group of MARKET_GROUPS) {
+  for (const e of group.entries) {
+    if (MARKET_URL[e.id] !== undefined) e.sources = [{ label: '仓库', url: MARKET_URL[e.id] }]
+    e.tags = [...new Set([...(e.tags || []), '市面精选'])]
+  }
+  if (group.layer.merge === true) {
+    const target = LAYERS.find((l) => l.id === group.layer.id)
+    if (target) target.entries = [...target.entries, ...group.entries]
+  } else {
+    LAYERS.push({ ...group.layer, entries: group.entries })
+  }
+}
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
 
