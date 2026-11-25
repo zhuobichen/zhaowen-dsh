@@ -374,9 +374,30 @@ const SKILL_DIR = {
   "s-extractor": "article-extractor",
   "s-hf-publish": "huggingface-paper-publisher"
 }
+// 上游仓库（联网逐字核对过 SKILL.md 的 name/description 才填；对不上的保持本地，不张冠李戴）：
+// - K-Dense Scientific Agent Skills：statistical-analysis / uncertainty-and-units 的 description
+//   与仓库逐字一致，scientific-critical-thinking 出自同作者的 claude-scientific-writer。
+// - microsoft/ResearchStudio：scoop-check / paper_search 的 SKILL.md 精确路径。
+// - cookjohn/cnki-skills：CNKI 系列（search/advanced/download/export/journal 等）成套来源。
+const KDENSE = 'https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/'
 const CLOUD_URL = {
   "s-tavily": "https://tavily.com",
-  "s-web-access": "https://github.com/eze-is/web-access"
+  "s-web-access": "https://github.com/eze-is/web-access",
+  "m-stats": KDENSE + 'statistical-analysis',
+  "m-units": KDENSE + 'uncertainty-and-units',
+  "m-critical": 'https://github.com/K-Dense-AI/claude-scientific-writer/tree/main/skills/scientific-critical-thinking',
+  "i-scoop": 'https://github.com/microsoft/ResearchStudio/tree/main/ResearchStudio-Idea/skills/scoop_check',
+  "i-paper-search": 'https://github.com/microsoft/ResearchStudio/tree/main/ResearchStudio-Idea/skills/paper_search',
+  "c-search": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-search',
+  "c-advanced": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-advanced-search',
+  "c-download": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-download',
+  "c-export": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-export',
+  "c-detail": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-paper-detail',
+  "c-journal-search": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-journal-search',
+  "c-journal-index": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-journal-index',
+  "c-journal-toc": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-journal-toc',
+  "c-nav": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-navigate-pages',
+  "c-parse": 'https://github.com/cookjohn/cnki-skills/tree/master/skills/cnki-parse-results',
 }
 const PLUGIN_DIR = {
   "mcp-zotero": "dsh-zotero-mcp",
