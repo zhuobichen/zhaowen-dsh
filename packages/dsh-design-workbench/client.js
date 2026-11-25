@@ -707,6 +707,15 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
     const PREVIEW_FRAME_BIG = { width: '100%', height: 300, border: '0', display: 'block', background: 'transparent' }
 
     // ── 面板 ──────────────────────────────────────────────────────────
+    // 文案集中（改内容不碰组件）
+    const COPY = {
+      kicker: 'SCRAPBOOK // DESIGN LIBRARY',
+      title: '剪贴设计库',
+      line: '旧杂志剪下来重新拼：毛边、纸纹、错位、轻微抖动',
+      foot: '点卡片看细节 · 复制引用粘给 AI · AI 用 design_style 读写、design_scan 扫目录',
+      empty: '这一页没剪到东西，换个关键词再来。',
+    }
+
     function apply(ctx) {
       const el = react.createElement
       const useState = react.useState
@@ -797,6 +806,42 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-bullets{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.6;}',
             '.dw-bullets li:before{content:"· ";color:var(--dsw-alias-label-tertiary);}',
                         '.dw-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9600;padding:6px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);}',
+
+            // ── 拼贴剪贴皮肤（cm-collage-cutout）────────────────────────
+            '.dw-wrap{background:#efe9db;background-image:radial-gradient(rgba(60,50,40,.07) 1px,transparent 1px);background-size:4px 4px;color:#2b2620;}',
+            '.cg-hero{position:relative;margin:2px 0 4px;padding:14px 16px;min-height:120px;background:#f7f2e6;background-image:repeating-linear-gradient(0deg,transparent 0 18px,rgba(80,70,55,.05) 18px 19px),radial-gradient(rgba(60,50,40,.10) 1px,transparent 1px);background-size:auto,5px 5px;border:1px solid #d8cfbc;box-shadow:3px 5px 0 rgba(60,50,40,.10);transform:rotate(-.4deg);}',
+            '.cg-hero-tape{position:absolute;top:-9px;left:50%;width:104px;height:20px;background:rgba(228,214,178,.75);border:1px dashed rgba(120,105,80,.35);transform:translateX(-50%) rotate(-2deg);box-shadow:1px 2px 3px rgba(0,0,0,.06);}',
+            '.cg-hero-paper{position:relative;z-index:1;max-width:820px;}',
+            '.cg-kicker{font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.24em;color:#8a5a3c;}',
+            '.cg-title{font-size:30px;font-weight:900;line-height:1.1;margin:4px 0 6px;color:#1f1b16;letter-spacing:-.03em;text-shadow:2px 2px 0 rgba(190,70,50,.18);}',
+            '.cg-subtitle{font-size:12px;color:#5b5244;line-height:1.5;}',
+            '.cg-clippings{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}',
+            '.cg-clipping{display:flex;align-items:center;gap:7px;padding:3px 9px;background:#fffdf7;border:2px solid #fffdf7;outline:1px solid #c9bda6;box-shadow:2px 3px 0 rgba(60,50,40,.14);font-size:11px;color:#3a342a;transform:rotate(-1.2deg);animation:cgNudge 3.2s steps(2) infinite alternate;}',
+            '.cg-clipping:nth-child(even){transform:rotate(1.4deg);animation-delay:.5s;}',
+            '.cg-clipping b{font-family:ui-monospace,Consolas,monospace;color:#b1462f;}',
+            '.cg-hero-note{position:absolute;right:14px;bottom:12px;font-size:10px;color:#8a7d68;font-family:ui-monospace,Consolas,monospace;transform:rotate(2deg);}',
+            // 卡片 = 一张剪报：毛边（锯齿 clip-path）+ 白描边 + 纸阴影 + 轻微独立抖动
+            '.cg-card{border:0;background:#fffdf7;outline:1px solid #cfc4ae;box-shadow:2px 4px 0 rgba(60,50,40,.10);border-radius:0;transform:rotate(-.5deg);clip-path:polygon(0 2%,3% 0,12% 1.5%,22% 0,34% 1.8%,46% 0,58% 1.2%,70% 0,82% 1.6%,94% 0,100% 2%,99% 20%,100% 45%,99% 70%,100% 98%,94% 100%,80% 98.5%,66% 100%,50% 98.6%,34% 100%,18% 98.5%,6% 100%,0 98%,1% 72%,0 46%,1% 24%);transition:transform .18s ease,box-shadow .18s ease;}',
+            '.cg-card:nth-child(3n+2){transform:rotate(.7deg);}',
+            '.cg-card:nth-child(3n+3){transform:rotate(-1deg);}',
+            '.cg-card:hover{transform:rotate(0) translateY(-3px);box-shadow:4px 7px 0 rgba(60,50,40,.16);}',
+            '.cg-card .dw-stripe{clip-path:polygon(0 0,100% 0,100% 70%,96% 100%,88% 72%,78% 100%,68% 70%,56% 100%,44% 72%,32% 100%,20% 70%,10% 100%,0 72%);}',
+            '.cg-card .dw-card-name{color:#241f19;}',
+            '.cg-card .dw-card-line{color:#5b5244;}',
+            '.cg-card .dw-tag{border-color:#c9bda6;color:#7a6a54;background:#faf6ec;}',
+            '.cg-card .dw-origin-ref{color:#9a3412;background:#f7e6d8;border-color:#d8a98c;}',
+            '.cg-card .dw-origin-mine{color:#0f766e;background:#dcefeb;border-color:#9cc9bd;}',
+            // 抽帧式轻微抖动（12fps 感），各卡片错开
+            '@keyframes cgNudge{from{translate:0 0}to{translate:1px -1px}}',
+            '.dw-wrap [data-reveal]{animation:cgRise .5s ease-out both;}',
+            '.dw-wrap [data-reveal]:nth-child(3n+2){animation-delay:.08s;}',
+            '.dw-wrap [data-reveal]:nth-child(3n+3){animation-delay:.16s;}',
+            '@keyframes cgRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}',
+            // 弹层也做成一张摊开的剪报
+            '.dw-modal-card{background:#f7f2e6;border:2px solid #fffdf7;outline:1px solid #cfc4ae;box-shadow:5px 8px 0 rgba(60,50,40,.18);border-radius:0;color:#2b2620;}',
+            '.dw-modal .dw-close{border-color:#c9bda6;color:#5b5244;}',
+            '.dw-modal .dw-pre{background:#efe9db;color:#2b2620;border:1px dashed #c9bda6;}',
+
           ].join('\n')
           document.head.appendChild(tag)
         } catch {
@@ -928,6 +973,29 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       }
 
 
+      /** 杂志封面式首屏：报纸底 + 剪报标题 + 胶带 + 半调网点（纯 CSS/SVG，不引外链图） */
+      function CollageHero(props) {
+        const counts = props.counts || []
+        const total = props.total || 0
+        return el('div', { className: 'cg-hero' },
+          el('div', { className: 'cg-hero-tape' }),
+          el('div', { className: 'cg-hero-paper' },
+            el('div', { className: 'cg-kicker' }, COPY.kicker),
+            el('div', { className: 'cg-title' }, COPY.title),
+            el('div', { className: 'cg-subtitle' }, COPY.line),
+            el('div', { className: 'cg-clippings' },
+              counts.map(function (c, i) {
+                return el('div', { className: 'cg-clipping', key: c.id, style: { animationDelay: (i * 140) + 'ms' } },
+                  el('span', null, c.name),
+                  el('b', null, String(c.count)),
+                )
+              }),
+            ),
+          ),
+          el('div', { className: 'cg-hero-note' }, String(total) + ' 张剪报'),
+        )
+      }
+
       function Panel() {
         useStyleOnce()
         const [state, setState] = useState(null)
@@ -1056,6 +1124,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         }
 
         return el('div', { className: 'dw-wrap' },
+          el(CollageHero, { counts: counts, total: state ? state.total : 0 }),
           el('div', { className: 'dw-head' },
             el('div', { className: 'dw-title' }, TAB_LABEL),
             counts.map(function (c) {
@@ -1117,7 +1186,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               onClick: function () { setShowTrash(!showTrash) },
               title: '没有封面的条目：方法、合集、本机项目——平时不显示',
             }, '🗑 垃圾箱 ' + trashCount) : null,
-            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 design_style 读、design_scan 把新目录扫进来'),
+            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, COPY.foot),
           ),
 
           el('div', { className: 'dw-grid' },
@@ -1126,7 +1195,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               return el('button', {
                 key: e.id,
                 type: 'button',
-                className: 'dw-card',
+                className: 'dw-card cg-card',
+                'data-reveal': '1',
                 onClick: function () { setOpenId(e.id) },
               },
                 el('div', { className: 'dw-cover' },
@@ -1148,7 +1218,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             }),
           ),
 
-          shown.length === 0 ? el('div', { className: 'dw-muted' }, '这一层里没有匹配的条目，换个关键词或点「全部」。') : null,
+          shown.length === 0 ? el('div', { className: 'dw-muted' }, COPY.empty) : null,
 
           open ? el('div', {
             className: 'dw-modal',
