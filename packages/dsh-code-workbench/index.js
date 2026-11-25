@@ -133,11 +133,11 @@ export function apply(ctx) {
         '代码工作台的数据通道：**用户本机的代码资料库，分四类（软件开发 / 网页开发 / 数据分析 / CLI）**。\n' +
         '工作台面板是给人看的；这是给 AI 读同一份数据的入口。\n' +
         'op=list 四类全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一类（dev | web | data | cli）；' +
-        'op=get {id} 取完整规格（颜色/圆角/投影/CSS/要点/怎么用，几百字）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
-        '用户说「用工作台里那个水墨的」「按那个紧凑仪表盘做」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
+        'op=get {id} 取完整规格（要点/做法/原始材料）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
+        '用户说「按 TDD 来」「用那套 CLI 约定」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
       parameters: {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
-        id: { type: 'string', description: '条目 id（get）、层 id（layer：arch|practice|style|skill|tool）、或关键词（search）' },
+        id: { type: 'string', description: '条目 id（get）、层 id（layer：dev|web|data|cli）、或关键词（search）' },
         nature: { type: 'string', description: '可选过滤：all（默认，全部）/ style / method / reference；代码库一般不用传' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
       },
