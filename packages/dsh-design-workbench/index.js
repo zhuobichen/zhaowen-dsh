@@ -28,6 +28,27 @@ function dshHome() {
   return process.env.DSH_HOME && process.env.DSH_HOME.trim() !== '' ? process.env.DSH_HOME : join(homedir(), '.dsh')
 }
 
+/** 封面路由用的两个小工具（之前 cover 路由调用了却没定义，导致每次请求 ReferenceError → HTTP 400 裂图）。 */
+function isFile(file) {
+  if (typeof file !== 'string' || file === '') return false
+  try {
+    return existsSync(file) && statSync(file).isFile()
+  } catch {
+    return false
+  }
+}
+
+/** 给定云端 URL，返回它已下载好的本地缓存路径（没有就 null）。 */
+function cachedCover(url) {
+  if (typeof url !== 'string' || url === '') return null
+  try {
+    const candidate = coverPath(coversDir(NAME), url)
+    return isFile(candidate) ? candidate : null
+  } catch {
+    return null
+  }
+}
+
 const MEDIA = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
