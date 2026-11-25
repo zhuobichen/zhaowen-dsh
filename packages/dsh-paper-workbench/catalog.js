@@ -9,7 +9,11 @@
  *   kind    —— text（工具/方法，无封面）
  *   origin  —— mine（本机自建）/ referenced（社区或内置）
  */
-const BUILTIN = '内置 skill（~/.dsh 技能目录）'
+import { homedir } from 'node:os'
+
+// 注意：扫描本机后确认这些 skill 全部在 ~/.agents/skills（不在 ~/.dsh/skills），
+// 所以来源统一写「本机 skill（~/.agents/skills）」，不再误称「内置 skill（~/.dsh 技能目录）」。
+const BUILTIN = '本机 skill（~/.agents/skills）'
 const LOCAL = '本机自建（~/.agents/skills）'
 
 /* ══════ 一、写作与润色 ══════ */
@@ -333,10 +337,12 @@ export const LAYERS = [
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
 
 /* ══════ 原始材料 / 本地副本映射（对齐设计工作台的 sources 字段）══════
- * 每条 skill：本地副本 = ~/.agents/skills/<name>/SKILL.md（真实存在）。
+ * 每条 skill：本地副本 = 真实绝对路径 C:\Users\<user>\.agents\skills\<name>\SKILL.md
+ * （不写 ~ 缩写——设计工作台的本地副本给的是能直接打开的绝对路径，这里对齐；
+ *  用 os.homedir() 运行时展开，换机器/user 也对）。
  * 原始材料：只有确有可靠公开 URL 的才给（tavily / web-access），
  * 其余是本机自建或来源不明，不编造 URL——原始材料退回 skill 名说明。
- * MCP 条目：本地副本 = 本机插件目录。
+ * MCP 条目：本地副本 = 本机插件目录（绝对路径）。
  * ════════════════════════════════════════════════════════════════════ */
 const SKILL_DIR = {
   "w-anti-defensive": "anti-defensive-writing",
@@ -376,16 +382,17 @@ const PLUGIN_DIR = {
   "mcp-zotero": "dsh-zotero-mcp",
   "mcp-docs": "dsh-tencent-mcp"
 }
-const SKILLS_HOME = '~/.agents/skills'
-const PLUGINS_HOME = 'E:/CodeProject/zhaowen-dsh/packages'
+// 运行时展开本机用户目录 → 真实绝对路径（不写 ~ 缩写），换机器也对。
+const SKILLS_HOME = homedir() + '\\' + '.agents\\skills'
+const PLUGINS_HOME = 'E:\\CodeProject\\zhaowen-dsh\\packages'
 
 for (const e of ALL_ENTRIES) {
   const sources = []
   if (CLOUD_URL[e.id] !== undefined) sources.push({ label: '官方站点', url: CLOUD_URL[e.id] })
   if (SKILL_DIR[e.id] !== undefined) {
-    sources.push({ label: 'SKILL.md', path: SKILLS_HOME + '/' + SKILL_DIR[e.id] + '/SKILL.md' })
+    sources.push({ label: 'SKILL.md', path: SKILLS_HOME + '\\' + SKILL_DIR[e.id] + '\\SKILL.md' })
   } else if (PLUGIN_DIR[e.id] !== undefined) {
-    sources.push({ label: '插件目录', path: PLUGINS_HOME + '/' + PLUGIN_DIR[e.id] })
+    sources.push({ label: '插件目录', path: PLUGINS_HOME + '\\' + PLUGIN_DIR[e.id] })
   }
   if (sources.length > 0) e.sources = sources
 }
