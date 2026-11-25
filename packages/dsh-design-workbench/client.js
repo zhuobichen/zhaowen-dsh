@@ -841,6 +841,17 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-modal-card{background:#f7f2e6;border:2px solid #fffdf7;outline:1px solid #cfc4ae;box-shadow:5px 8px 0 rgba(60,50,40,.18);border-radius:0;color:#2b2620;}',
             '.dw-modal .dw-close{border-color:#c9bda6;color:#5b5244;}',
             '.dw-modal .dw-pre{background:#efe9db;color:#2b2620;border:1px dashed #c9bda6;}',
+            // 控件文字加深：报纸底上宿主的「次要文字色」太淡，层标签/芯片看不清
+            '.dw-layer,.dw-chip{color:#33301f;border-color:#a89b84;background:#f7f2e6;}',
+            '.dw-layer:hover,.dw-chip:hover{background:#ebe4d2;color:#1f1b16;}',
+            '.dw-layer-on,.dw-chip-on{color:#fffdf7;background:#8a3a28;border-color:#8a3a28;}',
+            '.dw-layer-on .dw-layer-n{color:#f4d9c8;}',
+            '.dw-muted,.dw-card-line,.dw-card-name{color:#33301f;}',
+            '.dw-title{color:#1f1b16;}',
+            '.dw-search{color:#1f1b16;border-color:#a89b84;background:#f7f2e6;}',
+            '.dw-search::placeholder{color:#6b6354;}',
+            '.dw-btn{color:#1f1b16;border-color:#a89b84;}',
+
 
           ].join('\n')
           document.head.appendChild(tag)
