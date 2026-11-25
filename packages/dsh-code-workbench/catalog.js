@@ -589,6 +589,7 @@ const DEV_EXTRA = [
       '交付的是「能复刻的解释」，不是一堆函数清单',
     ],
     howto: '遇到 Electron/打包产物/固件/线上混淆代码，先走这条；源码在手的普通分析别用。',
+    origin: 'referenced',
     sources: [{ label: 'skill 说明', path: 'C:/Users/Administrator/.dsh/skills' }, { label: 'rea-video', path: 'D:/github_project/ZhaoWen_GitHub维护/rea-video' }],
   },
   {
@@ -606,6 +607,7 @@ const DEV_EXTRA = [
       '一条结论配一条证据 id，别把推断写成事实',
     ],
     howto: '分析 Windows PE/驱动、找 license 校验、比对两个版本行为差异时用。',
+    origin: 'referenced',
     sources: [{ label: 'skill: ig5-triage', path: 'C:/Users/Administrator/.dsh/skills' }],
   },
   {
@@ -622,6 +624,7 @@ const DEV_EXTRA = [
       '验收用固定机位对照图，不靠「看起来差不多」',
     ],
     howto: '要出 3D 资产/道具/场景时用；只在需要「看得见形状」的活上花时间。',
+    origin: 'referenced',
     sources: [{ label: 'skill 目录', path: 'C:/Users/Administrator/.dsh/skills' }],
   },
   {
@@ -639,6 +642,7 @@ const DEV_EXTRA = [
       'fork 用于「接着我这段上下文干」，subagent 用于「另起一个干净的活」',
     ],
     howto: '活干到一半发现要读十几个文件、或要同时试三种方案时，再考虑拆。',
+    origin: 'mine',
     sources: [{ label: 'skill: agent-dispatch', path: 'C:/Users/Administrator/.dsh/skills' }],
   },
   {
@@ -655,6 +659,7 @@ const DEV_EXTRA = [
       '会话迁移读 JSONL 时保留 tool 调用，否则还原出来是一堆「孤儿」文本',
     ],
     howto: '换工具/换机器要带走对话，或想让 Kimi 用 DeepSeek 的 key 时用。',
+    origin: 'referenced',
     sources: [{ label: 'skill: zcode-kimi-integration', path: 'C:/Users/Administrator/.dsh/skills' }],
   },
   {
@@ -672,6 +677,7 @@ const DEV_EXTRA = [
       '改了 client.js 让用户刷新；改了 index.js 用 plugin_manager 禁用再启用，不用重启',
     ],
     howto: '要给 DSH 加面板/工具/MCP 时先读这个，能省掉两小时「为什么 tab 不出现」。',
+    origin: 'referenced',
     sources: [{ label: 'skill: dsh-doc', path: 'C:/Users/Administrator/.dsh/skills' }, { label: '仓库', path: 'D:/github_project/ZhaoWen_GitHub维护/zhaowen-dsh' }],
   },
   {
@@ -689,6 +695,7 @@ const DEV_EXTRA = [
       '冲突只在本地解决，不要在远端 force push 覆盖别人的提交',
     ],
     howto: '多人/多会话同时改一个仓库时按这个来；单机小项目可以简化。',
+    origin: 'mine',
     sources: [{ label: 'git 文档', url: 'https://git-scm.com/docs' }],
   },
   {
@@ -706,6 +713,7 @@ const DEV_EXTRA = [
       '修完补一条能拦住它的测试，否则下周还会回来',
     ],
     howto: '「本地好好的线上坏」「偶发」「改了一行全崩」这三类问题先用这套。',
+    origin: 'mine',
     sources: [{ label: 'debugging 笔记', url: 'https://jvns.ca/categories/debugging/' }],
   },
 ]
@@ -726,6 +734,7 @@ const WEB = [
       '构建产物用 rollup manualChunks 拆 vendor，首屏别超过 200KB gz',
     ],
     howto: '新开一个后台/工具类 Web 应用时用这套起步。',
+    origin: 'referenced',
     sources: [{ label: 'Vite', url: 'https://vite.dev/guide/' }],
   },
   {
@@ -742,6 +751,7 @@ const WEB = [
       '缓存三件套：revalidate / cache / dynamic，写清楚哪个页面是动态的',
     ],
     howto: '要做 SEO 友好的站或需要服务端渲染首屏时用；纯内部面板用 Vite 更轻。',
+    origin: 'referenced',
     sources: [{ label: 'Next.js 文档', url: 'https://nextjs.org/docs' }],
   },
   {
@@ -758,6 +768,7 @@ const WEB = [
       '幂等接口带 Idempotency-Key；写操作返回资源本身而不是 "success"',
     ],
     howto: '自己前后端一起写时尤其要这么干，能省掉一半联调时间。',
+    origin: 'mine',
     sources: [{ label: 'HTTP 语义', url: 'https://developer.mozilla.org/docs/Web/HTTP' }],
   },
   {
@@ -774,6 +785,7 @@ const WEB = [
       '权限检查写在服务端每个端点入口，前端隐藏只是体验',
     ],
     howto: '任何带登录的站/后台，先把这三条过一遍再谈功能。',
+    origin: 'referenced',
     sources: [{ label: 'OWASP', url: 'https://cheatsheetseries.owasp.org/' }],
   },
   {
@@ -790,6 +802,7 @@ const WEB = [
       '涉及「发布/发送/支付」的动作先让用户确认，别自动点',
     ],
     howto: '要验证线上页面行为、抓登录后数据、走一遍流程时用。',
+    origin: 'referenced',
     sources: [{ label: 'bsk', url: 'https://github.com/zhuobichen' }],
   },
   {
@@ -807,6 +820,7 @@ const WEB = [
       '只测关键路径：登录、下单、保存；细节交给单测',
     ],
     howto: '上线前想睡得着，就手上有 3–5 条核心路径的 E2E。',
+    origin: 'referenced',
     sources: [{ label: 'Playwright', url: 'https://playwright.dev/docs/best-practices' }],
   },
   {
@@ -823,6 +837,7 @@ const WEB = [
       'CLS 就是没写宽高：img/video/iframe 都加 aspect-ratio',
     ],
     howto: '页面「感觉慢」时先用 Lighthouse 定位到具体指标，再改对应那一项。',
+    origin: 'mine',
     sources: [{ label: 'web.dev', url: 'https://web.dev/vitals/' }],
   },
   {
@@ -839,6 +854,7 @@ const WEB = [
       'R2 走 S3 兼容 API，签名上传比 Worker 转发省流量',
     ],
     howto: '要「一个域名 + 一个数据库 + 无服务器」的轻量站时首选。',
+    origin: 'referenced',
     sources: [{ label: 'Workers 文档', url: 'https://developers.cloudflare.com/workers/' }],
   },
   {
@@ -855,6 +871,7 @@ const WEB = [
       '日志按天切 + 保留 7 天，出问题第一件事是看 502/504 的时间分布',
     ],
     howto: '把本机服务暴露到域名时用；内部局域网直接用 IP 就行。',
+    origin: 'referenced',
     sources: [{ label: 'Caddy', url: 'https://caddyserver.com/docs/' }],
   },
 ]
@@ -876,6 +893,7 @@ const DATA = [
       '内存不够先 downcast（float64→float32、category），别急着上集群',
     ],
     howto: '拿到一份新数据先问：多大、要反复查还是一把算、要不要和 SQL 对齐。',
+    origin: 'mine',
     sources: [{ label: 'polars', url: 'https://docs.pola.rs/' }, { label: 'DuckDB', url: 'https://duckdb.org/docs/' }],
   },
   {
@@ -892,6 +910,7 @@ const DATA = [
       '先 EXPLAIN 再优化：全表扫 + 排序通常就是没建索引',
     ],
     howto: '数据在文件里、要反复问不同问题时，先建个本地库比每次写脚本快。',
+    origin: 'mine',
     sources: [{ label: 'SQLite', url: 'https://sqlite.org/docs.html' }],
   },
   {
@@ -908,6 +927,7 @@ const DATA = [
       '多 sheet 时首页放目录与口径说明，别让人猜',
     ],
     howto: '要交报表/台账/测算表时用；纯数据交换用 csv 更安全。',
+    origin: 'referenced',
     sources: [{ label: 'skill: office-xlsx', path: 'C:/Users/Administrator/.dsh/skills' }],
   },
   {
@@ -925,6 +945,7 @@ const DATA = [
       '一张图只讲一个结论，子图是论据',
     ],
     howto: '写论文/报告配图时按这套；内部看趋势用默认样式就行。',
+    origin: 'mine',
     sources: [{ label: 'nature-figure', path: 'D:/github_project/ZhaoWen_GitHub维护/zhaowen-skill/nature-figure' }],
   },
   {
@@ -941,6 +962,7 @@ const DATA = [
       '每次实验落一份 config + 指标 jsonl，别靠记忆复现',
     ],
     howto: '做空气质量/遥感融合类研究时，直接复用这套数据结构与验证口径。',
+    origin: 'referenced',
     sources: [{ label: 'PM25 平台', path: 'D:/github_project/ZhaoWen_GitHub维护/github-repositories/PM25-Fusion-AutoResearch' }],
   },
   {
@@ -957,6 +979,7 @@ const DATA = [
       '统计口径写在报告开头（时间范围、去重规则、机器人消息是否计入）',
     ],
     howto: '要分析自己的聊天/群/朋友圈时用；别拿别人的私聊当公开数据。',
+    origin: 'referenced',
     sources: [{ label: 'WeChatDataAnalysis', path: 'D:/github_project/ZhaoWen_GitHub维护/github-repositories/WeChatDataAnalysis' }],
   },
   {
@@ -973,6 +996,7 @@ const DATA = [
       '大表用 batch 接口 + 分段，单次太多会被限流',
     ],
     howto: '产出要交付给同事看时，直接写进在线文档比发本地文件省事。',
+    origin: 'referenced',
     sources: [{ label: 'MCP 工具', path: 'C:/Users/Administrator/.dsh' }],
   },
   {
@@ -989,6 +1013,7 @@ const DATA = [
       '原始数据只读、加工产物带 manifest（输入哈希 + 脚本 + 时间）',
     ],
     howto: '凡是「结论要给别人复核」的分析，都按这套落盘。',
+    origin: 'mine',
     sources: [{ label: 'Cookiecutter DS', url: 'https://drivendata.github.io/cookiecutter-data-science/' }],
   },
 ]
@@ -1010,6 +1035,7 @@ const CLI = [
       '可版本化：命令写进脚本/Makefile，团队能复现',
     ],
     howto: '做任何「要让 AI 反复操作」的工具时，先做 CLI，再考虑 GUI。',
+    origin: 'mine',
     sources: [{ label: '参考', url: 'https://clig.dev/' }],
   },
   {
@@ -1026,6 +1052,7 @@ const CLI = [
       '错误也给 JSON：{ ok:false, code, error }，方便调用方判断',
     ],
     howto: '写任何要被别的程序/Agent 调用的命令时，先把 --json 定下来。',
+    origin: 'mine',
     sources: [{ label: 'clig.dev', url: 'https://clig.dev/' }],
   },
   {
@@ -1042,6 +1069,7 @@ const CLI = [
       '把常用命令记进脚本或 notes，别每次重新探索',
     ],
     howto: '第一次用一个 CLI（包括我自己写的）都先跑一遍 --help。',
+    origin: 'mine',
     sources: [{ label: 'clig.dev', url: 'https://clig.dev/' }],
   },
   {
@@ -1058,6 +1086,7 @@ const CLI = [
       'Ctrl+C 要返回 130 且清理临时文件（trap EXIT）',
     ],
     howto: '写会被脚本/Agent 调用的命令时，退出码就是你的 API。',
+    origin: 'mine',
     sources: [{ label: 'sysexits', url: 'https://man.freebsd.org/cgi/man.cgi?query=sysexits' }],
   },
   {
@@ -1074,6 +1103,7 @@ const CLI = [
       '删除/移动之前打印解析后的绝对路径，别对计算出来的路径直接 rm',
     ],
     howto: '凡是改动文件/远端状态的命令，都要有 dry-run 与幂等语义。',
+    origin: 'mine',
     sources: [{ label: 'clig.dev', url: 'https://clig.dev/' }],
   },
   {
@@ -1090,6 +1120,7 @@ const CLI = [
       '长任务要有「取消」入口，并且取消要能杀掉子进程树',
     ],
     howto: '渲染、爬取、训练、批量转换这类活，一律按后台作业写。',
+    origin: 'mine',
     sources: [{ label: '本机 jobs 工具', path: 'C:/Users/Administrator/.dsh' }],
   },
   {
@@ -1106,6 +1137,7 @@ const CLI = [
       '频道的 message id 不可复用，撤回要用原 id',
     ],
     howto: '要在 QQ 频道里自动化推送/收集消息时用。',
+    origin: 'referenced',
     sources: [{ label: 'qchat-cli', path: 'D:/github_project/ZhaoWen_GitHub维护/github-repositories/qchat-cli' }],
   },
   {
@@ -1122,6 +1154,7 @@ const CLI = [
       '同步有延迟：写完立刻读可能读不到，等一次同步或重试',
     ],
     howto: '要把分析/日志沉淀到笔记里，或把笔记读出来喂给 AI 时用。',
+    origin: 'referenced',
     sources: [{ label: 'winnote-cli', path: 'D:/github_project/ZhaoWen_GitHub维护/github-repositories/winnote-cli' }],
   },
   {
@@ -1138,6 +1171,7 @@ const CLI = [
       '1 分钟片子几分钟跑完；更长的走后台作业，别占终端',
     ],
     howto: '要复刻一条参考片、或判断「这镜头是不是 AI」时用。',
+    origin: 'referenced',
     sources: [{ label: 'rea-video', path: 'D:/github_project/ZhaoWen_GitHub维护/rea-video' }],
   },
   {
@@ -1154,6 +1188,7 @@ const CLI = [
       '涉及云端判断的工具（search_chats 等）默认只给预览，确认才外发',
     ],
     howto: '要翻自己的聊天记录、做日报/知识库时用。',
+    origin: 'referenced',
     sources: [{ label: 'weflow-cli', path: 'D:/github_project/ZhaoWen_GitHub维护/weflow-cli' }],
   },
   {
@@ -1170,6 +1205,7 @@ const CLI = [
       '附件下载到固定目录，别散落在临时文件里',
     ],
     howto: '要批量处理邮件/自动回复/下载附件时用。',
+    origin: 'referenced',
     sources: [{ label: 'skill: agently-mail', path: 'C:/Users/Administrator/.dsh/skills' }],
   },
   {
@@ -1186,6 +1222,7 @@ const CLI = [
       '本机经验：MCP 控制在 10 个以内；长尾能力做成 CLI，让 Agent 按需 --help',
     ],
     howto: '新接一个外部系统时先想：它的能力是「少数几个固定动作」还是「一堆可组合子命令」。',
+    origin: 'mine',
     sources: [{ label: 'MCP 规范', url: 'https://modelcontextprotocol.io/' }],
   },
   {
@@ -1202,6 +1239,7 @@ const CLI = [
       '重启宿主会杀掉正在跑的会话——需要长活时用后台作业或远程执行',
     ],
     howto: '调 DSH 自身行为（端口/模型/插件/预设）时，先看 dsh --help 再查文档。',
+    origin: 'referenced',
     sources: [{ label: 'DSH 仓库', path: 'D:/github_project/ZhaoWen_GitHub维护/dsh/toolchain' }],
   },
 ]
