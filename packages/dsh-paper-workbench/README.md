@@ -16,16 +16,23 @@
 
 共 31 条，标注「自建 / 内置 / 社区」出处，只作参照。
 
-## 工具
+## 工具（AI 接口）
+
+和设计/代码工作台一样，paper_style 是**双向**的：AI 能读同一份数据，也能改（改动落 `~/.dsh/plugins/dsh-paper-workbench/extra.json` 覆盖层，不动 catalog.js）。
 
 ```
-paper_style op=list                         七层全列
-paper_style op=layer {id}                   只看一层
-paper_style op=get {id}                     完整规格（要点 / 出处 / 怎么用）
-paper_style op=search {关键词}              按名称 / 标签 / 出处搜
+读：  paper_style op=list / layer {id} / get {id} / search {关键词}
+写：  paper_style op=add / update / remove / pin / unpin / hide / unhide {id,...}
+运维：paper_style op=stats / reorder / import / export
 ```
 
-引用是索引式的，**格式与设计工作台逐行同构**（首行「用X工作台里的『名』（层 · id），按这个设计来」→ 原始材料（URL）→ 本地副本（真实路径）→ 要看完整规格）；四个 op 的返回元数据字段也与它们同构（count / nature / layers / entries / ref / spec / members）。
+- 层 id：write | idea | lit | figure | review
+- add：至少给 `layer + name + oneLine`；可带 source / tags / bullets / howto / sources / origin
+- update：给 id + 要改的字段；remove 对内置条目=隐藏（unhide 可恢复）
+- reorder：`{layer, ids:[...]}` 或 `{id, to: top|bottom|up|down|before:<id>|after:<id>}`
+- import/export：`{entries, overrides}` 包，或 `path=<json>`；export 可带走全部改动
+
+引用是索引式的，**格式与设计工作台逐行同构**（首行「用X工作台里的『名』（层 · id），按这个设计来」→ 原始材料（URL）→ 本地副本（真实路径）→ 要看完整规格）；返回元数据也同构（count / nature / layers / entries / ref / spec / members）。
 
 ```
 用论文工作台里的「Tavily 网络检索」（检索与发布 · s-tavily），按这个设计来。
