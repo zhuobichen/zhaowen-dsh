@@ -2532,7 +2532,7 @@ for (const e of MOTION_ENTRIES) e.origin = 'referenced'
 
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', filters: ['App 风格', '桌面', 'Android', '动效', '产品设计'], entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
-  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库、个人主页', filters: ['架构图', 'AI 生图', '个人主页', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES, ...PERSONAL_HOME] },
+  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库、个人主页', filters: ['架构图', '个人主页', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES, ...PERSONAL_HOME] },
   { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', filters: ['动效风格'], entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
   { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', filters: ['风格', '引擎', '开源', '零素材', '解释性'], entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
   { id: 'comic', name: '漫画', hint: '动漫 / 漫画 / 动画的视觉语言：赛璐璐、木版画、网点、像素', filters: ['日系', '美式', '东方', '绘本', '漫画', '像素', '复古', '游戏'], entries: COMIC_ENTRIES },
