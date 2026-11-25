@@ -116,8 +116,16 @@ function mergedLayers(opts = {}) {
       .map((e) => ({ ...e, added: true }))
     let list = [...builtin, ...added].map(withNature)
     if (!includeHidden) list = list.filter((e) => e.hidden !== true)
-    // 置顶的排前面（稳定排序，其余保持原顺序）
-    list.sort((a, b) => Number(b.pinned === true) - Number(a.pinned === true))
+    // 排序：置顶 → 显式 order → 原顺序（Array.sort 稳定，未设 order 的不会被搅乱）
+    const orderOf = (e) => {
+      const ov = overlay.overrides[e.id]
+      return ov && typeof ov.order === 'number' && Number.isFinite(ov.order) ? ov.order : Number.POSITIVE_INFINITY
+    }
+    list.sort((a, b) => {
+      const pin = Number(b.pinned === true) - Number(a.pinned === true)
+      if (pin !== 0) return pin
+      return orderOf(a) - orderOf(b)
+    })
     return {
       ...l,
       entries: list.map((e) => ({ ...e, prompt: refOf(e), spec: specOf(e) })),
@@ -227,7 +235,7 @@ export function apply(ctx) {
         'op=get {id} 取完整规格（颜色/圆角/投影/CSS/要点/怎么用，几百字）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
         '用户说「用工作台里那个水墨的」「按那个紧凑仪表盘做」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
       parameters: {
-        op: { type: 'string', required: true, description: '读：list | layer | get | search；写：add | update | remove | pin | unpin | hide | unhide；运维：stats | export' },
+        op: { type: 'string', required: true, description: '读：list | layer | get | search；写：add | update | remove | pin | unpin | hide | unhide；运维：stats | export | import | reorder' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo|comic|motion）、或关键词（search）' },
         nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
@@ -241,6 +249,11 @@ export function apply(ctx) {
         howto: { type: 'string', description: 'op=add/update：什么时候用它' },
         sources: { type: 'array', description: 'op=add/update：原始材料 [{label,url}|{label,path}]' },
         origin: { type: 'string', description: 'op=add：referenced（别人的）| mine（本机自建）' },
+        ids: { type: 'array', description: 'op=reorder：该层的新顺序（id 数组）', items: { type: 'string' } },
+        to: { type: 'string', description: 'op=reorder 单条移动：top | bottom | up | down | before:<id> | after:<id>' },
+        data: { type: 'object', additionalProperties: true, description: 'op=import：{ entries, overrides } 包；也可用 path 读文件' },
+        path: { type: 'string', description: 'op=import 读文件 / op=export 写文件（绝对路径）' },
+        overwrite: { type: 'boolean', description: 'op=import：已存在的条目是否覆盖（默认跳过）' },
       },
       output: OUTPUT,
       execute: async (args) => {
@@ -456,13 +469,147 @@ export function apply(ctx) {
           }
         }
 
-        if (op === 'export') {
+        if (op === 'reorder') {
+          // 两种用法：
+          //   A) { layer, ids: [a,b,c] }   → 按给定顺序重排该层
+          //   B) { id, to: 'top'|'bottom'|'up'|'down'|'before:<id>'|'after:<id>' }
           const overlay = loadOverlay()
+          const layerId = String(args.layer ?? '').trim()
+          const ids = Array.isArray(args.ids) ? args.ids.map(String) : null
+
+          // 用「已应用 overrides 的合并结果」作为基准，否则会忽略上一次的 order
+          const assign = (targetLayer) => {
+            const layer = mergedLayers().find((l) => l.id === targetLayer)
+            if (!layer) return null
+            return layer.entries.map((e) => e.id)
+          }
+
+          if (ids !== null && layerId !== '') {
+            const current = assign(layerId)
+            if (current === null) return { ok: false, code: 'BAD_LAYER', error: `没有这一层：${layerId}` }
+            const unknown = ids.filter((i) => !current.includes(i))
+            if (unknown.length > 0) return { ok: false, code: 'NOT_IN_LAYER', error: `这些 id 不在 ${layerId}：${unknown.join(', ')}` }
+            // 未列出的排在后面，保持它们原来的相对顺序
+            const rest = current.filter((i) => !ids.includes(i))
+            const finalOrder = [...ids, ...rest]
+            finalOrder.forEach((id, i) => {
+              overlay.overrides[id] = { ...(overlay.overrides[id] ?? {}), order: i }
+            })
+            saveOverlay(overlay)
+            return { ok: true, layer: layerId, order: finalOrder, note: `已重排 ${layerId}（${finalOrder.length} 条）：${finalOrder.slice(0, 5).join(' → ')}…` }
+          }
+
+          const id = String(args.id ?? '').trim()
+          const to = String(args.to ?? '').trim()
+          if (id === '' || to === '') return { ok: false, code: 'MISSING_FIELD', error: 'reorder 需要 {layer,ids} 或 {id,to}' }
+          const entry = findAny(id, { includeHidden: true })
+          if (entry === null) return { ok: false, code: 'NOT_FOUND', error: `没有这条：${id}` }
+          // 条目不一定会带 layer 字段（设计工作台就是靠 LAYERS 分组），兜底用 layerOfAny
+          const ownerLayer = entry.layer ?? (LAYERS.find((l) => l.entries.some((e) => e.id === id))?.id ?? '')
+          const current = assign(ownerLayer)
+          if (current === null) return { ok: false, code: 'BAD_LAYER', error: `这一层的 id 不合法：${ownerLayer || '(未知)'}` }
+          const idx = current.indexOf(id)
+          let next = idx
+          if (to === 'top') next = 0
+          else if (to === 'bottom') next = current.length - 1
+          else if (to === 'up') next = Math.max(0, idx - 1)
+          else if (to === 'down') next = Math.min(current.length - 1, idx + 1)
+          else if (to.startsWith('before:') || to.startsWith('after:')) {
+            const isBefore = to.startsWith('before:')
+            const anchorId = to.slice(to.indexOf(':') + 1)
+            const at = current.indexOf(anchorId)
+            if (at < 0) return { ok: false, code: 'ANCHOR_NOT_FOUND', error: `锚点不在同一层：${anchorId}` }
+            const without = current.filter((i) => i !== id)
+            const at2 = without.indexOf(anchorId)
+            next = isBefore ? at2 : at2 + 1
+            const finalOrder = [...without.slice(0, next), id, ...without.slice(next)]
+            finalOrder.forEach((i, n) => {
+              overlay.overrides[i] = { ...(overlay.overrides[i] ?? {}), order: n }
+            })
+            saveOverlay(overlay)
+            return { ok: true, moved: id, to, order: finalOrder, note: `已把 ${id} 移到 ${to}` }
+          } else {
+            return { ok: false, code: 'BAD_TO', error: "to 只支持 top / bottom / up / down / before:<id> / after:<id>" }
+          }
+          const without = current.filter((i) => i !== id)
+          const finalOrder = [...without.slice(0, next), id, ...without.slice(next)]
+          finalOrder.forEach((i, n) => {
+            overlay.overrides[i] = { ...(overlay.overrides[i] ?? {}), order: n }
+          })
+          saveOverlay(overlay)
+          return { ok: true, moved: id, to, note: `已把 ${id} 移到 ${to}` }
+        }
+
+        if (op === 'import') {
+          // 把 export 出来的包灌回来：{ entries, overrides }
+          // 也可以给 path 直接读文件。
+          let bundle = args.data
+          const path = String(args.path ?? '').trim()
+          if ((bundle === undefined || bundle === null) && path !== '') {
+            if (!existsSync(path)) return { ok: false, code: 'FILE_NOT_FOUND', error: `文件不存在：${path}` }
+            try {
+              bundle = JSON.parse(readFileSync(path, 'utf8'))
+            } catch (e) {
+              return { ok: false, code: 'BAD_JSON', error: String(e && e.message ? e.message : e) }
+            }
+          }
+          if (bundle === null || typeof bundle !== 'object') {
+            return { ok: false, code: 'NO_DATA', error: 'import 需要 data={entries,overrides} 或 path=<json>' }
+          }
+          const overwrite = args.overwrite === true
+          const inEntries = Array.isArray(bundle.entries) ? bundle.entries : []
+          const inOverrides = bundle.overrides && typeof bundle.overrides === 'object' ? bundle.overrides : {}
+          const overlay = loadOverlay()
+          const existing = new Set(overlay.entries.map((e) => e.id))
+          const builtin = new Set(LAYERS.flatMap((l) => l.entries.map((e) => e.id)))
+          let added = 0
+          let skipped = 0
+          for (const e of inEntries) {
+            if (!e || typeof e.id !== 'string' || typeof e.layer !== 'string') { skipped++; continue }
+            if (!validLayer(e.layer)) { skipped++; continue }
+            if (existing.has(e.id) || builtin.has(e.id)) {
+              if (!overwrite) { skipped++; continue }
+              const i = overlay.entries.findIndex((x) => x.id === e.id)
+              if (i >= 0) overlay.entries[i] = e
+              else overlay.overrides[e.id] = { ...(overlay.overrides[e.id] ?? {}), ...e }
+              added++
+              continue
+            }
+            overlay.entries.push(e)
+            existing.add(e.id)
+            added++
+          }
+          let ovApplied = 0
+          for (const [id, ov] of Object.entries(inOverrides)) {
+            if (!ov || typeof ov !== 'object') continue
+            overlay.overrides[id] = overwrite ? ov : { ...ov, ...(overlay.overrides[id] ?? {}) }
+            ovApplied++
+          }
+          saveOverlay(overlay)
           return {
             ok: true,
-            export: { entries: overlay.entries, overrides: overlay.overrides },
-            note: JSON.stringify({ entries: overlay.entries, overrides: overlay.overrides }, null, 2),
+            added,
+            skipped,
+            overrides: ovApplied,
+            total: allEntries().length,
+            note: `导入完成：新增 ${added} 条，跳过 ${skipped} 条（已存在或字段不全），覆盖 ${ovApplied} 条 overrides。工作台现在 ${allEntries().length} 条。`,
           }
+        }
+
+        if (op === 'export') {
+          const overlay = loadOverlay()
+          const bundle = { entries: overlay.entries, overrides: overlay.overrides }
+          const outPath = String(args.path ?? '').trim()
+          if (outPath !== '') {
+            try {
+              mkdirSync(join(outPath, '..'), { recursive: true })
+              writeFileSync(outPath, JSON.stringify(bundle, null, 2), 'utf8')
+              return { ok: true, export: bundle, path: outPath, note: `已导出到 ${outPath}（${bundle.entries.length} 条新增 / ${Object.keys(bundle.overrides).length} 条 overrides）` }
+            } catch (e) {
+              return { ok: false, code: 'WRITE_FAILED', error: String(e && e.message ? e.message : e) }
+            }
+          }
+          return { ok: true, export: bundle, note: JSON.stringify(bundle, null, 2) }
         }
 
         return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 list / layer / get / search / add / update / remove / pin / unpin / hide / unhide / stats / export，收到：${op}`, note: '读：list / layer / get / search；写：add / update / remove / pin / unpin / hide / unhide；运维：stats / export。' }
