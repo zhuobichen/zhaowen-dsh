@@ -11,10 +11,10 @@
  *   ④ 工作流：Study → Build → Check → Ready 四步，每步给一条可复制的指令
  *   ⑤ 快捷索引：从工作台到 AI 的通道（复制一句指令粘给 AI）
  */
+// 注意：下面 load 的 id 必须等于运行时安装包的 name。
+// 本包在仓库里叫 @zhuobichen/dsh-craft-anything；profile 里那份叫 @local/dsh-craft-anything。
+// 往 profile 同步时务必把 id 改成 @local/dsh-craft-anything，否则 tab 静默不注册。
 window.__ModuleLoader__.load({
-  // 注意：id 必须等于运行时安装包的 name。
-  // 本包在仓库里叫 @zhuobichen/dsh-craft-anything；profile 里那份叫 @local/dsh-craft-anything。
-  // 往 profile 同步时务必把这里改成 @local/dsh-craft-anything，否则 tab 静默不注册。
   id: '@zhuobichen/dsh-craft-anything',
   factory(require) {
     const React = require('react')
