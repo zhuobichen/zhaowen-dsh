@@ -335,12 +335,16 @@ export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
 export function findEntry(id) { return ALL_ENTRIES.find((e) => e.id === id) || null }
 export function layerOf(id) { return LAYERS.find((l) => l.entries.some((e) => e.id === id)) || null }
 
-/** 索引式引用：面板复制这一行，AI 需要细节时自己 paper_style op=get。 */
+// 与设计/代码工作台同一位置收尾（引用模板结构一致）；措辞按论文工具库场景调整。
+const ASK = '按上面这套来就行；要换个工具或调做法先问我。'
+
+/** 索引式引用：面板复制这一行，AI 需要细节时自己 paper_style op=get。
+ *  与设计工作台同构：用X工作台「名」（层 · id）→ 原始材料 → 要看完整规格。 */
 export function refOf(entry) {
   const layer = layerOf(entry.id)
   const lines = [
-    `用论文工作台里的「${entry.name}」（${layer ? layer.name : '论文工具'} · ${entry.id}），按这个来。`,
-    `出处：${entry.source}`,
+    `用论文工作台里的「${entry.name}」（${layer === null ? '论文工具' : layer.name} · ${entry.id}），按这个设计来。`,
+    `原始材料：${entry.source}`,
     `要看完整规格：paper_style op=get ${entry.id}`,
   ]
   return lines.join('\n')
@@ -348,17 +352,24 @@ export function refOf(entry) {
 
 export function memberRef(entry) { return refOf(entry) }
 
+/** 完整规格：与设计工作台的 specOf 同构
+ *  【XX参考】名（层）/ 一句话 / 出处 / 要点 / 原始材料 / 怎么用 / ASK */
 export function specOf(entry) {
   const layer = layerOf(entry.id)
   const lines = [
-    `【论文工具】${entry.name}（${layer ? layer.name : '论文工具'}）`,
+    `【论文参考】${entry.name}（${layer === null ? '论文工具' : layer.name}）`,
     `一句话：${entry.oneLine}`,
     `出处：${entry.source}`,
   ]
   if (Array.isArray(entry.bullets) && entry.bullets.length > 0) {
     lines.push('', '要点：', ...entry.bullets.map((b) => '  - ' + b))
   }
-  lines.push('', `怎么用：${entry.howto}`)
+  if (Array.isArray(entry.sources) && entry.sources.length > 0) {
+    lines.push('', '原始材料：', ...entry.sources.map((x) => `  - ${x.label}：${x.url ?? x.path}`))
+  } else {
+    lines.push('', `原始材料：${entry.source}`)
+  }
+  lines.push('', `怎么用：${entry.howto}`, '', ASK)
   return lines.join('\n')
 }
 
