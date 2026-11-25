@@ -807,7 +807,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             // ── 媒体级粗野主义（huashu fe-huasu-editorial-brutalism）────────
             // 纯黑白 + 超链接蓝 + 信号橙红；极端字号反差；1px 规则线分栏；零圆角、少留白。
             // 用 .pw-wrap 作用域覆盖上面的默认"柔和卡片"样式，不动结构只换皮。
-            '.pw-wrap{--brut-ink:#111;--brut-paper:#fff;--brut-blue:#1a0dab;--brut-red:#e2231a;--brut-rule:#111;color:var(--brut-ink);background:var(--brut-paper);font-family:Inter,Arial,Helvetica,sans-serif;gap:0;padding:0 0 40px;}',
+            // 纸张色用柔和米白而非纯白——纯白在暗色主题里太刺眼；黑白红的粗野对比保留，亮度压下来。
+            '.pw-wrap{--brut-ink:#23211e;--brut-paper:#f4f1ea;--brut-blue:#2436b8;--brut-red:#cf3a2e;--brut-rule:#3a3630;color:var(--brut-ink);background:var(--brut-paper);font-family:Inter,Arial,Helvetica,sans-serif;gap:0;padding:0 0 40px;}',
             '.pw-wrap *{box-sizing:border-box;}',
             '.pw-head{display:block;border-bottom:4px solid var(--brut-ink);padding:14px 18px 10px;gap:0;}',
             '.pw-title{font-size:48px;line-height:.92;font-weight:900;letter-spacing:-.045em;text-transform:uppercase;display:block;margin-bottom:8px;}',
@@ -827,7 +828,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.pw-chip-on{background:var(--brut-blue);border-color:var(--brut-blue);color:#fff;}',
             '.pw-grid{display:block;padding:0 18px;}',
             '.pw-card{border:0;border-bottom:1px solid var(--brut-rule);border-radius:0;background:transparent;padding:12px 0;display:block;width:100%;}',
-            '.pw-card:hover{background:var(--brut-paper);}',
+            '.pw-card:hover{background:#eae5da;}',
             '.pw-card .pw-stripe{display:none;}',
             '.pw-card-body{padding:0;display:block;}',
             '.pw-card-name{font-size:22px;line-height:1.05;font-weight:900;letter-spacing:-.02em;display:block;margin-bottom:4px;}',
