@@ -707,6 +707,15 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
     const PREVIEW_FRAME_BIG = { width: '100%', height: 300, border: '0', display: 'block', background: 'transparent' }
 
     // ── 面板 ──────────────────────────────────────────────────────────
+    // 所有面板文案集中在这里（developerFolio 的做法：改内容不碰组件）
+    const COPY = {
+      heroTitle: '开发者工具库',
+      heroKicker: 'DEVELOPER // WORKBENCH',
+      heroLine: '别人做好的东西：skill 包 / MCP 服务 / 开发工具 / 规范',
+      heroFoot: '点卡片看细节 · 复制引用粘给 AI · AI 用 code_style 读写、code_scan 扫目录',
+      empty: '这一层里没有匹配的条目，换个关键词或点「全部」。',
+    }
+
     function apply(ctx) {
       const el = react.createElement
       const useState = react.useState
@@ -801,6 +810,34 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-bullets{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.6;}',
             '.dw-bullets li:before{content:"· ";color:var(--dsw-alias-label-tertiary);}',
                         '.dw-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9600;padding:6px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);}',
+
+            // ── developerFolio 皮肤（局部，只作用于本面板）────────────────
+            '.df-hero{position:relative;display:flex;gap:18px;align-items:center;padding:16px 18px;border-radius:14px;overflow:hidden;background:radial-gradient(120% 140% at 12% 0%,#132038 0%,#0b1220 55%,#0a0f1c 100%);border:1px solid #1e293b;color:#e6edf3;}',
+            '.df-hero:after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(148,163,184,.12) 1px,transparent 1px);background-size:18px 18px;pointer-events:none;}',
+            '.df-hero-art{flex:0 0 200px;height:108px;opacity:.95;}',
+            '.df-hero-copy{position:relative;z-index:1;flex:1;min-width:0;}',
+            '.df-kicker{font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.22em;color:#38bdf8;}',
+            '.df-title{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:3px 0 4px;background:linear-gradient(92deg,#fff,#93c5fd 55%,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent;}',
+            '.df-line{font-size:12px;color:#93a4bd;line-height:1.5;}',
+            '.df-skills{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;}',
+            '.df-skill{display:flex;align-items:center;gap:6px;min-width:130px;flex:1 1 130px;max-width:210px;}',
+            '.df-skill-name{font-size:10.5px;color:#cbd5e1;white-space:nowrap;}',
+            '.df-skill-bar{flex:1;height:4px;border-radius:999px;background:#1e293b;overflow:hidden;}',
+            '.df-skill-fill{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#a78bfa);transform-origin:left;animation:dfGrow .9s ease-out both;}',
+            '.df-skill-n{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#64748b;}',
+            '@keyframes dfGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}',
+            // 滚动入场：默认下沉 24px + 透明，进入视口后归位
+            // 入场动画用纯 CSS 自动播放 + stagger：不依赖 IntersectionObserver，
+            // 否则离线/受限环境里卡片会永远停在 opacity:0（变成一片空白）。
+            '.dw-wrap [data-reveal]{animation:dfRise .55s cubic-bezier(.2,.8,.2,1) both;}',
+            '.dw-wrap [data-reveal]:nth-child(3n+2){animation-delay:.06s;}',
+            '.dw-wrap [data-reveal]:nth-child(3n+3){animation-delay:.12s;}',
+            '@keyframes dfRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}',
+            // 皮肤内的 chips / 卡片微调，贴近 developerFolio 的「标签化技能」
+            '.df-hero + .dw-head .dw-title{font-size:14px;font-weight:700;}',
+            '.df-hero + .dw-head .dw-pill{border-color:#1e293b;color:#93c5fd;}',
+            '.dw-card .dw-tag{border-color:#1e293b;color:#7dd3fc;}',
+
           ].join('\n')
           document.head.appendChild(tag)
         } catch {
@@ -932,8 +969,79 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       }
 
 
+      /**
+       * 首屏：插画 + 大字（developerFolio 的 hero）。
+       * 插画用内联 SVG，不引外链图——面板裂不起。
+       */
+      function Hero(props) {
+        const counts = props.counts || []
+        const total = props.total || 0
+        return el('div', { className: 'df-hero' },
+          el('div', { className: 'df-hero-art' },
+            el('svg', { viewBox: '0 0 220 120', width: '100%', height: '100%', 'aria-hidden': 'true' },
+              el('defs', null,
+                el('linearGradient', { id: 'df-glow', x1: '0', y1: '0', x2: '1', y2: '1' },
+                  el('stop', { offset: '0%', 'stop-color': '#38bdf8' }),
+                  el('stop', { offset: '100%', 'stop-color': '#a78bfa' }),
+                ),
+              ),
+              el('circle', { cx: 120, cy: 52, r: 40, fill: 'url(#df-glow)', opacity: '.18' }),
+              el('rect', { x: 18, y: 24, width: 118, height: 74, rx: 7, fill: '#0f172a', stroke: '#1e293b' }),
+              el('rect', { x: 18, y: 24, width: 118, height: 16, rx: 7, fill: '#1e293b' }),
+              el('circle', { cx: 30, cy: 32, r: 3, fill: '#f87171' }),
+              el('circle', { cx: 41, cy: 32, r: 3, fill: '#fbbf24' }),
+              el('circle', { cx: 52, cy: 32, r: 3, fill: '#34d399' }),
+              el('rect', { x: 28, y: 50, width: 34, height: 5, rx: 2, fill: '#38bdf8' }),
+              el('rect', { x: 28, y: 62, width: 66, height: 5, rx: 2, fill: '#334155' }),
+              el('rect', { x: 28, y: 74, width: 50, height: 5, rx: 2, fill: '#a78bfa' }),
+              el('rect', { x: 28, y: 86, width: 72, height: 5, rx: 2, fill: '#334155' }),
+              el('path', { d: 'M150 44 l16 -14 l0 28 z', fill: '#38bdf8', opacity: '.9' }),
+              el('circle', { cx: 190, cy: 30, r: 5, fill: '#a78bfa' }),
+              el('circle', { cx: 204, cy: 72, r: 3, fill: '#38bdf8' }),
+            ),
+          ),
+          el('div', { className: 'df-hero-copy' },
+            el('div', { className: 'df-kicker' }, COPY.heroKicker),
+            el('div', { className: 'df-title' }, COPY.heroTitle),
+            el('div', { className: 'df-line' }, COPY.heroLine),
+            el('div', { className: 'df-skills' },
+              counts.map(function (c, i) {
+                const pct = total ? Math.round((c.count / total) * 100) : 0
+                return el('div', { className: 'df-skill', key: c.id },
+                  el('span', { className: 'df-skill-name' }, c.name),
+                  el('span', { className: 'df-skill-bar' },
+                    el('span', { className: 'df-skill-fill', style: { width: Math.max(pct, 6) + '%', animationDelay: (i * 120) + 'ms' } }),
+                  ),
+                  el('span', { className: 'df-skill-n' }, String(c.count)),
+                )
+              }),
+            ),
+          ),
+        )
+      }
+
+      /** 滚动入场：元素进入视口就加 df-in（上浮 24px + 淡入），只做一次。 */
+      function useReveal() {
+        useEffect(function () {
+          if (typeof IntersectionObserver === 'undefined') return
+          const nodes = document.querySelectorAll('.dw-wrap [data-reveal]')
+          if (!nodes || nodes.length === 0) return
+          const io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+              if (en.isIntersecting) {
+                en.target.classList.add('df-in')
+                io.unobserve(en.target)
+              }
+            })
+          }, { threshold: 0.08 })
+          nodes.forEach(function (n) { io.observe(n) })
+          return function () { io.disconnect() }
+        })
+      }
+
       function Panel() {
         useStyleOnce()
+        useReveal()
         const [state, setState] = useState(null)
         const [err, setErr] = useState('')
         const [layer, setLayer] = useState('')
@@ -1046,6 +1154,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         }
 
         return el('div', { className: 'dw-wrap' },
+          el(Hero, { counts: counts, total: state ? state.total : 0 }),
           el('div', { className: 'dw-head' },
             el('div', { className: 'dw-title' }, TAB_LABEL),
             counts.map(function (c) {
@@ -1100,7 +1209,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             allTags.map(function (t) {
               return el('button', { key: t, className: 'dw-chip' + (tag === t ? ' dw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
-            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 code_style 读、code_scan 把新目录扫进来'),
+            el('span', { className: 'dw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, COPY.heroFoot),
           ),
 
           el('div', { className: 'dw-grid' },
@@ -1110,6 +1219,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                 key: e.id,
                 type: 'button',
                 className: 'dw-card dw-card-flat',
+                'data-reveal': '1',
                 onClick: function () { setOpenId(e.id) },
               },
                 // 代码库不摆示意图：顶部一条强调色代替封面，卡片就是「一条资料」
@@ -1131,7 +1241,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             }),
           ),
 
-          shown.length === 0 ? el('div', { className: 'dw-muted' }, '这一层里没有匹配的条目，换个关键词或点「全部」。') : null,
+          shown.length === 0 ? el('div', { className: 'dw-muted' }, COPY.empty) : null,
 
           open ? el('div', {
             className: 'dw-modal',
