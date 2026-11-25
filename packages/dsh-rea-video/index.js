@@ -13,7 +13,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 
 export const name = 'rea-video'
 
-export const inject = ['tools']
+export const inject = { tools: { required: true }, webServer: { required: false } }
 
 const PY = 'C:/Users/Administrator/AppData/Roaming/Python/Python311/Scripts/rea-video.exe'
 const FFMPEG_DIR = 'D:/github_project/ZhaoWen_GitHub维护/_tools/ffmpeg/bin'
@@ -107,6 +107,43 @@ function statusPayload() {
 }
 
 export function apply(ctx) {
+  // AI 读面板同款数据的通道（与 /rea-video/status 共用 statusPayload）
+  ctx.tools.register(
+    defineTool({
+      name: 'rea_video_view',
+      description:
+        'rea-video 工作台的数据通道：**面板上看到的拆解结论，AI 用这个读同一份**。\n' +
+        'op=status 读最近一次拆解的摘要（时长/镜头数/置信度/verdict/混合构成/叠加层）；' +
+        'op=shots 读逐镜表；op=verdict 只读结论。\n' +
+        '要**跑新的拆解**用 rea_video_cli；这个只读已完成的。',
+      parameters: {
+        op: { type: 'string', required: true, description: 'status | shots | verdict' },
+      },
+      output: {
+        schema: { type: 'object', additionalProperties: true },
+        render: (_args, value) => [{ type: 'text', text: typeof value?.note === 'string' ? value.note : JSON.stringify(value, null, 2) }],
+      },
+      execute: async (args) => {
+        const op = String(args.op ?? 'status').trim()
+        const snap = statusPayload()
+        if (!snap || snap.ok !== true) {
+          return { ok: false, code: 'NO_RUN', error: '还没有拆解记录', note: '先用 rea_video_cli op=decompose 跑一次。' }
+        }
+        if (op === 'status') {
+          return { ...snap, note: JSON.stringify(snap, null, 2) }
+        }
+        if (op === 'verdict') {
+          return { ok: true, verdict: snap.verdict ?? '', confidence: snap.confidence ?? null, note: `${snap.verdict || '(无结论)'}\n置信度：${snap.confidence ?? '—'}` }
+        }
+        if (op === 'shots') {
+          const shots = snap.shotsDetail || snap.mix || []
+          return { ok: true, count: Array.isArray(shots) ? shots.length : 0, shots, note: Array.isArray(shots) && shots.length > 0 ? shots.map((s, i) => `${i + 1}. ${JSON.stringify(s).slice(0, 160)}`).join('\n') : '没有逐镜明细。' }
+        }
+        return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 status | shots | verdict，收到：${op}` }
+      },
+    }),
+  )
+
   ctx.tools.register(
     defineTool({
       name: 'rea_video_cli',
