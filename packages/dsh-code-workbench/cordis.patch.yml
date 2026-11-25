@@ -2,5 +2,7 @@
 #
 # inject 由 index.js 的 `export const inject` 声明（Cordis 标准做法），这里不重复写。
 - insert:
-    - id: design-workbench
+    # 2026-11-25：id 原写作 design-workbench（从设计工作台复制时漏改），
+    # 会和设计工作台抢同一个 id，两者只能注册上一个。这里改回 code-workbench。
+    - id: code-workbench
       name: '@zhuobichen/dsh-code-workbench'
