@@ -18,7 +18,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, memberRef, refOf, specOf } from './catalog.js'
 import { classifyEntry } from './classify.js'
 import { scanRoot } from './scan.js'
-import { coverPath, coversDir, fetchCover, warmCovers } from './covers.js'
+import { coverPath, coverUrlsOf, coversDir, fetchCover, warmCovers } from './covers.js'
 
 const NAME = 'dsh-design-workbench'
 const ROUTE = '/design-workbench'
@@ -449,10 +449,13 @@ export function apply(ctx) {
               const id = decodeURIComponent(path.slice('/cover/'.length))
               const entry = findEntry(id)
               if (entry === null) return json(404, { ok: false, code: 'NO_COVER', error: `这条没有封面：${id}` })
-              // 本地副本优先；失效则用 coverUrl 云端 URL 的本地缓存（按需补拉）。
+              // 本地副本优先；失效则用 coverUrlsOf 推导的云端 URL（含漫画层从 cloud 推出的 poster）的本地缓存，按需补拉。
               let file = isFile(entry.cover) ? entry.cover : null
-              if (file === null && typeof entry.coverUrl === 'string' && /^https?:\/\//i.test(entry.coverUrl)) {
-                file = cachedCover(entry.coverUrl) ?? (await fetchCover(entry.coverUrl, coversDir(NAME)))
+              if (file === null) {
+                for (const url of coverUrlsOf(entry)) {
+                  file = cachedCover(url) ?? (await fetchCover(url, coversDir(NAME)))
+                  if (file !== null) break
+                }
               }
               if (file === null) return json(404, { ok: false, code: 'COVER_MISSING', error: '本地缓存和云端都没有这张封面' })
               try {
