@@ -134,7 +134,7 @@ export function apply(ctx) {
         '工作台面板是给人看的；这是给 AI 读同一份数据的入口。\n' +
         'op=list 四类全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一类（dev | web | data | cli）；' +
         'op=get {id} 取完整规格（要点/做法/原始材料）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
-        '用户说「按 TDD 来」「用那套 CLI 约定」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
+        '用户说「用那个 superpowers」「按 playwright MCP 来」「有没有能查库的 MCP」时，先用 op=search 或 op=list 找到 id，再 op=get 拿它的用法与出处。',
       parameters: {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：dev|web|data|cli）、或关键词（search）' },
