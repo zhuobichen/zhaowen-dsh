@@ -34,6 +34,27 @@ window.__ModuleLoader__.load({
       workflowHint: '一条指令一个阶段；复制粘给 AI 即可。',
     }
 
+    // ── 实战案例：4399 首页 clean-room 逆向（2026-11-25 真实抓取）────
+    // 每条 finding 都挂证据：截图像素、HTML class、外链 CSS 的具体数值。
+    const CASE = {
+      name: '4399 首页信息架构逆向',
+      url: 'https://www.4399.com/',
+      mode: 'clean-room · 不读源码，只用可见 DOM/CSS/截图',
+      evidence: [
+        { k: '技术栈', v: 'XHTML 1.0 Transitional + charset=gb2312（2000 年代栈）', src: '4399.html <!DOCTYPE>' },
+        { k: '主容器', v: 'width:980px 固定宽，两侧留巨幅广告', src: 'index20250612.css `.wrap{width:980px}`' },
+        { k: '正文', v: 'font:12px/24px 宋体，color:#484848', src: 'CSS `body{...}`' },
+        { k: '主色', v: '#c0eb7c（浅绿底）×18 次 + #fb6400（橙）×15 次', src: 'CSS 颜色频次统计' },
+        { k: '辅助色', v: '#448230 深绿、#389904 亮绿、#eeffd9 浅绿块', src: 'CSS 颜色频次' },
+        { k: '导航', v: '17 类文字链（首页/动作/体育/益智/射击…）横排，非下拉', src: 'HTML 顶部导航文本' },
+        { k: '游戏流', v: '每格=70px 缩略图 + 名称，8 列 × N 行，用 lz_src 懒加载', src: 'HTML `<img lz_src=...>` / `class=tm_list li`' },
+        { k: '结构命名', v: 'tm_list / tm_tit / mi_web / game_w 老式 class，无 flex/grid', src: 'HTML class 频次' },
+        { k: '信息密度', v: '首屏 4 行分类矩阵 + 热门推荐 24 格 + 最新列表，零留白', src: '4399-home.png 截图' },
+      ],
+      conclusion: '复刻它不能用现代卡片栅格——要「固定 980px + 多列文字链矩阵 + 小缩略图 + 12px 宋体」才能对齐信息密度。',
+      copy: '按代码工作台/设计工作台的同构方式复刻 4399 首页：固定 980px 容器、绿橙配色、17 类导航矩阵、游戏图标流。',
+    }
+
     // 工作流四步（每步一条可复制指令）
     const FLOW = [
       { id: 'study', n: '01', name: 'Study', desc: '只读外部可见：截图、可见文本、实测布局、颜色、字距', cmd: 'list_toolsets' },
@@ -114,6 +135,19 @@ window.__ModuleLoader__.load({
             .ca-engine-on{color:var(--ca-ok);border-color:rgba(21,128,61,.3);background:rgba(21,128,61,.07);}
             .ca-engine-off{color:var(--ca-sub);opacity:.7;}
             .ca-foot{font-size:10.5px;color:var(--ca-sub);line-height:1.7;word-break:break-all;}
+            .ca-case{border:1px solid var(--ca-line);border-radius:10px;background:#fff;overflow:hidden;}
+            .ca-case-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;background:linear-gradient(90deg,#f0f7e8,#fff);border-bottom:1px solid var(--ca-line);}
+            .ca-case-name{font-size:13px;font-weight:700;}
+            .ca-case-mode{font-size:10.5px;color:var(--ca-sub);}
+            .ca-ev{display:grid;grid-template-columns:96px 1fr;gap:0;border-top:1px solid var(--ca-line);}
+            .ca-ev:nth-child(odd){background:#fbfcfe;}
+            .ca-ev-k,.ca-ev-v{padding:6px 10px;font-size:11.5px;line-height:1.55;}
+            .ca-ev-k{font-weight:700;color:var(--ca-brand);border-right:1px solid var(--ca-line);}
+            .ca-ev-v{color:var(--ca-ink);}
+            .ca-ev-src{display:block;font-family:ui-monospace,Consolas,monospace;font-size:10px;color:var(--ca-sub);margin-top:2px;}
+            .ca-case-foot{padding:9px 12px;background:#f7fbf2;border-top:1px solid var(--ca-line);font-size:11.5px;line-height:1.6;color:#33551f;}
+            .ca-case-copy{margin-top:7px;padding:4px 10px;border:1px solid var(--ca-line);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;}
+
             .ca-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:9600;background:#15803d;color:#fff;font-size:12px;padding:6px 14px;border-radius:999px;}
             .ca-empty{border:1px dashed var(--ca-line);border-radius:9px;padding:14px;color:var(--ca-sub);font-size:12px;}
           `
@@ -234,6 +268,30 @@ window.__ModuleLoader__.load({
               el('div', { className: 'ca-engines' },
                 installed.map((e) => el('span', { key: e.id, className: 'ca-engine ca-engine-on', title: e.neededFor || '' }, '● ' + e.name)),
                 missing.map((e) => el('span', { key: e.id, className: 'ca-engine ca-engine-off', title: e.neededFor || '' }, '○ ' + e.name)),
+              ),
+            ),
+
+            // ── 实战案例（真实逆向证据链）──
+            el('div', { className: 'ca-sec' },
+              el('div', { className: 'ca-sec-head' },
+                el('div', { className: 'ca-sec-t' }, '实战案例 ', el('span', { className: 'ca-muted' }, '1')),
+                el('span', { className: 'ca-muted' }, CASE.mode),
+              ),
+              el('div', { className: 'ca-case' },
+                el('div', { className: 'ca-case-head' },
+                  el('div', { className: 'ca-case-name' }, CASE.name),
+                  el('a', { href: CASE.url, target: '_blank', className: 'ca-badge' }, CASE.url),
+                ),
+                CASE.evidence.map((ev, i) => el('div', { className: 'ca-ev', key: i },
+                  el('div', { className: 'ca-ev-k' }, ev.k),
+                  el('div', { className: 'ca-ev-v' }, ev.v,
+                    el('span', { className: 'ca-ev-src' }, '证据：' + ev.src),
+                  ),
+                )),
+                el('div', { className: 'ca-case-foot' },
+                  '结论：' + CASE.conclusion,
+                  el('button', { className: 'ca-case-copy', onClick: () => copy(CASE.copy, '复刻指令') }, '复制复刻指令 → AI'),
+                ),
               ),
             ),
 
