@@ -1,23 +1,23 @@
 # 代码工作台（dsh-code-workbench）
 
-把**代码相关的资料**整理成四类，看着挑，点一下就把「按这个来」变成 AI 能读到的记录。
+收**别人做好的东西**：skill 包、MCP 服务、开发工具、别人总结的规范。
+不重复模型自带的知识（SOLID、分层架构这类写进来只是复述，没信息量）。
+
+和设计工作台同构：面板给人挑，`code_style` 工具给 AI 读同一份数据；
+挑中哪条，复制一行索引粘到对话里，AI 用 `code_style op=get <id>` 展开。
+
+## 四类（56 条）
 
 ```
-软件开发（38）  架构范式（分层/Clean/CQRS/事件/模块化/微服务）+ 工程实践 + 代码风格
-               + Agent 技能（superpowers/addyosmani/…）+ 工具链 + 逆向/3D/子 Agent/DSH 插件/Git/调试
-网页开发（9）   React+Vite / Next RSC / 接口契约 / 鉴权会话 / bsk 浏览器 / Playwright /
-               性能 CWV / Cloudflare / 反代部署
-数据分析（8）   DataFrame 选型 / 本地 SQL / Excel / 科研图表 / PM2.5 融合 / 微信数据 /
-               腾讯文档 / 可复现
-CLI（13）       为什么 CLI 最适合 AI / --json / --help / 退出码 / 幂等 / 长任务 /
-               qchat / winnote / rea-video / weflow / agently-mail / MCP vs CLI / dsh
-工程实践（6）   TDD / 代码评审 / 重构 / ADR / 可观测性 / CI-CD
-代码风格（5）   SOLID / 函数式 / 错误处理 / 命名与结构 / 数据导向
-Agent 技能（8） superpowers / addyosmani / karpathy / agent-rules-books / solid-skills / ECC / taste / caveman
-工具链（5）     ESLint+Prettier / TS 严格模式 / Biome / ruff+uv / act
+软件开发（24）  别人的 skill 包（superpowers / addyosmani / caveman …）+ agent 工程 +
+                逆向（REA / IG5）+ 3D（Blender）+ 本机 MCP（craft-anything）+ 工具链（uv/ruff、biome）
+网页开发（9）   bsk 真实浏览器 / playwright MCP / cloudflare MCP / shadcn / vite / next /
+                贴吧知乎技能 / lighthouse / figma MCP
+数据分析（10）  office-xlsx / docx / 腾讯文档 MCP / QQ邮箱 MCP / weflow MCP /
+                postgres / sqlite / duckdb / jupyter / PM2.5 本机平台
+CLI（13）       clig.dev 规范 / gh / jq / rg / httpie / yt-dlp / ffmpeg /
+                qchat / winnote / rea-video / weflow / agently / dsh
 ```
-
-共 **30 条**，全部是 `referenced`（别人写的规范与开源 skill），只作参照。
 
 ## 它解决什么
 
