@@ -732,8 +732,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           tag.setAttribute('data-design-workbench', '1')
           tag.textContent = [
             // developerFolio 全深色：在本面板内覆盖宿主 token，下面所有用 var(--dsw-alias-*) 的元素一起变深
-            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:#e6edf3;background:#0a0f1c;--dsw-alias-label-primary:#e6edf3;--dsw-alias-label-secondary:#93a4bd;--dsw-alias-label-tertiary:#64748b;--dsw-alias-bg-layer-1:#0f172a;--dsw-alias-bg-layer-2:#1e293b;--dsw-alias-bg-layer-3:#334155;--dsw-alias-bg-base:#0a0f1c;--dsw-alias-border-l1:#1e293b;--dsw-alias-border-l2:#253449;--dsw-alias-border-l3:#334155;--dsw-alias-border-l4:#475569;--dsw-alias-brand-primary:#38bdf8;--dsw-alias-interactive-bg-hover:rgba(56,189,248,.10);}',
-            '.dw-modal-card{background:#0f172a;border-color:#253449;}',
+            '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:#e8eef6;background:#131c2b;--dsw-alias-label-primary:#e8eef6;--dsw-alias-label-secondary:#b3c2d6;--dsw-alias-label-tertiary:#8fa1b8;--dsw-alias-bg-layer-1:#1b283c;--dsw-alias-bg-layer-2:#25364e;--dsw-alias-bg-layer-3:#344860;--dsw-alias-bg-base:#131c2b;--dsw-alias-border-l1:#2b3b52;--dsw-alias-border-l2:#3a4d68;--dsw-alias-border-l3:#4a5f7c;--dsw-alias-border-l4:#5c7191;--dsw-alias-brand-primary:#38bdf8;--dsw-alias-interactive-bg-hover:rgba(56,189,248,.10);}',
+            '.dw-modal-card{background:#1b283c;border-color:#3a4d68;}',
             '.dw-origin-mine{color:#5eead4;background:rgba(94,234,212,.10);border-color:rgba(94,234,212,.25);}',
             '.dw-origin-ref{color:#fbbf24;background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.25);}',
             '.dw-toast{background:#0f766e;}',
