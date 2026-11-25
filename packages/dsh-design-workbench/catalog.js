@@ -1296,7 +1296,7 @@ const ARCH_ENTRIES = [
       { label: '生成方式', url: 'MiniMax image-01 · 本机 mcp__minimax-image__generate_image' },
       { label: '封面', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/arch-ai-dark.jpg' },
     ],
-    origin: 'referenced',
+    origin: 'mine',
   },
   {
     id: 'arch-ai-warm',
@@ -1318,7 +1318,7 @@ const ARCH_ENTRIES = [
       { label: '生成方式', url: 'MiniMax image-01 · 本机 mcp__minimax-image__generate_image' },
       { label: '封面', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/arch-ai-warm.jpg' },
     ],
-    origin: 'referenced',
+    origin: 'mine',
   },
   {
     id: 'arch-ai-cyber',
@@ -1340,7 +1340,7 @@ const ARCH_ENTRIES = [
       { label: '生成方式', url: 'MiniMax image-01 · 本机 mcp__minimax-image__generate_image' },
       { label: '封面', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/arch-ai-cyber.jpg' },
     ],
-    origin: 'referenced',
+    origin: 'mine',
   },
   {
     id: 'arch-dark-ui',
