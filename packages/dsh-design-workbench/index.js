@@ -227,7 +227,7 @@ export function apply(ctx) {
         'op=get {id} 取完整规格（颜色/圆角/投影/CSS/要点/怎么用，几百字）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
         '用户说「用工作台里那个水墨的」「按那个紧凑仪表盘做」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
       parameters: {
-        op: { type: 'string', required: true, description: 'list | layer | get | search' },
+        op: { type: 'string', required: true, description: '读：list | layer | get | search；写：add | update | remove | pin | unpin | hide | unhide；运维：stats | export' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo|comic|motion）、或关键词（search）' },
         nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },

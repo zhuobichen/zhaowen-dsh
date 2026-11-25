@@ -218,7 +218,7 @@ export function apply(ctx) {
         '写：op=add / update / remove / pin / unpin / hide / unhide（写进 extra.json 覆盖层，不动 catalog.js）；op=stats / export 看状态与导出。\n' +
         '用户说「用那个 superpowers」「按 playwright MCP 来」「有没有能查库的 MCP」时，先用 op=search 或 op=list 找到 id，再 op=get 拿它的用法与出处。',
       parameters: {
-        op: { type: 'string', required: true, description: 'list | layer | get | search' },
+        op: { type: 'string', required: true, description: '读：list | layer | get | search；写：add | update | remove | pin | unpin | hide | unhide；运维：stats | export' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：dev|web|data|cli）、或关键词（search）' },
         nature: { type: 'string', description: '可选过滤：all（默认，全部）/ style / method / reference；代码库一般不用传' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
