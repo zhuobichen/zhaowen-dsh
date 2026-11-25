@@ -1,0 +1,38 @@
+{
+  "name": "@zhuobichen/dsh-paper-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "论文工作台：把本机的论文 skill / MCP / 插件收成七层资料库，像设计工作台那样点一下就引用给 AI",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "catalog.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "id": "dsh-paper-workbench",
+    "name": "论文工作台",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.4"
+  }
+}

@@ -1,0 +1,5 @@
+# 论文工作台：只挂插件本体，不改宿主任何一行。
+# inject 由 index.js 声明（tools + webServer），client 由 package.json 的 dsh.client 发现。
+- insert:
+    - id: paper-workbench
+      name: '@zhuobichen/dsh-paper-workbench'
