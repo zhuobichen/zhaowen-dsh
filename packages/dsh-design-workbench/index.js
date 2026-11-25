@@ -18,6 +18,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, memberRef, refOf, specOf } from './catalog.js'
 import { classifyEntry } from './classify.js'
 import { scanRoot } from './scan.js'
+import { coverPath, coversDir, fetchCover, warmCovers } from './covers.js'
 
 const NAME = 'dsh-design-workbench'
 const ROUTE = '/design-workbench'
@@ -64,7 +65,13 @@ function saveExtra(entries) {
 /** 给条目补上 nature（style / method / reference），面板与工具都靠它筛。 */
 function withNature(e) {
   const r = classifyEntry(e)
-  return { ...e, nature: r.nature, natureScore: r.score }
+  // 封面走本地路由：design 的条目原本只有 coverUrl，client 会直接用它（国内常连不上）。
+  // 这里补一个 truthy 的 cover 标记，让 client 改走 /cover/<id>——服务端按 id 用 coverUrl
+  // 补拉到 ~/.dsh 缓存后返回。不覆盖原 cover（若有本地副本则保留）。
+  const coverHint = typeof e.cover === 'string' && e.cover !== ''
+    ? e.cover
+    : (typeof e.coverUrl === 'string' && e.coverUrl !== '' ? e.coverUrl : e.cover)
+  return { ...e, cover: coverHint, nature: r.nature, natureScore: r.score }
 }
 
 function mergedLayers() {
@@ -81,6 +88,24 @@ function allEntries() {
 
 function findAny(id) {
   return findEntry(id) ?? loadExtra().find((e) => e.id === id) ?? null
+}
+
+/**
+ * 云端 URL 对应的本地缓存路径（仅当已缓存且文件有效时返回）。
+ * 缓存由 covers.js 在启动时预热、在 /cover、/member 路由里按需补拉。
+ * 不改 catalog 数据，不碰工具输出。
+ */
+function cachedCover(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null
+  const file = coverPath(coversDir(NAME), url)
+  return isFile(file) ? file : null
+}
+function isFile(file) {
+  try {
+    return typeof file === 'string' && existsSync(file) && statSync(file).isFile() && statSync(file).size > 0
+  } catch {
+    return false
+  }
 }
 
 function layerOfAny(id) {
@@ -112,6 +137,15 @@ export const inject = {
 }
 
 export function apply(ctx) {
+  // 启动后台预热：把 catalog 里的云端封面（主封面 coverUrl + 内页 raw）拉到本地缓存。
+  // 异步进行，不阻塞插件加载；面板首次请求若还没下完，/cover、/member 路由会按需补拉。
+  try {
+    const w = warmCovers(ALL_ENTRIES, NAME)
+    if (w.count > 0) process.stderr.write(`[design-workbench] 封面缓存预热：${w.count} 张 → ${w.dir}\n`)
+  } catch (e) {
+    process.stderr.write(`[design-workbench] 封面缓存预热未启动：${e?.message ?? e}\n`)
+  }
+
   const OUTPUT = {
     schema: {
       type: 'object',
@@ -389,16 +423,21 @@ export function apply(ctx) {
               const entry = findAny(slash > 0 ? rest.slice(0, slash) : '')
               const idx = Number(rest.slice(slash + 1))
               const member = entry && Array.isArray(entry.members) ? entry.members[idx] : null
-              if (member === null || member === undefined || typeof member.cover !== 'string' || member.cover === '') {
+              if (member === null || member === undefined) {
                 return json(404, { ok: false, code: 'NO_MEMBER_COVER', error: '内页没有这张图' })
               }
+              // 本地副本优先（可能是原作者的 D 盘路径，已失效）；失效则用 raw 云端 URL 的本地缓存。
+              let file = isFile(member.cover) ? member.cover : null
+              if (file === null && typeof member.raw === 'string' && /^https?:\/\//i.test(member.raw)) {
+                file = cachedCover(member.raw) ?? (await fetchCover(member.raw, coversDir(NAME)))
+              }
+              if (file === null) return json(404, { ok: false, code: 'MEMBER_COVER_MISSING', error: '本地缓存和云端都没有这张内页图' })
               try {
-                if (!existsSync(member.cover)) return json(404, { ok: false, code: 'MEMBER_COVER_MISSING', error: member.cover })
-                const st2 = statSync(member.cover)
+                const st2 = statSync(file)
                 if (!st2.isFile() || st2.size > MAX_COVER_BYTES) return json(413, { ok: false, code: 'MEMBER_COVER_TOO_BIG', error: '图太大' })
-                const type2 = MEDIA[extname(member.cover).toLowerCase()] ?? 'application/octet-stream'
+                const type2 = MEDIA[extname(file).toLowerCase()] ?? 'application/octet-stream'
                 res.writeHead(200, { 'content-type': type2, 'cache-control': 'public, max-age=3600' })
-                res.end(readFileSync(member.cover))
+                res.end(readFileSync(file))
                 return undefined
               } catch (e) {
                 return json(500, { ok: false, code: 'MEMBER_COVER_READ_FAILED', error: String(e && e.message ? e.message : e) })
@@ -409,13 +448,14 @@ export function apply(ctx) {
               if (method !== 'GET') return json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', error: '封面只支持 GET。' })
               const id = decodeURIComponent(path.slice('/cover/'.length))
               const entry = findEntry(id)
-              // 白名单：只发 catalog.js 里写死的 cover，不接受任意路径
-              if (entry === null || typeof entry.cover !== 'string' || entry.cover === '') {
-                return json(404, { ok: false, code: 'NO_COVER', error: `这条没有封面：${id}` })
+              if (entry === null) return json(404, { ok: false, code: 'NO_COVER', error: `这条没有封面：${id}` })
+              // 本地副本优先；失效则用 coverUrl 云端 URL 的本地缓存（按需补拉）。
+              let file = isFile(entry.cover) ? entry.cover : null
+              if (file === null && typeof entry.coverUrl === 'string' && /^https?:\/\//i.test(entry.coverUrl)) {
+                file = cachedCover(entry.coverUrl) ?? (await fetchCover(entry.coverUrl, coversDir(NAME)))
               }
-              const file = entry.cover
+              if (file === null) return json(404, { ok: false, code: 'COVER_MISSING', error: '本地缓存和云端都没有这张封面' })
               try {
-                if (!existsSync(file)) return json(404, { ok: false, code: 'COVER_MISSING', error: `封面文件不在了：${file}` })
                 const stat = statSync(file)
                 if (!stat.isFile() || stat.size > MAX_COVER_BYTES) {
                   return json(413, { ok: false, code: 'COVER_TOO_BIG', error: '封面过大或不是文件' })
