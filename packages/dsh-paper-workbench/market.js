@@ -140,6 +140,30 @@ export const MARKET_GROUPS = [
         bullets: ['基于写作 Checklist 做逐条缺陷扫描（港科大 DIAL 实验室经验）', '从「成果展示」视角而非「项目总结」视角审查', '识别自我贬低、防御性叙述与逻辑断层', '输出可执行的修订优先级清单'],
         howto: '手稿完成、想让「虚拟博导」先挑一轮毛病时。', origin: 'referenced',
       },
+      {
+        id: 'ext-anti-autoresearch', name: '审稿方造假取证', layer: 'review',
+        oneLine: '审稿视角对论文做造假取证与证据链核验',
+        source: '市面精选 · 本机未装 · wanshuiyin/Anti-Autoresearch',
+        tags: ['审稿', '造假核验', '取证'], kind: 'text',
+        bullets: ['构建 span 锚定的证据台账（evidence ledger）', '交叉模型审计：引用、实验、一致性、基线比较是否造假', '输出确定性裁决供人类审稿人参考', '审稿方视角，不替作者辩护'],
+        howto: '作为审稿人怀疑数据/引用有问题、要做系统性取证时。', origin: 'referenced',
+      },
+      {
+        id: 'ext-ccf-paper-reviewer', name: 'CCF 审稿人模拟', layer: 'review',
+        oneLine: '按 CCF/目标 venue 标准模拟审稿_AC panel',
+        source: '市面精选 · 本机未装 · mikubaka88/CCFA-Skills',
+        tags: ['审稿', 'CCF', '模拟'], kind: 'text',
+        bullets: ['按 CCF/目标 venue 标准审稿：新颖性、可靠性、证据、写作、格式', '模拟 reviewer/AC panel 多人视角', '产出结构化评分与意见', '对照目标会议接受率与偏好校准'],
+        howto: '投 CCF 类会议前想按该 venue 标准预演审稿时。', origin: 'referenced',
+      },
+      {
+        id: 'ext-paper-lifecycle-revision', name: '论文评审与修订六模式', layer: 'review',
+        oneLine: '结构化评审与修订工作流的六种模式',
+        source: '市面精选 · 本机未装 · M1n-n9/paper-lifecycle',
+        tags: ['审稿', '修订', '工作流'], kind: 'text',
+        bullets: ['六种操作模式覆盖从初评到深度修订', '按 effort 分级缩放评审深度', '把审稿意见转成可执行的修订任务', '保持作者原意与证据范围不被改写'],
+        howto: '收到多条审稿意见、需要系统化组织修订时。', origin: 'referenced',
+      },
     ],
   },
   {
@@ -266,4 +290,7 @@ export const MARKET_URL = {
   'ext-hypothesis-generation': 'https://github.com/K-Dense-AI/scientific-agent-skills/tree/HEAD/skills/hypothesis-generation',
   'ext-experimental-design': 'https://github.com/K-Dense-AI/scientific-agent-skills/tree/HEAD/skills/experimental-design',
   'ext-preregister': 'https://github.com/pedrohcgs/claude-code-my-workflow/tree/HEAD/.claude/skills/preregister',
+  'ext-anti-autoresearch': 'https://github.com/wanshuiyin/Anti-Autoresearch',
+  'ext-ccf-paper-reviewer': 'https://github.com/mikubaka88/CCFA-Skills',
+  'ext-paper-lifecycle-revision': 'https://github.com/M1n-n9/paper-lifecycle',
 }

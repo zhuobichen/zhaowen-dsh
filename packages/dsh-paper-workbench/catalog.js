@@ -325,33 +325,44 @@ const MCP = [
   },
 ]
 
-// 基础 7 层（本机已装能力）。条目数组后面会被市面精选的 merge 组追加。
-const WRITING_ALL = [...WRITING]
-const METHOD_ALL = [...METHOD]
-
-export const LAYERS = [
-  { id: 'writing', name: '写作与润色', hint: '叙事、LaTeX、摘要/引言/结论、PPT 审计', filters: ['写作', '润色', '叙事', '投稿', '核查'], entries: WRITING_ALL },
-  { id: 'idea', name: '选题与创新', hint: '撞题检查、横纵分析、多库检索', filters: ['选题', '创新', '调研', '检索'], entries: IDEA },
-  { id: 'method', name: '统计与方法', hint: '统计分析、批判性思维、单位不确定度、PM2.5 数据', filters: ['统计', '方法', '证据', '环境'], entries: METHOD_ALL },
-  { id: 'zotero', name: '文献 · Zotero', hint: '文献管理、直连 SQLite、全文检索', filters: ['Zotero', '文献', '引用'], entries: ZOTERO },
-  { id: 'cnki', name: '文献 · CNKI', hint: '检索、下载、导出、期刊评估、目录', filters: ['CNKI', '检索', '期刊', '导出'], entries: CNKI },
-  { id: 'search', name: '检索与发布', hint: 'Tavily、网页抓取、正文提取、HF 发布', filters: ['检索', '抓取', '发布'], entries: SEARCH },
-  { id: 'mcp', name: 'MCP 工具', hint: '本机可用的论文相关 MCP', filters: ['MCP', '自建'], entries: MCP },
-]
-
-// 接入市面精选：新层追加、merge 组并入现有层；条目补 sources（只有仓库 URL，无本地副本）。
+// ── 六层归类（用户：类别别太多，点不过来）────────────────────────────
+// 先把基础能力 + 市面精选全部收进一个扁平条目池，再按下面的 6 层归类。
+// 每条 entry 的 layer 字段会被改写为目标层 id，保证工具/面板/引用三处一致。
+const ALL_POOL = [...WRITING, ...IDEA, ...METHOD, ...ZOTERO, ...CNKI, ...SEARCH, ...MCP]
 for (const group of MARKET_GROUPS) {
   for (const e of group.entries) {
     if (MARKET_URL[e.id] !== undefined) e.sources = [{ label: '原始出处', url: MARKET_URL[e.id] }]
     e.tags = [...new Set([...(e.tags || []), '市面精选'])]
   }
-  if (group.layer.merge === true) {
-    const target = LAYERS.find((l) => l.id === group.layer.id)
-    if (target) target.entries = [...target.entries, ...group.entries]
-  } else {
-    LAYERS.push({ ...group.layer, entries: group.entries })
-  }
+  ALL_POOL.push(...group.entries)
 }
+
+// 旧层 id → 新层 id（合并映射）。市面精选带来的 figure/repro/review/qualitative
+// 也在这里映射到 6 层，避免产生第 7、8 个标签。
+const REMAP = {
+  writing: 'write',                        // 写作与润色（含市面 4 条写作精修）
+  idea: 'idea', method: 'idea', qualitative: 'idea',   // 选题 + 方法 + 定性 → 选题与方法论
+  zotero: 'lit', cnki: 'lit', search: 'lit', mcp: 'lit',// 文献 + 检索 + MCP → 文献与检索工具
+  figure: 'figure', repro: 'figure',        // 图表 + 复现 → 图表与实验
+  review: 'review',                         // 评审与投稿
+}
+
+const LAYER_DEFS = [
+  { id: 'write', name: '写作与润色', hint: '叙事、LaTeX、摘要/引言、润色、去 AI 味、期刊适配', filters: ['写作', '润色', '叙事', '去AI味', '投稿'] },
+  { id: 'idea', name: '选题与方法论', hint: '撞题、假设、统计、定性、实验设计、横纵分析', filters: ['选题', '方法', '统计', '定性', '假设'] },
+  { id: 'lit', name: '文献与检索', hint: 'Zotero、CNKI、Tavily、网页抓取、MCP、论文发布', filters: ['Zotero', 'CNKI', '检索', 'MCP', '发布'] },
+  { id: 'figure', name: '图表与实验', hint: '科研制图、示意图、复现、Paper2Code、实验日志', filters: ['制图', '示意图', '复现', '实验记录'] },
+  { id: 'review', name: '评审与投稿', hint: '审稿模拟、rebuttal、投稿前数字核验、防御性写作应对', filters: ['审稿', 'rebuttal', '核验', '投稿'] },
+]
+
+// 按映射分配条目，并改写每条的 layer 字段（面板/工具/引用统一）。
+const buckets = new Map(LAYER_DEFS.map((l) => [l.id, []]))
+for (const e of ALL_POOL) {
+  const target = REMAP[e.layer] ?? 'write'
+  e.layer = target
+  buckets.get(target).push(e)
+}
+export const LAYERS = LAYER_DEFS.map((l) => ({ ...l, entries: buckets.get(l.id) }))
 
 export const ALL_ENTRIES = LAYERS.flatMap((l) => l.entries)
 
