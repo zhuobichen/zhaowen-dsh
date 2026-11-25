@@ -345,6 +345,8 @@ const REMAP = {
   zotero: 'lit', cnki: 'lit', search: 'lit', mcp: 'lit',// 文献 + 检索 + MCP → 文献与检索工具
   figure: 'figure', repro: 'figure',        // 图表 + 复现 → 图表与实验
   review: 'review',                         // 评审与投稿
+  // 已直接归入 5 层的条目（恒等映射，避免落到 fallback）
+  write: 'write', idea2: 'idea', lit: 'lit', figure2: 'figure',
 }
 
 const LAYER_DEFS = [
