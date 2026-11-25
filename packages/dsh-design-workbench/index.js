@@ -37,79 +37,136 @@ const MEDIA = {
   '.svg': 'image/svg+xml',
 }
 
-// ── 覆盖层：用户用 design_scan 扫进来的条目（不写死进 catalog.js）──────
+// ── 覆盖层：AI/人 改过的东西都落这里，不动 catalog.js ──────────────────
+//
+// extra.json = {
+//   entries:   [ {id, layer, name, oneLine, ...} ],   // 新增的（扫描导入或 AI 自己写的）
+//   overrides: { <id>: { hidden, pinned, ...要覆盖的字段 } }  // 对任意条目（含内置）的修改
+// }
+//
+// 这样「写」有一个统一入口：AI 通过 design_style 的 add/update/pin/hide 改，
+// 结果同时作用于面板与工具，且随时能 export 出来带走。
+
 function extraPath() {
   return join(dshHome(), 'plugins', NAME, 'extra.json')
 }
 
-/** { entries: [ {id, layer, name, oneLine, source, cover, tags, kind, bullets, howto, sources} ] } */
-function loadExtra() {
+function loadOverlay() {
+  const empty = { entries: [], overrides: {} }
   try {
     const raw = JSON.parse(readFileSync(extraPath(), 'utf8'))
-    if (raw && Array.isArray(raw.entries)) {
-      return raw.entries.filter((e) => e && typeof e.id === 'string' && typeof e.layer === 'string')
-    }
+    const entries = Array.isArray(raw?.entries) ? raw.entries.filter((e) => e && typeof e.id === 'string') : []
+    const overrides = raw?.overrides && typeof raw.overrides === 'object' ? raw.overrides : {}
+    return { entries, overrides }
   } catch {
-    // 没有覆盖层就是空
+    return empty
   }
-  return []
 }
 
-function saveExtra(entries) {
+function saveOverlay(overlay) {
   const dir = join(dshHome(), 'plugins', NAME)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(extraPath(), JSON.stringify({ entries }, null, 2), 'utf8')
+  writeFileSync(extraPath(), JSON.stringify({ entries: overlay.entries, overrides: overlay.overrides }, null, 2), 'utf8')
 }
 
-/** catalog + 覆盖层合并后的六层（含每层的 filters）；面板与工具都从这读。 */
+/** 兼容旧调用：只取新增条目 */
+function loadExtra() {
+  return loadOverlay().entries
+}
+
+/** 兼容旧调用（design_scan 的入库走这里）：只改 entries，保留 overrides。 */
+function saveExtra(entries) {
+  const overlay = loadOverlay()
+  overlay.entries = entries
+  saveOverlay(overlay)
+}
+
+/** 对一条应用 overrides（隐藏/置顶/字段覆盖）。 */
+function applyOverride(entry, overrides) {
+  const ov = overrides[entry.id]
+  if (!ov || typeof ov !== 'object') return entry
+  const merged = { ...entry }
+  for (const [k, v] of Object.entries(ov)) {
+    if (k === 'hidden' || k === 'pinned') continue
+    merged[k] = v
+  }
+  if (ov.hidden === true) merged.hidden = true
+  if (ov.pinned === true) merged.pinned = true
+  return merged
+}
+
 /** 给条目补上 nature（style / method / reference），面板与工具都靠它筛。 */
 function withNature(e) {
   const r = classifyEntry(e)
-  // 封面走本地路由：design 的条目原本只有 coverUrl，client 会直接用它（国内常连不上）。
-  // 这里补一个 truthy 的 cover 标记，让 client 改走 /cover/<id>——服务端按 id 用 coverUrl
-  // 补拉到 ~/.dsh 缓存后返回。不覆盖原 cover（若有本地副本则保留）。
-  const coverHint = typeof e.cover === 'string' && e.cover !== ''
-    ? e.cover
-    : (typeof e.coverUrl === 'string' && e.coverUrl !== '' ? e.coverUrl : e.cover)
-  return { ...e, cover: coverHint, nature: r.nature, natureScore: r.score }
-}
-
-function mergedLayers() {
-  const extra = loadExtra()
-  return LAYERS.map((l) => {
-    const added = extra.filter((e) => e.layer === l.id).map((e) => withNature({ ...e, prompt: refOf(e), spec: specOf(e), added: true }))
-    return { ...l, entries: [...l.entries.map(withNature), ...added] }
-  })
-}
-
-function allEntries() {
-  return mergedLayers().flatMap((l) => l.entries)
-}
-
-function findAny(id) {
-  return findEntry(id) ?? loadExtra().find((e) => e.id === id) ?? null
+  return { ...e, nature: r.nature, natureScore: r.score }
 }
 
 /**
- * 云端 URL 对应的本地缓存路径（仅当已缓存且文件有效时返回）。
- * 缓存由 covers.js 在启动时预热、在 /cover、/member 路由里按需补拉。
- * 不改 catalog 数据，不碰工具输出。
+ * catalog + 覆盖层合并后的四类。
+ * @param opts { includeHidden }  默认不含隐藏条目
  */
-function cachedCover(url) {
-  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null
-  const file = coverPath(coversDir(NAME), url)
-  return isFile(file) ? file : null
+function mergedLayers(opts = {}) {
+  const overlay = loadOverlay()
+  const includeHidden = opts.includeHidden === true
+  return LAYERS.map((l) => {
+    const builtin = l.entries.map((e) => applyOverride(e, overlay.overrides))
+    const added = overlay.entries
+      .filter((e) => e.layer === l.id)
+      .map((e) => applyOverride(e, overlay.overrides))
+      .map((e) => ({ ...e, added: true }))
+    let list = [...builtin, ...added].map(withNature)
+    if (!includeHidden) list = list.filter((e) => e.hidden !== true)
+    // 置顶的排前面（稳定排序，其余保持原顺序）
+    list.sort((a, b) => Number(b.pinned === true) - Number(a.pinned === true))
+    return {
+      ...l,
+      entries: list.map((e) => ({ ...e, prompt: refOf(e), spec: specOf(e) })),
+      hiddenCount: [...builtin, ...added].filter((e) => e.hidden === true).length,
+    }
+  })
 }
-function isFile(file) {
-  try {
-    return typeof file === 'string' && existsSync(file) && statSync(file).isFile() && statSync(file).size > 0
-  } catch {
-    return false
-  }
+
+function allEntries(opts = {}) {
+  return mergedLayers(opts).flatMap((l) => l.entries)
+}
+
+function findAny(id, opts = {}) {
+  const overlay = loadOverlay()
+  const builtin = findEntry(id)
+  const extra = overlay.entries.find((e) => e.id === id)
+  const base = builtin ?? extra ?? null
+  if (base === null) return null
+  const merged = applyOverride(base, overlay.overrides)
+  return opts.includeHidden === true || merged.hidden !== true ? merged : null
 }
 
 function layerOfAny(id) {
-  return mergedLayers().find((l) => l.entries.some((e) => e.id === id)) ?? null
+  const entry = findAny(id, { includeHidden: true })
+  if (entry === null) return null
+  return LAYERS.find((l) => l.id === entry.layer) ?? null
+}
+
+const FIELD_WHITELIST = ['name', 'oneLine', 'source', 'tags', 'kind', 'swatch', 'bullets', 'howto', 'sources', 'origin', 'layer']
+
+/** 校验并挑出可写字段 */
+function pickFields(args) {
+  const out = {}
+  for (const k of FIELD_WHITELIST) {
+    if (args[k] !== undefined) out[k] = args[k]
+  }
+  return out
+}
+
+function slugify(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9一-龥]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24)
+}
+
+function validLayer(id) {
+  return LAYERS.some((l) => l.id === id)
 }
 
 /** 扫描结果按 id 暂存，供 op=add 用（同一进程内有效）。 */
@@ -174,6 +231,16 @@ export function apply(ctx) {
         id: { type: 'string', description: '条目 id（get）、层 id（layer：app|frontend|video|codevideo|comic|motion）、或关键词（search）' },
         nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
+        // 写操作（add / update）
+        layer: { type: 'string', description: 'op=add 时必填：dev | web | data | cli' },
+        name: { type: 'string', description: 'op=add 时必填：名称' },
+        oneLine: { type: 'string', description: 'op=add 时必填：一句话它替你做什么' },
+        source: { type: 'string', description: '出处：谁做的、什么形态' },
+        tags: { type: 'array', description: 'op=add/update：标签数组', items: { type: 'string' } },
+        bullets: { type: 'array', description: 'op=add/update：要点数组（3–5 条，写具体做法）', items: { type: 'string' } },
+        howto: { type: 'string', description: 'op=add/update：什么时候用它' },
+        sources: { type: 'array', description: 'op=add/update：原始材料 [{label,url}|{label,path}]' },
+        origin: { type: 'string', description: 'op=add：referenced（别人的）| mine（本机自建）' },
       },
       output: OUTPUT,
       execute: async (args) => {
@@ -283,7 +350,122 @@ export function apply(ctx) {
           }
         }
 
-        return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 list / layer / get / search，收到：${op}`, note: 'op 只支持 list / layer / get / search。' }
+        // ── 写操作：AI 自己的操作口 ──────────────────────────────────
+        if (op === 'add') {
+          const layer = String(args.layer ?? '').trim()
+          if (!validLayer(layer)) {
+            return { ok: false, code: 'BAD_LAYER', error: `layer 必须是 ${LAYERS.map((l) => l.id).join(' / ')}`, note: 'op=add 需要 layer=dev|web|data|cli' }
+          }
+          const name = String(args.name ?? '').trim()
+          const oneLine = String(args.oneLine ?? '').trim()
+          if (name === '' || oneLine === '') return { ok: false, code: 'MISSING_FIELD', error: 'add 至少要有 name 与 oneLine', note: '给 name + oneLine。' }
+          const overlay = loadOverlay()
+          const id = String(args.id ?? '').trim() || 'ai-' + slugify(name) + '-' + Math.random().toString(36).slice(2, 6)
+          if (findAny(id, { includeHidden: true }) !== null || overlay.entries.some((e) => e.id === id)) {
+            return { ok: false, code: 'ID_EXISTS', error: `id 已存在：${id}`, note: '换个 id，或用 op=update 改现有的。' }
+          }
+          const entry = {
+            id,
+            layer,
+            name,
+            oneLine,
+            source: String(args.source ?? 'AI 录入'),
+            tags: Array.isArray(args.tags) ? args.tags.map(String) : [],
+            kind: String(args.kind ?? 'text'),
+            bullets: Array.isArray(args.bullets) ? args.bullets.map(String) : [],
+            howto: String(args.howto ?? ''),
+            sources: Array.isArray(args.sources) ? args.sources : [],
+            origin: String(args.origin ?? 'referenced'),
+          }
+          if (args.swatch !== undefined) entry.swatch = args.swatch
+          overlay.entries.push(entry)
+          saveOverlay(overlay)
+          return { ok: true, entry: { id, layer, name }, total: allEntries().length, note: `已入库：${id}（${layer}）\n工作台现在 ${allEntries().length} 条。` }
+        }
+
+        if (op === 'update') {
+          const id = String(args.id ?? '').trim()
+          if (id === '') return { ok: false, code: 'MISSING_ID', error: 'update 需要 id' }
+          const target = findAny(id, { includeHidden: true })
+          if (target === null) return { ok: false, code: 'NOT_FOUND', error: `没有这条：${id}` }
+          const fields = pickFields(args)
+          if (Object.keys(fields).length === 0) return { ok: false, code: 'NO_FIELD', error: '没给要改的字段', note: `可改：${FIELD_WHITELIST.join(' / ')}` }
+          if (fields.layer !== undefined && !validLayer(fields.layer)) return { ok: false, code: 'BAD_LAYER', error: `layer 必须是 ${LAYERS.map((l) => l.id).join(' / ')}` }
+          const overlay = loadOverlay()
+          const isExtra = overlay.entries.some((e) => e.id === id)
+          if (isExtra) {
+            const i = overlay.entries.findIndex((e) => e.id === id)
+            overlay.entries[i] = { ...overlay.entries[i], ...fields }
+          } else {
+            overlay.overrides[id] = { ...(overlay.overrides[id] ?? {}), ...fields }
+          }
+          saveOverlay(overlay)
+          return { ok: true, updated: id, fields: Object.keys(fields), note: `已更新 ${id}：${Object.keys(fields).join(', ')}` }
+        }
+
+        if (op === 'remove') {
+          const id = String(args.id ?? '').trim()
+          if (id === '') return { ok: false, code: 'MISSING_ID', error: 'remove 需要 id' }
+          const target = findAny(id, { includeHidden: true })
+          if (target === null) return { ok: false, code: 'NOT_FOUND', error: `没有这条：${id}` }
+          const overlay = loadOverlay()
+          const isExtra = overlay.entries.some((e) => e.id === id)
+          if (isExtra) {
+            overlay.entries = overlay.entries.filter((e) => e.id !== id)
+            delete overlay.overrides[id]
+            saveOverlay(overlay)
+            return { ok: true, removed: id, mode: 'deleted', total: allEntries().length, note: `已从覆盖层删除 ${id}。` }
+          }
+          overlay.overrides[id] = { ...(overlay.overrides[id] ?? {}), hidden: true }
+          saveOverlay(overlay)
+          return { ok: true, removed: id, mode: 'hidden', total: allEntries().length, note: `内置条目不能删，已隐藏 ${id}（op=unhide 可恢复）。` }
+        }
+
+        if (op === 'pin' || op === 'unpin') {
+          const id = String(args.id ?? '').trim()
+          if (id === '') return { ok: false, code: 'MISSING_ID', error: `${op} 需要 id` }
+          if (findAny(id, { includeHidden: true }) === null) return { ok: false, code: 'NOT_FOUND', error: `没有这条：${id}` }
+          const overlay = loadOverlay()
+          overlay.overrides[id] = { ...(overlay.overrides[id] ?? {}), pinned: op === 'pin' }
+          saveOverlay(overlay)
+          return { ok: true, [op === 'pin' ? 'pinned' : 'unpinned']: id, note: op === 'pin' ? `已置顶 ${id}` : `已取消置顶 ${id}` }
+        }
+
+        if (op === 'hide' || op === 'unhide') {
+          const id = String(args.id ?? '').trim()
+          if (id === '') return { ok: false, code: 'MISSING_ID', error: `${op} 需要 id` }
+          if (findAny(id, { includeHidden: true }) === null) return { ok: false, code: 'NOT_FOUND', error: `没有这条：${id}` }
+          const overlay = loadOverlay()
+          overlay.overrides[id] = { ...(overlay.overrides[id] ?? {}), hidden: op === 'hide' }
+          saveOverlay(overlay)
+          return { ok: true, [op === 'hide' ? 'hidden' : 'shown']: id, note: op === 'hide' ? `已隐藏 ${id}` : `已恢复 ${id}` }
+        }
+
+        if (op === 'stats') {
+          const overlay = loadOverlay()
+          const layers = mergedLayers()
+          return {
+            ok: true,
+            total: layers.reduce((n, l) => n + l.entries.length, 0),
+            byLayer: layers.map((l) => ({ id: l.id, name: l.name, visible: l.entries.length, hidden: l.hiddenCount })),
+            added: overlay.entries.length,
+            overridden: Object.keys(overlay.overrides).length,
+            pinned: Object.values(overlay.overrides).filter((o) => o && o.pinned === true).length,
+            path: extraPath(),
+            note: layers.map((l) => `${l.name}: ${l.entries.length} 条（隐藏 ${l.hiddenCount}）`).join('\n') + `\n新增 ${overlay.entries.length} / 改过 ${Object.keys(overlay.overrides).length} / 置顶 ${Object.values(overlay.overrides).filter((o) => o && o.pinned === true).length}`,
+          }
+        }
+
+        if (op === 'export') {
+          const overlay = loadOverlay()
+          return {
+            ok: true,
+            export: { entries: overlay.entries, overrides: overlay.overrides },
+            note: JSON.stringify({ entries: overlay.entries, overrides: overlay.overrides }, null, 2),
+          }
+        }
+
+        return { ok: false, code: 'UNKNOWN_OP', error: `op 只支持 list / layer / get / search / add / update / remove / pin / unpin / hide / unhide / stats / export，收到：${op}`, note: '读：list / layer / get / search；写：add / update / remove / pin / unpin / hide / unhide；运维：stats / export。' }
       },
     }),
   )
