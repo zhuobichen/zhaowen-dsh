@@ -60,7 +60,7 @@ function saveExtra(entries) {
   writeFileSync(extraPath(), JSON.stringify({ entries }, null, 2), 'utf8')
 }
 
-/** catalog + 覆盖层合并后的五层（含每层的 filters）；面板与工具都从这读。 */
+/** catalog + 覆盖层合并后的四类（含每类的 filters）；面板与工具都从这读。 */
 /** 给条目补上 nature（style / method / reference），面板与工具都靠它筛。 */
 function withNature(e) {
   const r = classifyEntry(e)
@@ -130,22 +130,22 @@ export function apply(ctx) {
     defineTool({
       name: 'code_style',
       description:
-        '代码工作台的数据通道：**用户本机的代码资料库，分五层（架构范式 / 工程实践 / 代码风格 / Agent 技能 / 工具链）**。\n' +
+        '代码工作台的数据通道：**用户本机的代码资料库，分四类（软件开发 / 网页开发 / 数据分析 / CLI）**。\n' +
         '工作台面板是给人看的；这是给 AI 读同一份数据的入口。\n' +
-        'op=list 五层全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一层（arch | practice | style | skill | tool）；' +
+        'op=list 四类全列（id / 名称 / 一句话 / 出处）；op=layer {id} 只看一类（dev | web | data | cli）；' +
         'op=get {id} 取完整规格（颜色/圆角/投影/CSS/要点/怎么用，几百字）；op=search {id: 关键词} 按名称/标签/出处搜。\n' +
         '用户说「用工作台里那个水墨的」「按那个紧凑仪表盘做」时，先用 op=search 或 op=list 找到 id，再 op=get 拿规格。',
       parameters: {
         op: { type: 'string', required: true, description: 'list | layer | get | search' },
         id: { type: 'string', description: '条目 id（get）、层 id（layer：arch|practice|style|skill|tool）、或关键词（search）' },
-        nature: { type: 'string', description: '只要哪一类：style（风格，默认）/ all（含方法与素材）/ method / reference' },
+        nature: { type: 'string', description: '可选过滤：all（默认，全部）/ style / method / reference；代码库一般不用传' },
         member: { type: 'number', description: 'op=get 时取内页第几种（1 起）；不给就是整个库' },
       },
       output: OUTPUT,
       execute: async (args) => {
         const op = String(args.op ?? '').trim()
         const arg = String(args.id ?? '').trim()
-        const nature = String(args.nature ?? 'style').trim()
+        const nature = String(args.nature ?? 'all').trim()
         const keep = (e) => nature === 'all' || nature === '' || e.nature === nature
 
         if (op === 'list') {
@@ -261,7 +261,7 @@ export function apply(ctx) {
     defineTool({
       name: 'code_scan',
       description:
-        '代码工作台的「导入」通道：扫一个本机目录，按五层给出候选，确认后写进工作台。\n' +
+        '代码工作台的「导入」通道：扫一个本机目录，按四类给出候选，确认后写进工作台。\n' +
         'op=scan {id: 绝对路径} 扫目录（可选 depth，默认 3）→ 返回候选（id/层/名称/封面/出处）；' +
         'op=add {id: "all"} 或 {id: "id1,id2"} 把候选入库；op=list 看已导入的；op=remove {id} 删一条。\n' +
         '判断依据只看文件名与 manifest（package.json 依赖 / AndroidManifest / remotion 配置 / 截图数量），不读全文、不联网。',

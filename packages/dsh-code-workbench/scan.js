@@ -117,8 +117,8 @@ function classify(dir) {
 
   if (!(designDoc || android || videoAsset || motion || frontend || electron || siteRoot || images >= 5)) return null
 
-  // 代码工作台只有一层用来装「别人的项目 / skill 包」
-  let layer = 'skill'
+  // 扫进来的东西按「像什么活」归类：有前端/静态站 → 网页开发；其余（桌面/安卓/视频/脚本）→ 软件开发
+  let layer = frontend || siteRoot ? 'web' : 'dev'
   void android; void electron; void videoAsset; void motion
   // 纯图目录（截图集/参考图）算前端素材，不再误判成「视频风格」
 

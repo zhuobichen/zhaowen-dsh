@@ -1,9 +1,16 @@
 # 代码工作台（dsh-code-workbench）
 
-把**代码相关的资料**整理成五层，看着挑，点一下就把「按这个来」变成 AI 能读到的记录。
+把**代码相关的资料**整理成四类，看着挑，点一下就把「按这个来」变成 AI 能读到的记录。
 
 ```
-架构范式（6）   分层 / Clean·六边形 / CQRS+事件溯源 / 事件驱动 / 模块化单体 / 微服务
+软件开发（38）  架构范式（分层/Clean/CQRS/事件/模块化/微服务）+ 工程实践 + 代码风格
+               + Agent 技能（superpowers/addyosmani/…）+ 工具链 + 逆向/3D/子 Agent/DSH 插件/Git/调试
+网页开发（9）   React+Vite / Next RSC / 接口契约 / 鉴权会话 / bsk 浏览器 / Playwright /
+               性能 CWV / Cloudflare / 反代部署
+数据分析（8）   DataFrame 选型 / 本地 SQL / Excel / 科研图表 / PM2.5 融合 / 微信数据 /
+               腾讯文档 / 可复现
+CLI（13）       为什么 CLI 最适合 AI / --json / --help / 退出码 / 幂等 / 长任务 /
+               qchat / winnote / rea-video / weflow / agently-mail / MCP vs CLI / dsh
 工程实践（6）   TDD / 代码评审 / 重构 / ADR / 可观测性 / CI-CD
 代码风格（5）   SOLID / 函数式 / 错误处理 / 命名与结构 / 数据导向
 Agent 技能（8） superpowers / addyosmani / karpathy / agent-rules-books / solid-skills / ECC / taste / caveman
@@ -26,7 +33,7 @@ Agent 技能（8） superpowers / addyosmani / karpathy / agent-rules-books / so
 ## 工具
 
 ```
-code_style op=list                                   五层全列
+code_style op=list                                   四类全列
 code_style op=layer {arch|practice|style|skill|tool}  只看一层
 code_style op=get {id}                               完整规格（要点 / 出处 / 怎么用）
 code_style op=search {关键词}                        按名称 / 标签 / 出处搜
@@ -35,7 +42,7 @@ code_style op=search {关键词}                        按名称 / 标签 / 出
 引用是**索引式**的（和设计工作台一致）：
 
 ```
-按代码工作台里的「Clean Architecture / 六边形」（架构范式 · arch-clean）来做。
+按代码工作台里的「Clean Architecture / 六边形」（软件开发 · arch-clean）来做。
 出处：Robert C. Martin · Clean Architecture；Alistair Cockburn · Hexagonal
 要看完整规格：code_style op=get arch-clean
 ```

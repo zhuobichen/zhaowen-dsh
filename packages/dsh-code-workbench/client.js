@@ -842,7 +842,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         }
       }
 
-      const KIND_LABEL = { image: '图', tokens: '样式', text: '文档', demo: '风格' }
+      const KIND_LABEL = { image: '图', tokens: '样式', text: '条目', demo: '可动' }
 
       /** 纯文字条目的海报：用自己的配色画一个可辨认的图案，不假装是成品帧。 */
       function Poster(props) {
@@ -973,6 +973,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           if (typeof e.cover === 'string' && e.cover !== '') return true
           if (e.kind === 'demo') return true
           if (e.kind === 'tokens' && e.style) return true
+          // 有海报配色的 text 条目也算「有画面」——代码库里的架构/实践条目都是这种
+          if (e.swatch && typeof e.swatch === 'object') return true
           return false
         }
 
@@ -1131,7 +1133,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               },
                 el('div', { className: 'dw-cover' },
                   el(Visual, { entry: e }),
-                  el('span', { className: 'dw-kind' }, e.swatch ? '风格' : (KIND_LABEL[e.kind] || e.kind)),
+                  el('span', { className: 'dw-kind' }, KIND_LABEL[e.kind] || e.kind),
                   el('div', { className: 'dw-cover-hit', onClick: function () { setOpenId(e.id) }, title: '看细节' }),
                 ),
                 el('div', { className: 'dw-card-body' },
@@ -1139,7 +1141,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                     e.name,
                     el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
                     e.nature === 'method' ? el('span', { className: 'dw-nature' }, '方法') : null,
-                    e.nature === 'reference' ? el('span', { className: 'dw-nature' }, '素材') : null,
+                    e.nature === 'reference' ? el('span', { className: 'dw-nature' }, '参考') : null,
                   ),
                   el('div', { className: 'dw-card-line' }, e.oneLine),
                   el('div', { className: 'dw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'dw-tag', key: t }, t) })),
