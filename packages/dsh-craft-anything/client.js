@@ -259,7 +259,7 @@ window.__ModuleLoader__.load({
       ctx.slots.inject('conversation.view', () => ctx.slots.register({
         name: 'conversation.view',
         id: PANEL_ID,
-        order: 26,
+        order: 20,
         label: () => TITLE,
       }, Workbench))
     }
