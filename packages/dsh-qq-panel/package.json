@@ -1,0 +1,28 @@
+{
+  "name": "dsh-qq-panel",
+  "version": "0.1.0",
+  "description": "朝闻录：把 qchat-cli 的运行状态、表情库、梗库、人情冷暖画成一个 Web UI 标签。",
+  "license": "MIT",
+  "files": ["index.js", "client.js", "cordis.patch.yml", "README.md"],
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "id": "dsh-qq-panel",
+    "name": "朝闻录",
+    "version": "0.1.0",
+    "permissions": "读文件(qchat-cli/private)、HTTP 路由(/qq-panel-*)、客户端侧栏 tab",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  }
+}

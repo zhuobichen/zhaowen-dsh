@@ -1,0 +1,5 @@
+# Bundle patch layer: 主机半边读 qchat-cli 的私有文件并挂 /qq-panel-* 路由；
+# `dsh.client` 声明让 web 端加载 ./client，注册一个「QQ 机器人」标签页。
+- insert:
+    - id: dsh-qq-panel
+      name: dsh-qq-panel
