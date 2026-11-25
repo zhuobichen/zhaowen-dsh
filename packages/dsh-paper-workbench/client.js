@@ -754,6 +754,11 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.pw-card{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;background:var(--dsw-alias-bg-layer-1);padding:0;text-align:left;font:inherit;color:inherit;width:100%;}',
             '.pw-card:hover{border-color:var(--dsw-alias-border-l3);}',
             '.pw-card-on{outline:2px solid var(--dsw-alias-brand-primary,#4d6bfe);outline-offset:-1px;}',
+            // 纯文字卡片（同代码工作台）：一条强调色代替封面，不摆海报
+            '.pw-card-flat{display:flex;flex-direction:column;}',
+            '.pw-card-flat .pw-card-body{padding-top:10px;}',
+            '.pw-stripe{height:4px;width:100%;flex:0 0 auto;border-radius:6px 6px 0 0;opacity:.9;}',
+            '.pw-one{display:block;}',
             '.pw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;}',
             '.pw-cover iframe,.pw-cover img,.pw-cover .pw-poster,.pw-cover .pw-cover-ph{pointer-events:none;}',
             '.pw-cover-hit{position:absolute;inset:0;cursor:pointer;}',
@@ -799,6 +804,46 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.pw-bullets{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.6;}',
             '.pw-bullets li:before{content:"· ";color:var(--dsw-alias-label-tertiary);}',
                         '.pw-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9600;padding:6px 14px;border-radius:999px;background:#16a34a;color:#fff;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);}',
+            // ── 媒体级粗野主义（huashu fe-huasu-editorial-brutalism）────────
+            // 纯黑白 + 超链接蓝 + 信号橙红；极端字号反差；1px 规则线分栏；零圆角、少留白。
+            // 用 .pw-wrap 作用域覆盖上面的默认"柔和卡片"样式，不动结构只换皮。
+            '.pw-wrap{--brut-ink:#111;--brut-paper:#fff;--brut-blue:#1a0dab;--brut-red:#e2231a;--brut-rule:#111;color:var(--brut-ink);background:var(--brut-paper);font-family:Inter,Arial,Helvetica,sans-serif;gap:0;padding:0 0 40px;}',
+            '.pw-wrap *{box-sizing:border-box;}',
+            '.pw-head{display:block;border-bottom:4px solid var(--brut-ink);padding:14px 18px 10px;gap:0;}',
+            '.pw-title{font-size:48px;line-height:.92;font-weight:900;letter-spacing:-.045em;text-transform:uppercase;display:block;margin-bottom:8px;}',
+            '.pw-head .pw-pill{border:1px solid var(--brut-rule);border-radius:0;background:transparent;color:var(--brut-ink);font-family:ui-monospace,Consolas,monospace;font-size:11px;padding:2px 7px;}',
+            '.pw-head .pw-pill b{color:var(--brut-red);}',
+            '.pw-head .pw-search{border:1px solid var(--brut-rule);border-radius:0;color:var(--brut-ink);font-size:13px;}',
+            '.pw-btn{border:1px solid var(--brut-ink);border-radius:0;background:var(--brut-ink);color:#fff;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}',
+            '.pw-btn:hover{background:var(--brut-red);border-color:var(--brut-red);color:#fff;}',
+            '.pw-layers{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:0;border-bottom:1px solid var(--brut-ink);padding:0 18px;}',
+            '.pw-layer{border:0;border-right:1px solid var(--brut-rule);border-radius:0;background:transparent;color:var(--brut-ink);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;padding:9px 14px;white-space:nowrap;}',
+            '.pw-layer:hover{background:var(--brut-ink);color:#fff;}',
+            '.pw-layer-on{background:var(--brut-red);color:#fff;border-color:var(--brut-ink);}',
+            '.pw-layer-n{color:var(--brut-blue);font-weight:900;}',
+            '.pw-chips{padding:10px 18px;border-bottom:1px solid var(--brut-rule);gap:5px;}',
+            '.pw-chip{border:1px solid var(--brut-ink);border-radius:0;color:var(--brut-ink);font-size:11px;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;background:transparent;}',
+            '.pw-chip:hover{background:var(--brut-ink);color:#fff;}',
+            '.pw-chip-on{background:var(--brut-blue);border-color:var(--brut-blue);color:#fff;}',
+            '.pw-grid{display:block;padding:0 18px;}',
+            '.pw-card{border:0;border-bottom:1px solid var(--brut-rule);border-radius:0;background:transparent;padding:12px 0;display:block;width:100%;}',
+            '.pw-card:hover{background:var(--brut-paper);}',
+            '.pw-card .pw-stripe{display:none;}',
+            '.pw-card-body{padding:0;display:block;}',
+            '.pw-card-name{font-size:22px;line-height:1.05;font-weight:900;letter-spacing:-.02em;display:block;margin-bottom:4px;}',
+            '.pw-card-name:before{content:counter(pw);color:var(--brut-red);font-family:ui-monospace,Consolas,monospace;font-size:12px;margin-right:8px;vertical-align:2px;}',
+            '.pw-grid{counter-reset:pw;}',
+            '.pw-card{counter-increment:pw;}',
+            '.pw-origin{border-radius:0;border:1px solid var(--brut-ink);font-family:ui-monospace,Consolas,monospace;font-size:9px;text-transform:uppercase;}',
+            '.pw-origin-ref{color:var(--brut-blue);background:transparent;border-color:var(--brut-blue);}',
+            '.pw-origin-mine{color:var(--brut-red);background:transparent;border-color:var(--brut-red);}',
+            '.pw-card-line{font-size:13px;line-height:1.5;color:var(--brut-ink);display:block;-webkit-line-clamp:initial;overflow:visible;margin-bottom:6px;}',
+            '.pw-tag{border:1px solid var(--brut-rule);border-radius:0;color:var(--brut-ink);font-size:9.5px;text-transform:uppercase;}',
+            '.pw-muted{color:#555;font-family:ui-monospace,Consolas,monospace;font-size:11px;}',
+            '.pw-modal-card{border:2px solid var(--brut-ink);border-radius:0;box-shadow:12px 12px 0 var(--brut-ink);padding:22px 24px;}',
+            '.pw-modal-head b{font-size:32px;line-height:1;font-weight:900;letter-spacing:-.03em;text-transform:uppercase;}',
+            '.pw-modal .pw-src{color:var(--brut-blue);}',
+            '.pw-bullets li:before{content:"— ";color:var(--brut-red);}',
           ].join('\n')
           document.head.appendChild(tag)
         } catch {
@@ -935,7 +980,8 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [state, setState] = useState(null)
         const [err, setErr] = useState('')
         const [layer, setLayer] = useState('')
-        const [scope, setScope] = useState('style')
+        // 论文工具库全是 method（工具/方法），没有视觉风格：默认显示全部并纳入无封面的条目。
+        const [scope, setScope] = useState('all')
         const [tag, setTag] = useState('')
         const [origin, setOrigin] = useState('')
         const [query, setQuery] = useState('')
@@ -943,7 +989,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         const [memberOpen, setMemberOpen] = useState(-1)
         const [toast, setToast] = useState('')
         const [moreOpen, setMoreOpen] = useState(false)
-        const [showTrash, setShowTrash] = useState(false)
+        const [showTrash, setShowTrash] = useState(true)
 
         const load = function () {
           fetch(API + '/state', { cache: 'no-store' })
@@ -1080,7 +1126,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               return el('button', {
                 key: l.id,
                 className: 'pw-layer' + (l.id === activeLayer ? ' pw-layer-on' : ''),
-                onClick: function () { setLayer(l.id); setTag(''); setOrigin(''); setShowTrash(false) },
+                onClick: function () { setLayer(l.id); setTag(''); setOrigin(''); setScope('all'); setShowTrash(true) },
                 title: l.hint,
               }, l.name, el('span', { className: 'pw-layer-n' }, String((l.entries || []).length)))
             }),
@@ -1088,38 +1134,23 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ),
 
           el('div', { className: 'pw-chips' },
-            // 数据性质筛选（风格/方法/素材、自制/引用）收进「更多筛选」，默认不占版面
-            (scopeUseful || originUseful) ? el('button', {
+            // 来源筛选（自制 / 社区引用）——工具库只有性质和出处两个维度
+            originUseful ? el('button', {
               key: 'more',
-              className: 'pw-chip' + (moreOpen || scope !== 'style' || origin !== '' ? ' pw-chip-on' : ''),
+              className: 'pw-chip' + (moreOpen || origin !== '' ? ' pw-chip-on' : ''),
               onClick: function () { setMoreOpen(!moreOpen) },
-              title: '按数据性质筛：风格 / 方法 / 素材，自制 / 引用',
-            }, '更多筛选 ' + (moreOpen ? '▴' : '▾')) : null,
-            // 整层都是风格时不显示 scope 三连（三个数字一样，点了没变化）
-            (moreOpen && scopeUseful) ? [
-              el('button', { key: 'sc-style', className: 'pw-chip' + (scope === 'style' ? ' pw-chip-on' : ''), onClick: function () { setScope('style') }, title: '只显示能照着做的视觉风格' }, '只看风格 ' + scopeCounts.style),
-              el('button', { key: 'sc-both', className: 'pw-chip' + (scope === 'both' ? ' pw-chip-on' : ''), onClick: function () { setScope('both') }, title: '风格 + 项目素材，隐藏方法与工程' }, '风格+素材 ' + scopeCounts.both),
-              el('button', { key: 'sc-all', className: 'pw-chip' + (scope === 'all' ? ' pw-chip-on' : ''), onClick: function () { setScope('all') }, title: '连方法/工程一起看' }, '全部 ' + scopeCounts.all),
-              el('span', { key: 'sc-sep', style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
-            ] : null,
-            // 整层只有一个来源时不显示来源筛选
+              title: '按出处筛：本机自建 / 社区引用',
+            }, '出处筛选 ' + (moreOpen ? '▴' : '▾')) : null,
             (moreOpen && originUseful) ? [
-              el('button', { key: 'or-all', className: 'pw-chip' + (origin === '' ? ' pw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部来源'),
-              el('button', { key: 'or-mine', className: 'pw-chip' + (origin === 'mine' ? ' pw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '只看自制'),
-              el('button', { key: 'or-ref', className: 'pw-chip' + (origin === 'referenced' ? ' pw-chip-on' : ''), onClick: function () { setOrigin(origin === 'referenced' ? '' : 'referenced') } }, '只看引用'),
+              el('button', { key: 'or-all', className: 'pw-chip' + (origin === '' ? ' pw-chip-on' : ''), onClick: function () { setOrigin(''); setTag('') } }, '全部'),
+              el('button', { key: 'or-mine', className: 'pw-chip' + (origin === 'mine' ? ' pw-chip-on' : ''), onClick: function () { setOrigin(origin === 'mine' ? '' : 'mine') } }, '本机自建'),
+              el('button', { key: 'or-ref', className: 'pw-chip' + (origin === 'referenced' ? ' pw-chip-on' : ''), onClick: function () { setOrigin(origin === 'referenced' ? '' : 'referenced') } }, '社区/内置'),
               el('span', { key: 'or-sep', style: { width: 1, height: 16, background: 'var(--dsw-alias-border-l2)' } }),
             ] : null,
             allTags.map(function (t) {
               return el('button', { key: t, className: 'pw-chip' + (tag === t ? ' pw-chip-on' : ''), onClick: function () { setTag(tag === t ? '' : t) } }, t)
             }),
-            // 没有封面的：默认不占版面，收进垃圾箱；点开才会出现
-            trashCount > 0 ? el('button', {
-              key: 'trash',
-              className: 'pw-chip' + (showTrash ? ' pw-chip-on' : ''),
-              onClick: function () { setShowTrash(!showTrash) },
-              title: '没有封面的条目：方法、合集、本机项目——平时不显示',
-            }, '🗑 垃圾箱 ' + trashCount) : null,
-            el('span', { className: 'pw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 paper_style 读、paper_style 把新目录扫进来'),
+            el('span', { className: 'pw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 paper_style op=get 读规格'),
           ),
 
           el('div', { className: 'pw-grid' },
@@ -1128,20 +1159,18 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
               return el('button', {
                 key: e.id,
                 type: 'button',
-                className: 'pw-card',
+                // 纯文字卡片（同代码工作台）：不摆封面海报，顶部一条强调色代替。
+                className: 'pw-card pw-card-flat',
                 onClick: function () { setOpenId(e.id) },
               },
-                el('div', { className: 'pw-cover' },
-                  el(Visual, { entry: e }),
-                  el('span', { className: 'pw-kind' }, e.swatch ? '风格' : (KIND_LABEL[e.kind] || e.kind)),
-                  el('div', { className: 'pw-cover-hit', onClick: function () { setOpenId(e.id) }, title: '看细节' }),
-                ),
+                el('div', {
+                  className: 'pw-stripe',
+                  style: { background: (e.swatch && e.swatch.accent) || 'var(--dsw-alias-brand-primary,#4d6bfe)' },
+                }),
                 el('div', { className: 'pw-card-body' },
                   el('div', { className: 'pw-card-name' },
                     e.name,
                     el('span', { className: 'pw-origin ' + (e.origin === 'referenced' ? 'pw-origin-ref' : 'pw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
-                    e.nature === 'method' ? el('span', { className: 'pw-nature' }, '方法') : null,
-                    e.nature === 'reference' ? el('span', { className: 'pw-nature' }, '素材') : null,
                   ),
                   el('div', { className: 'pw-card-line' }, e.oneLine),
                   el('div', { className: 'pw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'pw-tag', key: t }, t) })),
@@ -1170,8 +1199,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                 el('button', { className: 'pw-close', onClick: function () { setOpenId('') }, title: '关闭' }, '×'),
               ),
 
-              el('div', { className: 'pw-two' },
-                el('div', null, el(Visual, { entry: open, big: true })),
+              el('div', { className: 'pw-one' },
                 el('div', { style: { display: 'flex', flexDirection: 'column', gap: 9 } },
                   el('div', { style: { fontSize: 12, fontWeight: 600 } }, '要点'),
                   el('ul', { className: 'pw-bullets' }, (open.bullets || []).map(function (b, i) { return el('li', { key: i }, b) })),
