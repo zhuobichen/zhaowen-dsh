@@ -1,9 +1,9 @@
 /**
- * dsh-rea-video · 浏览器半边（UPA 扁平卡通皮肤）
+ * dsh-rea-video · 浏览器半边（浮世绘皮肤）
  *
- * 采用「50s 扁平卡通（UPA）」：色与线分在两张片、刻意印偏几像素（off-register），
- * 几何化图形、编号步骤卡、暖纸底 + 原子时代柔和补色、有限动画。
- * 数据仍只读 host 的 GET /rea-video/status，AI 通过 rea_video_view 读同一份。
+ * 采用「浮世绘」：每一块内容都是一整张江户木版画——和纸底、粗细双线边框、
+ * 竖排题签、朱印、平涂色块 + 墨线压色、套版微错位、横带堆叠纵深。
+ * 数据仍只读 GET /rea-video/status，AI 通过 rea_video_view 读同一份。
  */
 window.__ModuleLoader__.load({
   id: '@zhuobichen/dsh-rea-video',
@@ -14,57 +14,68 @@ window.__ModuleLoader__.load({
     const TITLE = 'rea-video 工作台'
     const ENDPOINT = '/rea-video/status'
 
-    // 文案集中（改内容不碰组件）
     const COPY = {
-      kicker: 'STEP BY STEP // LIMITED ANIMATION',
-      title: '视频逆向拆解',
-      line: '编号卡片，一次讲一件事：它怎么做的、用了什么、怎么复刻',
-      empty: '还没有拆解记录。让 AI 调 rea_video_cli {"args":["decompose","<视频路径>"]}，跑完这里就出现结论。',
+      series: '大乱斗 · 视频拆解大系',
+      title: '视频逆向拆解之图',
+      kicker: '一图一话 · 如手卷般展开',
+      empty: '还没有拆解版画。让 AI 调 rea_video_cli {"args":["decompose","<视频路径>"]}，结论就会印在这里。',
+      view: '其之图',
     }
 
-    // UPA 配色：暖纸底 + 柔和原子时代补色（不用纯色/霓虹）
-    const TONES = { coral: '#e07a5f', mustard: '#e9b44c', teal: '#5aa9a3', olive: '#8ba36b', plum: '#a97b9b' }
+    // 版画颜料：蓝摺（Prussian blue）主调 + 红（朱印）/ 赭 / 若绿，和纸为白
+    const PIGMENT = {
+      sumi: '#2b2620',      // 墨
+      indigo: '#2f5d8a',    // 蓝摺
+      pale: '#a8c4d8',      // 淡蓝
+      beni: '#b5462f',      // 红（朱印）
+      ochre: '#c9a24b',     // 赭
+      moss: '#6e8b5a',      // 若绿
+      washi: '#f0e7d2',     // 和纸
+    }
 
     let styleDone = false
     function useStyleOnce() {
       if (styleDone) return
       styleDone = true
       try {
-        if (document.querySelector('style[data-upa]')) return
+        if (document.querySelector('style[data-ukiyoe]')) return
         const tag = document.createElement('style')
-        tag.setAttribute('data-upa', '1')
+        tag.setAttribute('data-ukiyoe', '1')
         const css = `
-          .upa-wrap{--ink:#33291f;--paper:#f4ecd8;--coral:#e07a5f;--mustard:#e9b44c;--teal:#5aa9a3;display:flex;flex-direction:column;gap:14px;padding:18px 20px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;font-size:13px;color:var(--ink);
-            background:var(--paper);background-image:repeating-linear-gradient(0deg,rgba(80,60,40,.03) 0 1px,transparent 1px 4px),radial-gradient(ellipse 80% 50% at 50% 0%,rgba(255,250,235,.9),transparent);}
-          /* off-register：色片印偏线稿几像素（右下 3px），并轻微抖动，像手工套印 */
-          .upa-card{position:relative;border:0;background:#fff8e8;padding:14px 16px;box-shadow:3px 4px 0 rgba(51,41,31,.18);}
-          .upa-card:before{content:"";position:absolute;inset:-3px 3px 3px -3px;border:3px solid var(--ink);border-radius:2px;pointer-events:none;opacity:.85;animation:upaJitter 2.6s steps(2) infinite alternate;}
-          .upa-card:after{content:"";position:absolute;inset:0;background:var(--tone,var(--mustard));opacity:.10;pointer-events:none;transform:translate(3px,3px);}
-          @keyframes upaJitter{from{transform:translate(0,0)}to{transform:translate(1.5px,1px)}}
-          .upa-hero{position:relative;display:flex;gap:16px;align-items:center;padding:12px 16px;background:var(--ink);color:var(--paper);overflow:hidden;}
-          .upa-hero:after{content:"";position:absolute;right:-30px;top:-40px;width:150px;height:150px;background:repeating-conic-gradient(from 0deg,var(--coral) 0deg 12deg,transparent 12deg 24deg);opacity:.18;pointer-events:none;}
-          .upa-hero-art{flex:0 0 150px;height:100px;position:relative;z-index:1;}
-          .upa-copy{position:relative;z-index:1;flex:1;min-width:0;}
-          .upa-kicker{font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.2em;color:var(--mustard);}
-          .upa-title{font-size:24px;font-weight:800;margin:3px 0 5px;letter-spacing:-.01em;}
-          .upa-line{font-size:12px;color:#e8dcc4;line-height:1.5;}
-          .upa-nums{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
-          .upa-num{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,Consolas,monospace;font-size:11px;padding:3px 9px;border:2px solid var(--paper);color:var(--paper);}
-          .upa-num b{font-size:15px;color:var(--mustard);}
-          /* 编号徽章：ink 圆盘 + 纸色数字 */
-          .upa-step{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;}
-          .upa-medallion{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);align-items:center;justify-content:center;font-family:ui-monospace,Consolas,monospace;font-size:12px;flex:0 0 auto;}
-          .upa-heading{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;margin-bottom:8px;letter-spacing:.04em;}
-          .upa-muted{font-size:12px;color:#6b5a45;line-height:1.6;}
-          .upa-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
-          .upa-chip{font-size:11px;padding:2px 9px;border:2px solid var(--ink);background:var(--tone,var(--mustard));color:var(--ink);position:relative;}
-          .upa-chip:after{content:"";position:absolute;inset:0;border:2px solid var(--ink);transform:translate(2px,2px);pointer-events:none;opacity:.55;}
-          .upa-list{margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#4a3b2c;}
-          .upa-list li{margin-bottom:4px;}
-          .upa-verdict{font-size:13.5px;line-height:1.7;color:var(--ink);}
-          .upa-empty{font-size:12px;color:#6b5a45;padding:6px 0;}
-          .upa-btn{font-family:inherit;font-size:12px;padding:4px 10px;border:2px solid var(--ink);background:var(--mustard);color:var(--ink);cursor:pointer;box-shadow:2px 2px 0 var(--ink);}
-          .upa-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:9600;background:var(--ink);color:var(--paper);font-size:12px;padding:6px 14px;border:2px solid var(--paper);}
+          .uk-wrap{--sumi:#2b2620;--washi:#f0e7d2;--indigo:#2f5d8a;--beni:#b5462f;--ochre:#c9a24b;--moss:#6e8b5a;
+            display:flex;flex-direction:column;gap:14px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;font-size:13px;color:var(--sumi);
+            background:#e2d6bb;background-image:repeating-linear-gradient(0deg,rgba(90,70,40,.04) 0 1px,transparent 1px 5px),radial-gradient(ellipse 90% 60% at 50% 0%,rgba(255,250,235,.7),transparent);}
+          /* 一整张版画：和纸 + 粗细双线边框 + 套版微错位 */
+          .uk-sheet{position:relative;background:var(--washi);padding:14px 16px;margin:0;box-shadow:3px 4px 0 rgba(43,38,32,.20);}
+          .uk-sheet:before{content:"";position:absolute;inset:4px;border:1.5px solid var(--sumi);pointer-events:none;}
+          .uk-sheet:after{content:"";position:absolute;inset:0;border:4px solid var(--sumi);pointer-events:none;opacity:.9;transform:translate(1.5px,1px);}
+          .uk-sheet > *{position:relative;z-index:1;}
+          /* 卷首：$\{series\} 题签 + 竖排标题 + 朱印 */
+          .uk-head{display:flex;gap:16px;align-items:stretch;min-height:120px;}
+          .uk-cartouche{flex:0 0 46px;background:#faf3e2;border:1.5px solid var(--sumi);box-shadow:2px 2px 0 var(--sumi);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:6px;}
+          .uk-cart-title{writing-mode:vertical-rl;font-family:"Shippori Mincho",serif;font-size:15px;font-weight:700;letter-spacing:.18em;color:var(--sumi);}
+          .uk-seal{width:24px;height:24px;border:2px solid var(--beni);color:var(--beni);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transform:rotate(-4deg);}
+          .uk-head-art{flex:0 0 180px;height:118px;}
+          .uk-head-copy{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+          .uk-series{font-size:10px;letter-spacing:.2em;color:var(--beni);margin-bottom:4px;}
+          .uk-title{font-size:23px;font-weight:800;letter-spacing:.06em;color:var(--sumi);font-family:"Shippori Mincho",serif;}
+          .uk-kicker{font-size:11px;color:#6a5a45;margin-top:4px;letter-spacing:.05em;}
+          .uk-nums{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+          .uk-num{font-family:ui-monospace,Consolas,monospace;font-size:11px;padding:3px 9px;border:1.5px solid var(--indigo);color:var(--indigo);background:#eef3f7;}
+          .uk-num b{font-size:15px;color:var(--sumi);margin-right:3px;}
+          /* 编号视图：墨圆盘 + 和纸数字（像版画题号） */
+          .uk-view-tag{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13px;}
+          .uk-medallion{width:26px;height:26px;border-radius:50%;background:var(--indigo);color:var(--washi);display:inline-flex;align-items:center;justify-content:center;font-family:ui-monospace,Consolas,monospace;font-size:12px;flex:0 0 auto;border:1px solid var(--sumi);}
+          .uk-band{height:6px;margin:2px 0 10px;background:var(--band,var(--indigo));opacity:.85;box-shadow:inset 0 -1px 0 rgba(43,38,32,.3);}
+          .uk-muted{font-size:12px;line-height:1.7;color:#5a4b38;}
+          .uk-list{margin:6px 0 0;padding-left:20px;font-size:12px;line-height:1.8;color:#4a3d2c;}
+          .uk-list li{margin-bottom:4px;}
+          .uk-verdict{font-size:13px;line-height:1.8;color:var(--sumi);}
+          .uk-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+          .uk-chip{font-size:11px;padding:3px 10px;border:1.5px solid var(--sumi);background:var(--tone,var(--pale));color:var(--sumi);box-shadow:1.5px 1.5px 0 rgba(43,38,32,.25);}
+          .uk-empty{font-size:12px;color:#6a5a45;padding:6px 0;}
+          .uk-btn{font-family:inherit;font-size:12px;padding:5px 12px;border:1.5px solid var(--sumi);background:var(--beni);color:#fff;cursor:pointer;box-shadow:2px 2px 0 var(--sumi);}
+          .uk-toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:9600;background:var(--sumi);color:var(--washi);font-size:12px;padding:7px 14px;border:1px solid var(--washi);}
         `
         tag.textContent = css
         document.head.appendChild(tag)
@@ -76,6 +87,32 @@ window.__ModuleLoader__.load({
         if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(() => true, () => false)
       } catch (e) { /* fall through */ }
       return Promise.resolve(false)
+    }
+
+    // 一帧版画（横带堆叠 + 远景淡、近景浓）
+    function PrintArt() {
+      return h('svg', { viewBox: '0 0 180 118', width: '100%', height: '100%', 'aria-hidden': 'true' },
+        h('rect', { x: 0, y: 0, width: 180, height: 118, fill: '#dce7ef' }),
+        // bokashi 天空（淡蓝横带，用多条近似渐变的横带模拟）
+        h('rect', { x: 0, y: 0, width: 180, height: 30, fill: '#c5d9e8' }),
+        h('rect', { x: 0, y: 30, width: 180, height: 16, fill: PIGMENT.pale, opacity: '.7' }),
+        // 远山（平涂 + 墨线）
+        h('path', { d: 'M0 52 L40 30 L78 52 Z', fill: '#8aa6b8', stroke: PIGMENT.sumi, 'stroke-width': 1.6 }),
+        h('path', { d: 'M60 52 L108 26 L160 52 Z', fill: '#6f92a8', stroke: PIGMENT.sumi, 'stroke-width': 2 }),
+        // 雾带（suyari-gasumi：两端渐隐的圆角带）
+        h('rect', { x: 6, y: 48, width: 150, height: 7, rx: 3.5, fill: '#f0e7d2', opacity: '.85' }),
+        // 中景横带（平行斜线，不收敛）
+        h('path', { d: 'M0 62 L180 58 L180 78 L0 82 Z', fill: PIGMENT.moss, stroke: PIGMENT.sumi, 'stroke-width': 1.8 }),
+        h('path', { d: 'M20 66 l16 -2 M44 66 l16 -2 M68 65 l16 -2 M92 65 l16 -2', stroke: PIGMENT.sumi, 'stroke-width': 1, opacity: '.5' }),
+        // 前景——近景浓 + 墨线
+        h('path', { d: 'M0 84 L180 80 L180 118 L0 118 Z', fill: PIGMENT.indigo, stroke: PIGMENT.sumi, 'stroke-width': 2.2 }),
+        // 一位小人（画中人小，剪影清楚）
+        h('circle', { cx: 128, cy: 74, r: 4, fill: PIGMENT.sumi }),
+        h('path', { d: 'M124 78 l8 0 l3 12 l-14 0 z', fill: PIGMENT.beni, stroke: PIGMENT.sumi, 'stroke-width': 1.2 }),
+        // 朱印
+        h('rect', { x: 152, y: 96, width: 18, height: 18, fill: 'none', stroke: PIGMENT.beni, 'stroke-width': 2 }),
+        h('text', { x: 161, y: 109, 'text-anchor': 'middle', fill: PIGMENT.beni, 'font-size': 11, 'font-family': 'serif' }, '拆'),
+      )
     }
 
     function Workbench() {
@@ -106,76 +143,70 @@ window.__ModuleLoader__.load({
       const mix = data.mix || []
       const packaging = data.packaging || []
       const aspects = data.aspects || []
-      const copyIndex = `按 rea-video 工作台里的「${data.video || '最近一次拆解'}」的拆解结论复刻：${(data.verdict || '').slice(0, 120)}。要看完整规格：rea_video_view op=status`
+      const copyIndex = `按 rea-video 拆解「${data.video || '最近一次'}」复刻：${(data.verdict || '').slice(0, 120)}。完整规格：rea_video_view op=status`
 
-      return h('div', { className: 'upa-wrap' },
-        // Hero：几何化 presenter（身体静止，只有手在动——有限的动作）
-        h('div', { className: 'upa-hero' },
-          h('div', { className: 'upa-hero-art' },
-            h('svg', { viewBox: '0 0 150 100', width: '100%', height: '100%', 'aria-hidden': 'true' },
-              // 几何化的人：蛋头 + 圆柱身体（held drawing）
-              h('rect', { x: 34, y: 34, width: 44, height: 50, rx: 6, fill: TONES.teal, stroke: '#f4ecd8', 'stroke-width': 3 }),
-              h('circle', { cx: 56, cy: 24, r: 18, fill: '#f0c9a0', stroke: '#f4ecd8', 'stroke-width': 3 }),
-              h('circle', { cx: 50, cy: 24, r: 2, fill: '#33291f' }),
-              h('circle', { cx: 62, cy: 24, r: 2, fill: '#33291f' }),
-              // 只有手在动：指向右边的数据卡
-              h('path', { d: 'M78 58 q22 -6 40 -18', stroke: '#f4ecd8', 'stroke-width': 6, fill: 'none', 'stroke-linecap': 'round' }),
-              h('path', { d: 'M114 36 l10 4 l-9 6 z', fill: TONES.mustard, stroke: '#f4ecd8', 'stroke-width': 2 }),
-              // 编号圆盘 + 数据卡（off-register 色片）
-              h('circle', { cx: 128, cy: 26, r: 12, fill: TONES.coral, stroke: '#f4ecd8', 'stroke-width': 3 }),
-              h('text', { x: 128, y: 31, 'text-anchor': 'middle', fill: '#33291f', 'font-size': 13, 'font-family': 'monospace' }, '1'),
-              // 原子星芒装饰
-              h('path', { d: 'M18 18 l3 8 l8 3 l-8 3 l-3 8 l-3 -8 l-8 -3 l8 -3 z', fill: TONES.mustard, opacity: '.9' }),
+      return h('div', { className: 'uk-wrap' },
+        // 卷首一图
+        h('div', { className: 'uk-sheet' },
+          h('div', { className: 'uk-head' },
+            h('div', { className: 'uk-cartouche' },
+              h('div', { className: 'uk-cart-title' }, COPY.title),
+              h('div', { className: 'uk-seal' }, '解'),
             ),
-          ),
-          h('div', { className: 'upa-copy' },
-            h('div', { className: 'upa-kicker' }, COPY.kicker),
-            h('div', { className: 'upa-title' }, COPY.title),
-            h('div', { className: 'upa-line' }, COPY.line),
-            h('div', { className: 'upa-nums' },
-              h('span', { className: 'upa-num' }, h('b', null, String(data.duration ? data.duration.toFixed(1) : '—')), ' 秒'),
-              h('span', { className: 'upa-num' }, h('b', null, String(data.shots ?? '—')), ' 镜头'),
-              h('span', { className: 'upa-num' }, h('b', null, String(data.confidence ?? '—')), ' 置信度'),
+            h('div', { className: 'uk-head-art' }, h(PrintArt)),
+            h('div', { className: 'uk-head-copy' },
+              h('div', { className: 'uk-series' }, COPY.series),
+              h('div', { className: 'uk-title' }, '视频拆解大系'),
+              h('div', { className: 'uk-kicker' }, COPY.kicker),
+              h('div', { className: 'uk-nums' },
+                h('span', { className: 'uk-num' }, h('b', null, String(data.duration ? data.duration.toFixed(1) : '—')), '秒'),
+                h('span', { className: 'uk-num' }, h('b', null, String(data.shots ?? '—')), '景'),
+                h('span', { className: 'uk-num' }, h('b', null, String(data.confidence ?? '—')), ' 置信度'),
+              ),
             ),
           ),
         ),
 
-        state.error ? h('div', { className: 'upa-card', style: { '--tone': TONES.coral } }, '接口报错：' + state.error) : null,
-        state.loading ? h('div', { className: 'upa-empty' }, '读取中…') : null,
+        state.error ? h('div', { className: 'uk-sheet' }, h('div', { className: 'uk-empty' }, '接口报错：' + state.error)) : null,
+        state.loading ? h('div', { className: 'uk-empty' }, '刷新中…') : null,
+        !ok && !state.loading ? h('div', { className: 'uk-sheet' }, h('div', { className: 'uk-empty' }, COPY.empty)) : null,
 
-        !ok && !state.loading ? h('div', { className: 'upa-card', style: { '--tone': TONES.mustard } }, h('div', { className: 'upa-empty' }, COPY.empty)) : null,
-
-        // 步骤 1：结论（编号卡片）
-        ok && h('div', { className: 'upa-card', style: { '--tone': TONES.coral } },
-          h('div', { className: 'upa-heading' }, h('span', { className: 'upa-medallion' }, '1'), '结论'),
-          h('div', { className: 'upa-verdict' }, data.verdict || '（无）'),
-          mix.length > 0 && h('div', { className: 'upa-chips' }, mix.map((m, i) => h('span', {
-            key: i, className: 'upa-chip', style: { '--tone': [TONES.coral, TONES.mustard, TONES.teal, TONES.olive][i % 4] },
+        // 其之一：结论
+        ok && h('div', { className: 'uk-sheet' },
+          h('div', { className: 'uk-band', style: { '--band': PIGMENT.beni } }),
+          h('div', { className: 'uk-view-tag' }, h('span', { className: 'uk-medallion' }, '一'), '判定'),
+          h('div', { className: 'uk-verdict', style: { marginTop: 8 } }, data.verdict || '（无）'),
+          mix.length > 0 && h('div', { className: 'uk-chips' }, mix.map((m, i) => h('span', {
+            key: i, className: 'uk-chip',
+            style: { '--tone': [PIGMENT.pale, PIGMENT.ochre, '#b9cfc0', '#d9c4cf'][i % 4] },
           }, `${m.label_zh || m.label} ${Math.round((m.ratio || 0) * 100)}%`))),
         ),
 
-        // 步骤 2：画面与包装
-        ok && (aspects.length > 0 || packaging.length > 0) && h('div', { className: 'upa-card', style: { '--tone': TONES.teal } },
-          h('div', { className: 'upa-heading' }, h('span', { className: 'upa-medallion' }, '2'), '画面与包装'),
-          aspects.length > 0 && h('div', null, h('div', { className: 'upa-muted' }, '画面构成'), h('ul', { className: 'upa-list' }, aspects.map((a, i) => h('li', { key: i }, a)))),
-          packaging.length > 0 && h('div', null, h('div', { className: 'upa-muted', style: { marginTop: 6 } }, '后期叠加'), h('ul', { className: 'upa-list' }, packaging.map((p, i) => h('li', { key: i }, p)))),
+        // 其之二：画面与包装
+        ok && (aspects.length > 0 || packaging.length > 0) && h('div', { className: 'uk-sheet' },
+          h('div', { className: 'uk-band', style: { '--band': PIGMENT.indigo } }),
+          h('div', { className: 'uk-view-tag' }, h('span', { className: 'uk-medallion' }, '二'), '画面与包装'),
+          aspects.length > 0 && h('div', { style: { marginTop: 8 } }, h('div', { className: 'uk-muted' }, '画面构成'), h('ul', { className: 'uk-list' }, aspects.map((a, i) => h('li', { key: i }, a)))),
+          packaging.length > 0 && h('div', { style: { marginTop: 8 } }, h('div', { className: 'uk-muted' }, '后期叠加'), h('ul', { className: 'uk-list' }, packaging.map((p, i) => h('li', { key: i }, p)))),
         ),
 
-        // 步骤 3：可信度提示
-        ok && data.vlm && h('div', { className: 'upa-card', style: { '--tone': TONES.olive } },
-          h('div', { className: 'upa-heading' }, h('span', { className: 'upa-medallion' }, '3'), '可信度提示'),
-          h('div', { className: 'upa-muted' }, data.vlm),
+        // 其之三：可信度
+        ok && data.vlm && h('div', { className: 'uk-sheet' },
+          h('div', { className: 'uk-band', style: { '--band': PIGMENT.moss } }),
+          h('div', { className: 'uk-view-tag' }, h('span', { className: 'uk-medallion' }, '三'), '可信度提示'),
+          h('div', { className: 'uk-muted', style: { marginTop: 8 } }, data.vlm),
         ),
 
-        // 步骤 4：产物 + 复制索引
-        ok && h('div', { className: 'upa-card', style: { '--tone': TONES.mustard } },
-          h('div', { className: 'upa-heading' }, h('span', { className: 'upa-medallion' }, '4'), '产物'),
-          h('div', { className: 'upa-muted' }, data.report || ''),
-          h('div', { className: 'upa-muted', style: { marginTop: 4 } }, '完整报告含逐镜关键帧、证据、音轨图与复刻方案。'),
-          h('button', { className: 'upa-btn', style: { marginTop: 8 }, onClick: () => copy(copyIndex, '复刻索引') }, '复制复刻索引 → AI'),
+        // 其之四：产物
+        ok && h('div', { className: 'uk-sheet' },
+          h('div', { className: 'uk-band', style: { '--band': PIGMENT.ochre } }),
+          h('div', { className: 'uk-view-tag' }, h('span', { className: 'uk-medallion' }, '四'), '产物'),
+          h('div', { className: 'uk-muted', style: { marginTop: 8 } }, data.report || ''),
+          h('div', { className: 'uk-muted', style: { marginTop: 4 } }, '完整报告含逐镜关键帧、证据、音轨图与复刻方案。'),
+          h('button', { className: 'uk-btn', style: { marginTop: 10 }, onClick: () => copy(copyIndex, '复刻索引') }, '复制复刻索引 → AI'),
         ),
 
-        toast ? h('div', { className: 'upa-toast' }, toast) : null,
+        toast ? h('div', { className: 'uk-toast' }, toast) : null,
       )
     }
 
