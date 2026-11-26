@@ -465,6 +465,28 @@ const ASK = '按上面这套来就行；要换个工具或调做法先问我。'
 /** 索引式引用：面板复制这一行，AI 需要细节时自己 paper_style op=get。
  *  与设计工作台完全同构：用X工作台「名」（层 · id）→ 原始材料(url) →
  *  本地副本(path) → 要看完整规格。没有云端 URL 的条目退回用 source 描述当原始材料。 */
+
+/** 素材分类：图（jpg/png/webp…）= 样张参考，其余 = 提示词/规范文档。 */
+function __sourcesOf(entry) {
+  const src = Array.isArray(entry.sources) ? entry.sources : []
+  const isImg = (v) => /\.(jpe?g|png|webp|gif|svg)(\?|#|$)/i.test(String(v))
+  const docs = src.filter((s) => { const v = String(s.url ?? s.path ?? ''); return v !== '' && !isImg(v) })
+  const imgs = src.filter((s) => { const v = String(s.url ?? s.path ?? ''); return isImg(v) })
+  return { docs, imgs }
+}
+/** specOf 的「原始材料」段落：规范在前，样张在后并标注非提示词。 */
+function __materialLines(entry) {
+  const { docs, imgs } = __sourcesOf(entry)
+  const out = []
+  for (const d of docs) out.push(`  - ${d.label}（提示词/规范）：${d.url ?? d.path}`)
+  for (const im of imgs) out.push(`  - ${im.label}（⚠ 仅为参考图，非提示词规范）：${im.url ?? im.path}`)
+  if (imgs.length > 0 && docs.length === 0) {
+    out.push('  ⚠ 本条只有参考图、没有文字提示词规范：图只作视觉锚点，别当完整风格照抄；')
+    out.push('    完整要点/配色/做法见本规格上文，或让你自己说「按工作台里这条来」。')
+  }
+  return out
+}
+
 export function refOf(entry) {
   const layer = layerOf(entry.id)
   const src = Array.isArray(entry.sources) ? entry.sources : []
@@ -504,16 +526,11 @@ export function specOf(entry) {
   }
   // 与设计工作台同构：云端 URL 进「原始材料」，本地路径进「本地副本」——
   // 不把本地 SKILL.md 塞进原始材料（用户明确要求，浮世绘那条就是 URL+路径两行）。
-  const src = Array.isArray(entry.sources) ? entry.sources : []
-  const clouds = src.filter((x) => typeof x.url === 'string' && x.url !== '')
-  const locals = src.filter((x) => typeof x.path === 'string' && x.path !== '')
-  if (clouds.length > 0) {
-    lines.push('', '原始材料：', ...clouds.map((x) => `  - ${x.label}：${x.url}`))
+  const mats = __materialLines(entry)
+  if (mats.length > 0) {
+    lines.push('', '原始材料：', ...mats)
   } else {
     lines.push('', `原始材料：${entry.source}`)
-  }
-  if (locals.length > 0) {
-    lines.push('', '本地副本：', ...locals.map((x) => `  - ${x.label}：${x.path}`))
   }
   lines.push('', `怎么用：${entry.howto}`, '', ASK)
   return lines.join('\n')

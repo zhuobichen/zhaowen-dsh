@@ -942,6 +942,28 @@ export function layerOf(id) {
 }
 
 /** 索引式引用：面板复制这句给 AI，完整规格让 AI 用 ai_style op=get 展开 */
+
+/** 素材分类：图（jpg/png/webp…）= 样张参考，其余 = 提示词/规范文档。 */
+function __sourcesOf(entry) {
+  const src = Array.isArray(entry.sources) ? entry.sources : []
+  const isImg = (v) => /\.(jpe?g|png|webp|gif|svg)(\?|#|$)/i.test(String(v))
+  const docs = src.filter((s) => { const v = String(s.url ?? s.path ?? ''); return v !== '' && !isImg(v) })
+  const imgs = src.filter((s) => { const v = String(s.url ?? s.path ?? ''); return isImg(v) })
+  return { docs, imgs }
+}
+/** specOf 的「原始材料」段落：规范在前，样张在后并标注非提示词。 */
+function __materialLines(entry) {
+  const { docs, imgs } = __sourcesOf(entry)
+  const out = []
+  for (const d of docs) out.push(`  - ${d.label}（提示词/规范）：${d.url ?? d.path}`)
+  for (const im of imgs) out.push(`  - ${im.label}（⚠ 仅为参考图，非提示词规范）：${im.url ?? im.path}`)
+  if (imgs.length > 0 && docs.length === 0) {
+    out.push('  ⚠ 本条只有参考图、没有文字提示词规范：图只作视觉锚点，别当完整风格照抄；')
+    out.push('    完整要点/配色/做法见本规格上文，或让你自己说「按设计工作台里这条来」。')
+  }
+  return out
+}
+
 export function refOf(entry) {
   const section = sectionOf(entry.id)
   const layer = layerOf(entry.id)
@@ -971,8 +993,9 @@ export function specOf(entry) {
     '',
     `怎么用：${entry.howto}`,
   ]
-  if (Array.isArray(entry.sources) && entry.sources.length > 0) {
-    lines.push('', '原始材料：', ...entry.sources.map((s) => `  - ${s.label}：${s.url || s.path}`))
+  {
+    const mats = __materialLines(entry)
+    if (mats.length > 0) lines.push('', '原始材料：', ...mats)
   }
   return lines.join('\n')
 }
