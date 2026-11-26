@@ -74,6 +74,7 @@ window.__ModuleLoader__.load({
           .aib-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--aib-tone,var(--aib-brand));box-shadow:0 0 10px var(--aib-tone,var(--aib-brand));}
           .aib-card-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#f0f7ff;}
           .aib-origin{font-size:10px;padding:0 6px;border-radius:999px;border:1px solid rgba(125,211,255,.28);color:#8fc6e8;}
+          .aib-stars{font-size:10px;color:#fbbf24;background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:0 6px;white-space:nowrap;}
           .aib-line2{font-size:11.5px;color:#9fb6d4;line-height:1.5;}
           .aib-tags{display:flex;gap:5px;flex-wrap:wrap;}
           .aib-tag{font-size:10px;padding:0 6px;border-radius:999px;border:1px solid var(--aib-line);color:#8fb0d4;background:rgba(125,211,255,.05);}
@@ -102,6 +103,16 @@ window.__ModuleLoader__.load({
     }
 
     const TONES = ['#4f46e5', '#0891b2', '#7c3aed', '#059669', '#d97706']
+
+    // 从 sources 的 label 里取「★ N stars」，卡片上直接显示星数
+    function starOf(entry) {
+      for (const src of (entry.sources || [])) {
+        const m = String(src.label || '').match(/★\s*([\d.]+k?)/)
+        if (m) return '★ ' + m[1]
+      }
+      return ''
+    }
+
 
     function Workbench() {
       useStyleOnce()
@@ -209,7 +220,8 @@ window.__ModuleLoader__.load({
             onClick: () => setOpenId(e.id),
           },
             h('div', { className: 'aib-card-name' }, e.name,
-              h('span', { className: 'aib-origin' }, e.origin === 'referenced' ? '引用' : '自制')),
+              h('span', { className: 'aib-origin' }, e.origin === 'referenced' ? '引用' : '自制'),
+              starOf(e) ? h('span', { className: 'aib-stars' }, starOf(e)) : null),
             h('div', { className: 'aib-line2' }, e.oneLine),
             h('div', { className: 'aib-tags' }, (e.tags || []).map((t) => h('span', { key: t, className: 'aib-tag' }, t))),
           )),
