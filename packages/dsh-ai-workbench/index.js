@@ -15,6 +15,39 @@ import { ALL_ENTRIES, SECTIONS, TAGS, findEntry, refOf, specOf } from './catalog
 const NAME = 'dsh-ai-workbench'
 const ROUTE = '/ai-workbench'
 
+/** 可被开关的工作台（tab id → 名称）。默认全开：配置里没记录就算开着。 */
+const WORKBENCHES = [
+  { id: 'design-workbench', name: '设计工作台' },
+  { id: 'code-workbench', name: '代码工作台' },
+  { id: 'ai-workbench', name: 'AI 工作台' },
+  { id: 'paper-workbench', name: '论文工作台' },
+  { id: 'mowan-console', name: '破甲工作台' },
+  { id: 'rea-video', name: '视频逆向工作台' },
+  { id: 'craft-anything', name: 'Craft Anything' },
+  { id: 'qq-panel', name: 'QQ 纪实' },
+]
+
+function visibilityPath() {
+  return join(dshHome(), 'plugins', NAME, 'visibility.json')
+}
+
+/** { [tabId]: boolean } —— 没记录 = true（默认全开） */
+function loadVisibility() {
+  try {
+    const raw = JSON.parse(readFileSync(visibilityPath(), 'utf8'))
+    return raw && typeof raw === 'object' ? raw : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveVisibility(map) {
+  const dir = join(dshHome(), 'plugins', NAME)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  writeFileSync(visibilityPath(), JSON.stringify(map, null, 2), 'utf8')
+}
+
+
 function dshHome() {
   return process.env.DSH_HOME && process.env.DSH_HOME.trim() !== '' ? process.env.DSH_HOME : join(homedir(), '.dsh')
 }
@@ -126,7 +159,8 @@ export function apply(ctx) {
         '用户说「用那个 superpowers」「按 Anthropic 的模式来」「看工作台里的 Agent 设计」时先用 search/list 找 id，再 get。',
       parameters: {
         op: { type: 'string', required: true, description: 'list | section | layer | get | search | add | update | remove | pin | unpin | hide | unhide | reorder | stats | export | import' },
-        id: { type: 'string', description: '条目 id / 小工作台 id / 分类 id / 关键词' },
+        id: { type: 'string', description: '条目 id / 小工作台 id / 分类 id / 关键词 / toggle 时的工作台 id' },
+        workbench: { type: 'string', description: 'op=toggle 时的工作台 id' },
         name: { type: 'string', description: 'op=add 必填：名称' },
         oneLine: { type: 'string', description: 'op=add 必填：一句话' },
         section: { type: 'string', description: 'op=add 时所属小工作台，默认 agent' },
@@ -143,6 +177,30 @@ export function apply(ctx) {
       execute: async (args) => {
         const op = String(args.op ?? 'list').trim()
         const arg = String(args.id ?? '').trim()
+
+        // ── 工作台开关（默认全开）─────────────────────────────────────
+        if (op === 'workbenches') {
+          const vis = loadVisibility()
+          const rows = WORKBENCHES.map((w) => ({ ...w, enabled: vis[w.id] !== false }))
+          return {
+            ok: true,
+            workbenches: rows,
+            note: rows.map((w) => `${w.enabled ? '●' : '○'} ${w.id.padEnd(20)} ${w.name}`).join('\n') + '\n（默认全开；关掉后刷新页面生效）',
+          }
+        }
+
+        if (op === 'toggle') {
+          const id = arg || String(args.workbench ?? '').trim()
+          if (id === '') return { ok: false, code: 'MISSING_ID', error: 'toggle 需要工作台 id（用 op=workbenches 看清单）' }
+          if (!WORKBENCHES.some((w) => w.id === id)) return { ok: false, code: 'NOT_FOUND', error: `没有这个工作台：${id}` }
+          const vis = loadVisibility()
+          const next = vis[id] === false
+          if (next) delete vis[id]
+          else vis[id] = false
+          saveVisibility(vis)
+          const w = WORKBENCHES.find((x) => x.id === id)
+          return { ok: true, workbench: id, enabled: next, note: `${w.name} 已${next ? '开启' : '关闭'}。刷新页面生效。` }
+        }
 
         if (op === 'list') {
           const sections = mergedSections()
@@ -336,6 +394,25 @@ export function apply(ctx) {
             try {
               path = new URL(String(req.url ?? '/'), 'http://localhost').pathname.replace(ROUTE, '') || '/'
             } catch { path = '/' }
+            if (path === '/workbenches') {
+              if (String(req.method ?? 'GET').toUpperCase() !== 'GET') return json(405, { ok: false, error: 'method-not-allowed' })
+              const vis = loadVisibility()
+              return json(200, { ok: true, workbenches: WORKBENCHES.map((w) => ({ ...w, enabled: vis[w.id] !== false })) })
+            }
+
+            if (path === '/toggle') {
+              if (String(req.method ?? 'GET').toUpperCase() !== 'GET') return json(405, { ok: false, error: 'method-not-allowed' })
+              let id = ''
+              try { id = new URL(String(req.url ?? '/'), 'http://localhost').searchParams.get('id') ?? '' } catch { id = '' }
+              if (id === '' || !WORKBENCHES.some((w) => w.id === id)) return json(400, { ok: false, error: 'bad-workbench' })
+              const vis = loadVisibility()
+              const next = vis[id] === false
+              if (next) delete vis[id]
+              else vis[id] = false
+              saveVisibility(vis)
+              return json(200, { ok: true, workbench: id, enabled: next })
+            }
+
             if (path === '/state' || path === '/') {
               if (String(req.method ?? 'GET').toUpperCase() !== 'GET') return json(405, { ok: false, error: 'method-not-allowed' })
               return json(200, snapshot())

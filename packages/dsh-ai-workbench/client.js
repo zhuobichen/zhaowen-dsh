@@ -57,6 +57,12 @@ window.__ModuleLoader__.load({
           .aib-metrics{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--aib-sub);}
           .aib-metrics b{font-family:ui-monospace,Consolas,monospace;font-size:15px;color:#bfe9ff;margin-right:3px;text-shadow:0 0 8px rgba(125,211,255,.5);}
           .aib-subbar{display:flex;gap:8px;flex-wrap:wrap;}
+          .aib-switches{display:flex;gap:7px;flex-wrap:wrap;padding:9px 11px;border-radius:9px;border:1px solid var(--aib-line);background:#fff;}
+          .aib-switch{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;border:1px solid var(--aib-line);font-size:11px;cursor:pointer;color:var(--aib-sub);background:transparent;}
+          .aib-switch-on{border-color:#0891b2;background:rgba(8,145,178,.08);color:#0e7490;}
+          .aib-switch-dot{width:7px;height:7px;border-radius:50%;background:#cbd5e1;}
+          .aib-switch-on .aib-switch-dot{background:#10b981;box-shadow:0 0 0 2px rgba(16,185,129,.18);}
+          .aib-sw-title{font-size:11px;color:var(--aib-sub);margin-right:2px;}
           .aib-sub{display:flex;align-items:center;gap:8px;padding:8px 15px;border-radius:999px;border:1px solid rgba(125,211,255,.3);
             background:rgba(16,28,56,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;font-size:13px;font-weight:600;color:var(--aib-ink);}
           .aib-sub:hover{border-color:rgba(125,211,255,.6);}
@@ -110,8 +116,20 @@ window.__ModuleLoader__.load({
       const [layerId, setLayerId] = React.useState('')
       const [openId, setOpenId] = React.useState('')
       const [toast, setToast] = React.useState('')
+      const [workbenches, setWorkbenches] = React.useState([])
 
       const load = () => {
+        fetch('/ai-workbench/workbenches', { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((j) => {
+            if (j && j.ok) {
+              let off = {}
+              try { off = JSON.parse(window.localStorage.getItem('dsh-workbench-off') || '{}') } catch (e) { /* noop */ }
+              const merged = (j.workbenches || []).map((w) => ({ ...w, enabled: off[w.id] === true ? false : w.enabled }))
+              setWorkbenches(merged)
+            }
+          })
+          .catch(() => {})
         fetch(ENDPOINT, { cache: 'no-store' })
           .then((r) => r.json())
           .then((j) => { if (!j || j.ok !== true) { setErr((j && j.error) || '状态接口异常'); return } setErr(''); setState(j) })
@@ -137,6 +155,28 @@ window.__ModuleLoader__.load({
         }
         return null
       })()
+
+      const toggleWorkbench = (id) => {
+        const next = !workbenches.find((w) => w.id === id)?.enabled
+        // 写 localStorage：各工作台 client.js 在 apply 时同步读它决定是否注册 tab
+        try {
+          const off = JSON.parse(window.localStorage.getItem('dsh-workbench-off') || '{}')
+          if (next) delete off[id]
+          else off[id] = true
+          window.localStorage.setItem('dsh-workbench-off', JSON.stringify(off))
+        } catch (e) { /* localStorage 不可用就只走服务端 */ }
+        // 同时写服务端配置（AI 工具 op=workbenches 能读到同一份口径）
+        fetch('/ai-workbench/toggle?id=' + encodeURIComponent(id), { cache: 'no-store' })
+          .then((r) => r.json())
+          .then((j) => {
+            if (j && j.ok) {
+              setWorkbenches((prev) => prev.map((w) => w.id === id ? { ...w, enabled: j.enabled } : w))
+              setToast((j.enabled ? '已开启 ' : '已关闭 ') + (workbenches.find((w) => w.id === id)?.name || id) + '（刷新页面生效）')
+              setTimeout(() => setToast(''), 3000)
+            }
+          })
+          .catch(() => setToast('开关失败'))
+      }
 
       const refText = (e) => [
         `用 AI 工作台里的「${e.name}」（${section ? section.name : ''} · ${layer ? layer.name : ''} · ${e.id}），按这个来做。`,
@@ -178,6 +218,17 @@ window.__ModuleLoader__.load({
 
         err ? h('div', { className: 'aib-empty' }, '接口报错：' + err) : null,
         !state ? h('div', { className: 'aib-empty' }, '读取中…') : null,
+
+        // 工作台开关（默认全开；关掉后刷新页面生效）
+        h('div', { className: 'aib-switches' },
+          h('span', { className: 'aib-sw-title' }, '工作台开关：'),
+          workbenches.map((w) => h('button', {
+            key: w.id, type: 'button',
+            className: 'aib-switch' + (w.enabled ? ' aib-switch-on' : ''),
+            onClick: () => toggleWorkbench(w.id),
+            title: w.enabled ? `点击关闭 ${w.name}` : `点击开启 ${w.name}`,
+          }, h('span', { className: 'aib-switch-dot' }), w.name)),
+        ),
 
         // 子工作台选择器（嵌套第一层）
         h('div', { className: 'aib-subbar' },
@@ -246,6 +297,11 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots'],
       apply(ctx) {
+      // 工作台开关：默认全开；被用户关掉则不注册 tab（刷新页面生效）
+      try {
+        const _off = JSON.parse(window.localStorage.getItem('dsh-workbench-off') || '{}');
+        if (_off['ai-workbench'] === true) return;
+      } catch (e) { /* localStorage 不可用就当全开 */ }
         ctx.slots.inject('conversation.view', () => ctx.slots.register({
           name: 'conversation.view', id: 'ai-workbench', order: 22, label: () => TITLE,
         }, Workbench))

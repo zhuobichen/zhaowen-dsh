@@ -717,6 +717,11 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
     }
 
     function apply(ctx) {
+      // 工作台开关：默认全开；被用户关掉则不注册 tab（刷新页面生效）
+      try {
+        const _off = JSON.parse(window.localStorage.getItem('dsh-workbench-off') || '{}');
+        if (_off['design-workbench'] === true) return;
+      } catch (e) { /* localStorage 不可用就当全开 */ }
       const el = react.createElement
       const useState = react.useState
       const useEffect = react.useEffect

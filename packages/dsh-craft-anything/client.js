@@ -74,6 +74,11 @@ window.__ModuleLoader__.load({
     }
 
     function apply(ctx) {
+      // 工作台开关：默认全开；被用户关掉则不注册 tab（刷新页面生效）
+      try {
+        const _off = JSON.parse(window.localStorage.getItem('dsh-workbench-off') || '{}');
+        if (_off['craft-anything'] === true) return;
+      } catch (e) { /* localStorage 不可用就当全开 */ }
       const el = h
       const useState = React.useState
       const useEffect = React.useEffect
