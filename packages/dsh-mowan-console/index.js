@@ -269,6 +269,85 @@ export function apply(ctx, config = {}) {
     return ''
   }
 
+    /**
+     * 面板与 AI 工具共用的状态快照——这是「AI base 工作台」的基础：
+     * 人看到的规则卡/日志/统计，和 AI 通过 mowan_view 读到的是同一份数据。
+     */
+    const snapshot = () => {
+      loadIfChanged()
+      const ruleRows = Object.entries(rules.sessions ?? {}).map(([id, r]) => ({
+        sessionId: id,
+        session: shortId(id),
+        promptText: Array.isArray(r?.prompt) ? (r.prompt.find((f) => f && f.enabled !== false)?.text ?? '') : '',
+        promptChars: Array.isArray(r?.prompt)
+          ? r.prompt.reduce((n, f) => n + String(f?.text ?? '').length, 0)
+          : 0,
+        model: r?.model ?? null,
+        changedAt: r?.prompt?.[0]?.at ?? r?.model?.at ?? null,
+      }))
+
+      let live = []
+      try {
+        live = (ctx.agents?.list?.() ?? []).map((a) => String(a?.id ?? '')).filter(Boolean)
+      } catch {
+        live = []
+      }
+
+      let titles = {}
+      let meta = {}
+      // 标题来自 sessionTitle 服务（ctx.get('sessions').list() 不带 title）
+      try {
+        const titleSvc = ctx.get?.('sessionTitle')
+        if (titleSvc && typeof titleSvc.get === 'function') {
+          for (const id of live) {
+            const t = titleSvc.get(id)
+            const text = typeof t === 'string' ? t : (t && typeof t.title === 'string' ? t.title : '')
+            if (text !== '') titles[id] = text
+          }
+        }
+      } catch { /* 标题服务不可用就用下面的兜底 */ }
+      try {
+        const store = ctx.get?.('sessions')
+        const all = store && typeof store.list === 'function' ? Array.from(store.list() ?? []) : []
+        for (const item of all) {
+          const id = String(item?.id ?? item?.sessionId ?? '')
+          if (id === '') continue
+          if (!titles[id]) titles[id] = String(item?.title ?? '') || '(无标题)'
+          meta[id] = {
+            lastActive: item?.updatedAt ?? item?.lastActiveAt ?? item?.lastMessageAt ?? null,
+            messages:
+              typeof item?.messageCount === 'number'
+                ? item.messageCount
+                : Array.isArray(item?.messages)
+                  ? item.messages.length
+                  : null,
+          }
+        }
+      } catch {
+        titles = {}
+        meta = {}
+      }
+
+      const log = readLog(120)
+      return {
+        ok: true,
+        at: new Date().toISOString(),
+        rulesPath: rulesPath(),
+        logPath: logPath(),
+        rules: ruleRows,
+        live,
+        titles,
+        meta,
+        log,
+        // 面板顶栏那三个数字，AI 也该能读到同一份口径
+        stats: {
+          rules: ruleRows.length,
+          live: ruleRows.filter((r) => live.indexOf(r.sessionId) >= 0).length,
+          injected: log.filter((e) => e && e.op === 'inject').length,
+        },
+      }
+    }
+
   // AI 读面板同款数据的通道（与 /mowan-state 共用 snapshot()）
   ctx.tools.register(
     defineTool({
@@ -461,74 +540,6 @@ export function apply(ctx, config = {}) {
   if (ws && typeof ws.register === 'function') {
     // 热重载时旧路由不会被释放，重复注册会抛 duplicate prefix route，
     // 那会让整个插件激活失败（面板和 mowan 工具一起没了）。这里吞掉，等下次重启 DSH 才换新 handler。
-    /**
-     * 面板与 AI 工具共用的状态快照——这是「AI base 工作台」的基础：
-     * 人看到的规则卡/日志/统计，和 AI 通过 mowan_view 读到的是同一份数据。
-     */
-    const snapshot = () => {
-      loadIfChanged()
-      const ruleRows = Object.entries(rules.sessions ?? {}).map(([id, r]) => ({
-        sessionId: id,
-        session: shortId(id),
-        promptText: Array.isArray(r?.prompt) ? (r.prompt.find((f) => f && f.enabled !== false)?.text ?? '') : '',
-        promptChars: Array.isArray(r?.prompt)
-          ? r.prompt.reduce((n, f) => n + String(f?.text ?? '').length, 0)
-          : 0,
-        model: r?.model ?? null,
-        changedAt: r?.prompt?.[0]?.at ?? r?.model?.at ?? null,
-      }))
-
-      let live = []
-      try {
-        live = (ctx.agents?.list?.() ?? []).map((a) => String(a?.id ?? '')).filter(Boolean)
-      } catch {
-        live = []
-      }
-
-      let titles = {}
-      let meta = {}
-      try {
-        const store = ctx.get?.('sessions')
-        const all = store && typeof store.list === 'function' ? Array.from(store.list() ?? []) : []
-        for (const item of all) {
-          const id = String(item?.id ?? item?.sessionId ?? '')
-          if (id === '') continue
-          titles[id] = String(item?.title ?? '') || '(无标题)'
-          meta[id] = {
-            lastActive: item?.updatedAt ?? item?.lastActiveAt ?? item?.lastMessageAt ?? null,
-            messages:
-              typeof item?.messageCount === 'number'
-                ? item.messageCount
-                : Array.isArray(item?.messages)
-                  ? item.messages.length
-                  : null,
-          }
-        }
-      } catch {
-        titles = {}
-        meta = {}
-      }
-
-      const log = readLog(120)
-      return {
-        ok: true,
-        at: new Date().toISOString(),
-        rulesPath: rulesPath(),
-        logPath: logPath(),
-        rules: ruleRows,
-        live,
-        titles,
-        meta,
-        log,
-        // 面板顶栏那三个数字，AI 也该能读到同一份口径
-        stats: {
-          rules: ruleRows.length,
-          live: ruleRows.filter((r) => live.indexOf(r.sessionId) >= 0).length,
-          injected: log.filter((e) => e && e.op === 'inject').length,
-        },
-      }
-    }
-
     const safeRegister = (opts) => {
       try {
         ws.register(opts)
