@@ -40,7 +40,7 @@ ai_style op=search {id:关键词}       按名称/标签/出处搜
 （渐进式披露开放标准）、OpenAI 的 Evals / Guardrails / 成本优化、Context Engineering 五层栈，
 以及本机的 `agent-dispatch` / `zcode-kimi-integration` 两个 skill。
 
-每条都挂原始材料（URL 或本机路径）。
+每条都挂原始材料（URL 或本机路径）。GitHub 来源会标上 **★ star 数**（GitHub API 实测，数字随时间变化）。
 
 ## 怎么加第二个小工作台
 

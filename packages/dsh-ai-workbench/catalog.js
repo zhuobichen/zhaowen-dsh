@@ -128,7 +128,7 @@ const AGENT = [
     howto: '写任何 skill 前先对一遍三级披露；别把 500 行塞进 SKILL.md。',
     sources: [
       { label: 'Agent Skills 文章', url: 'https://www.anthropic.com/research/equipping-agents-for-the-real-world-with-agent-skills' },
-      { label: '官方 skills 仓', url: 'https://github.com/anthropics/skills' },
+      { label: '官方 skills 仓（★ 200k）', url: 'https://github.com/anthropics/skills' },
     ],
     origin: 'referenced',
   },
@@ -355,7 +355,7 @@ const AGENT = [
       '调试复杂流程建议配 LangSmith',
     ],
     howto: '要精细控制每一步、需要状态持久化和断点续跑时选它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/langchain-ai/langgraph' }],
+    sources: [{ label: 'GitHub 仓库（★ 45.4k）', url: 'https://github.com/langchain-ai/langgraph' }],
     origin: 'referenced',
   },
   {
@@ -372,7 +372,7 @@ const AGENT = [
       '适合原型与中小规模协作，超复杂控制流不如 LangGraph',
     ],
     howto: '任务天然能拆成几个专业角色时用，别为了用多 Agent 而拆。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/crewAIInc/crewAI' }],
+    sources: [{ label: 'GitHub 仓库（★ 61.3k）', url: 'https://github.com/crewAIInc/crewAI' }],
     origin: 'referenced',
   },
   {
@@ -389,7 +389,7 @@ const AGENT = [
       '新项目请用 microsoft/agent-framework，老项目有迁移指南',
     ],
     howto: '研究/复现旧论文可用；新项目别再起步于 AutoGen。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/microsoft/autogen' }],
+    sources: [{ label: 'GitHub 仓库（★ 62.0k）', url: 'https://github.com/microsoft/autogen' }],
     origin: 'referenced',
   },
   {
@@ -406,7 +406,7 @@ const AGENT = [
       '对 OpenAI 生态最顺，但模型接口可替换（非完全 lock-in）',
     ],
     howto: '要快速上生产、又要可观测和护栏时选；适合 planner→specialist→reviewer。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/openai/openai-agents-python' }],
+    sources: [{ label: 'GitHub 仓库（★ 30.9k）', url: 'https://github.com/openai/openai-agents-python' }],
     origin: 'referenced',
   },
   {
@@ -423,7 +423,7 @@ const AGENT = [
       '子 agent 消息带 parent_tool_use_id，便于追踪',
     ],
     howto: '编码/文件密集型任务、想要「给 Agent 一台电脑」时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/anthropics/claude-agent-sdk-python' }],
+    sources: [{ label: 'GitHub 仓库（★ 8.6k）', url: 'https://github.com/anthropics/claude-agent-sdk-python' }],
     origin: 'referenced',
   },
   {
@@ -440,7 +440,7 @@ const AGENT = [
       '可选 graph 模式，但核心保持简单',
     ],
     howto: '后端系统要严格结构化输出、可审计、可测试时首选。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/pydantic/pydantic-ai' }],
+    sources: [{ label: 'GitHub 仓库（★ 21.4k）', url: 'https://github.com/pydantic/pydantic-ai' }],
     origin: 'referenced',
   },
   {
@@ -457,7 +457,7 @@ const AGENT = [
       '有企业版目录 ee/（Apache-2.0 不含）',
     ],
     howto: '前端/Node 团队要 TS 原生、要内置 eval 和 playground 时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/mastra-ai/mastra' }],
+    sources: [{ label: 'GitHub 仓库（★ 29.8k）', url: 'https://github.com/mastra-ai/mastra' }],
     origin: 'referenced',
   },
   {
@@ -473,7 +473,7 @@ const AGENT = [
       '为需要长期状态、跨会话连续的 Agent 设计',
     ],
     howto: 'Agent 要记住很多、活得很久时用；一次性任务别上。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/letta-ai/letta' }],
+    sources: [{ label: 'GitHub 仓库（★ 25.5k）', url: 'https://github.com/letta-ai/letta' }],
     origin: 'referenced',
   },
   {
@@ -490,7 +490,7 @@ const AGENT = [
       'Phidata 已更名为 Agno',
     ],
     howto: '要一套覆盖全链路、又要速度和模块自由度时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/agno-agi/agno' }],
+    sources: [{ label: 'GitHub 仓库（★ 43.3k）', url: 'https://github.com/agno-agi/agno' }],
     origin: 'referenced',
   },
   {
@@ -506,7 +506,7 @@ const AGENT = [
       '和 HF 生态（transformers / hub）结合紧',
     ],
     howto: '想理解 Agent 循环本质、或要一个能随手改的极简实现时看它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/huggingface/smolagents' }],
+    sources: [{ label: 'GitHub 仓库（★ 30.5k）', url: 'https://github.com/huggingface/smolagents' }],
     origin: 'referenced',
   },
   {
@@ -522,7 +522,7 @@ const AGENT = [
       'planner 自动组合步骤，适合 .NET 企业栈',
     ],
     howto: '.NET/Java 企业环境、要稳健集成现有系统时选。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/microsoft/semantic-kernel' }],
+    sources: [{ label: 'GitHub 仓库（★ 28.8k）', url: 'https://github.com/microsoft/semantic-kernel' }],
     origin: 'referenced',
   },
   {
@@ -538,7 +538,7 @@ const AGENT = [
       '配套 A2A（Agent-to-Agent）协议做 Agent 间通信',
     ],
     howto: 'GCP/Vertex 栈、或关注 Agent 间互操作协议时看它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/google/adk-python' }],
+    sources: [{ label: 'GitHub 仓库（★ 22.4k）', url: 'https://github.com/google/adk-python' }],
     origin: 'referenced',
   },
   {
@@ -554,7 +554,7 @@ const AGENT = [
       '每条写清「为什么喜欢、适合什么、踩过的坑」',
     ],
     howto: '要选型、想知道「别人生产里到底用哪个」时先读这份。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/EijiAC24/awesome-ai-agent-frameworks' }],
+    sources: [{ label: 'GitHub 仓库（★ 0）', url: 'https://github.com/EijiAC24/awesome-ai-agent-frameworks' }],
     origin: 'referenced',
   },
   {
@@ -570,7 +570,7 @@ const AGENT = [
       '中文材料，适合快速建立选型直觉',
     ],
     howto: '要给团队做框架选型汇报、或快速横向了解时读。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/eulerai-au/blob/main/agent_framework/agent_framework_report_zh.md' }],
+    sources: [{ label: 'GitHub 仓库（★ 10）', url: 'https://github.com/eulerai-au/blob/main/agent_framework/agent_framework_report_zh.md' }],
     origin: 'referenced',
   },
   {
@@ -587,7 +587,7 @@ const AGENT = [
       '多 provider（Anthropic/OpenAI/OpenRouter/Ollama…）',
     ],
     howto: '想看清 Agent 思考轨迹、从编码 Agent 入门时看它的实现。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/cline/cline' }],
+    sources: [{ label: 'GitHub 仓库（★ 71.9k）', url: 'https://github.com/cline/cline' }],
     origin: 'referenced',
   },
   {
@@ -603,7 +603,7 @@ const AGENT = [
       '支持 MCP 接额外工具',
     ],
     howto: '要精细化控制 Agent 工作流、区分规划与执行阶段时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/RooCodeInc/Roo-Code' }],
+    sources: [{ label: 'GitHub 仓库（★ 24.2k）', url: 'https://github.com/RooCodeInc/Roo-Code' }],
     origin: 'referenced',
   },
   {
@@ -619,7 +619,7 @@ const AGENT = [
       '支持几乎所有主流模型，配置文件简单',
     ],
     howto: '喜欢命令行 + Git 工作流、做跨文件小重构时很好用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/Aider-AI/aider' }],
+    sources: [{ label: 'GitHub 仓库（★ 50.3k）', url: 'https://github.com/Aider-AI/aider' }],
     origin: 'referenced',
   },
 
@@ -638,7 +638,7 @@ const AGENT = [
       'sub-agent、权限门、planning 都是 extension 而非内置——架构值得学',
     ],
     howto: '想学「最小 Agent 循环 + 扩展优先」的架构，或找可嵌入的编码 Agent 时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/earendil-works/pi' }],
+    sources: [{ label: 'GitHub 仓库（★ 123k）', url: 'https://github.com/earendil-works/pi' }],
     origin: 'referenced',
   },
   {
@@ -656,7 +656,7 @@ const AGENT = [
       'guardrails 默认开：防密钥外泄、破坏性命令确认、工具输出标注防注入',
     ],
     howto: '想学「小核心 + 持久记忆 + 自审闭环」的实现时读它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/Ashutosh0428/pi-agent' }],
+    sources: [{ label: 'GitHub 仓库（★ 10）', url: 'https://github.com/Ashutosh0428/pi-agent' }],
     origin: 'referenced',
   },
   {
@@ -673,7 +673,7 @@ const AGENT = [
       '单端口 HTTP+WS 网关接 Telegram / Discord / WebChat，RPC 进程池',
     ],
     howto: '要看「Pi 怎么被扩成企业级多 Agent 系统」时读它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/Dwsy/agent' }],
+    sources: [{ label: 'GitHub 仓库（★ 26）', url: 'https://github.com/Dwsy/agent' }],
     origin: 'referenced',
   },
   {
@@ -689,7 +689,7 @@ const AGENT = [
       '把「自我改进」做成可复用的自动循环，而非一次性提示',
     ],
     howto: '想给 Agent 加「自己试、自己测、自己留」的闭环时参考。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/davebcn87/pi-autoresearch' }],
+    sources: [{ label: 'GitHub 仓库（★ 8.3k）', url: 'https://github.com/davebcn87/pi-autoresearch' }],
     origin: 'referenced',
   },
   {
@@ -706,7 +706,7 @@ const AGENT = [
       '注意：tools 以 Pi 进程权限运行，不做沙箱——用不可信仓库要审',
     ],
     howto: '和官方 Pi 同名但不同实现；看「终端 Agent 的通用形态」时可对照。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/miniocean404-ai/pi' }],
+    sources: [{ label: 'GitHub 仓库（★ 0）', url: 'https://github.com/miniocean404-ai/pi' }],
     origin: 'referenced',
   },
   {
@@ -723,7 +723,7 @@ const AGENT = [
       '自改进 topic 榜首项目',
     ],
     howto: '要理解「让 Agent 越用越强」的状态架构时读它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/PrimeIntellect-ai/prime-agent' }],
+    sources: [{ label: 'GitHub 仓库（★ 22.9k）', url: 'https://github.com/PrimeIntellect-ai/prime-agent' }],
     origin: 'referenced',
   },
   {
@@ -739,7 +739,7 @@ const AGENT = [
       '社区共建，文档随任务更新而变聪明',
     ],
     howto: 'Agent 老幻觉 API 用法时，用「外部准确文档」替代「塞进 prompt」。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/andrewyng/context-hub' }],
+    sources: [{ label: 'GitHub 仓库（★ 14.0k）', url: 'https://github.com/andrewyng/context-hub' }],
     origin: 'referenced',
   },
   {
@@ -755,7 +755,7 @@ const AGENT = [
       '把「用户交互」直接转成 Agent 的改进信号',
     ],
     howto: '要把「反馈→学习→交付」做成流水线时参考。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/Human-Agent-Society/reef' }],
+    sources: [{ label: 'GitHub 仓库（★ 7.6k）', url: 'https://github.com/Human-Agent-Society/reef' }],
     origin: 'referenced',
   },
   {
@@ -770,7 +770,7 @@ const AGENT = [
       '以 benchmark 为优化目标，迭代提升系统表现',
     ],
     howto: '研究自改进通用方法时看；生产落地先看 Reef / Prime Agent。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/hexo-ai/sia' }],
+    sources: [{ label: 'GitHub 仓库（★ 2.2k）', url: 'https://github.com/hexo-ai/sia' }],
     origin: 'referenced',
   },
   {
@@ -787,7 +787,7 @@ const AGENT = [
       '记忆栈：CLAUDE.md 规则 > MEMORY.md 项目记忆 > 会话上下文',
     ],
     howto: '要给自己的 Agent 加长期学习机制时，照这套模式落地。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/greyforgestudios/Claude-Skills/blob/main/engineering/self-improving-agent/SKILL.md' }],
+    sources: [{ label: 'GitHub 仓库（★ 1）', url: 'https://github.com/greyforgestudios/Claude-Skills/blob/main/engineering/self-improving-agent/SKILL.md' }],
     origin: 'referenced',
   },
   {
@@ -804,7 +804,7 @@ const AGENT = [
       '从「需求」到「可运行软件」的自动化流水线',
     ],
     howto: '要学「用 SOP 约束多 Agent 协作」、或做软件自动生成时读它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/FoundationAgents/MetaGPT' }],
+    sources: [{ label: 'GitHub 仓库（★ 71.5k）', url: 'https://github.com/FoundationAgents/MetaGPT' }],
     origin: 'referenced',
   },
   {
@@ -820,7 +820,7 @@ const AGENT = [
       '记忆管理 + 模型无关接入',
     ],
     howto: '阿里系、要可控可观测的多 Agent 系统时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/agentscope-ai/agentscope' }],
+    sources: [{ label: 'GitHub 仓库（★ 36.7k）', url: 'https://github.com/agentscope-ai/agentscope' }],
     origin: 'referenced',
   },
   {
@@ -836,7 +836,7 @@ const AGENT = [
       '可作为独立记忆底座接入任意 Agent 框架',
     ],
     howto: 'Agent 需要「记住用户/项目」又不想自己造存储时用它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/mem0ai/mem0' }],
+    sources: [{ label: 'GitHub 仓库（★ 69.5k）', url: 'https://github.com/mem0ai/mem0' }],
     origin: 'referenced',
   },
   {
@@ -852,7 +852,7 @@ const AGENT = [
       '自托管，模型无关',
     ],
     howto: '要快速可视化搭原型、或非工程同事参与搭 Agent 时用。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/FlowiseAI/Flowise' }],
+    sources: [{ label: 'GitHub 仓库（★ 55.6k）', url: 'https://github.com/FlowiseAI/Flowise' }],
     origin: 'referenced',
   },
   {
@@ -868,7 +868,7 @@ const AGENT = [
       '适合照着改、边做边学',
     ],
     howto: '要「看例子学 Agent 设计」而非读框架文档时看它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/NirDiamant/GenAI_Agents' }],
+    sources: [{ label: 'GitHub 仓库（★ 25.1k）', url: 'https://github.com/NirDiamant/GenAI_Agents' }],
     origin: 'referenced',
   },
   {
@@ -884,7 +884,7 @@ const AGENT = [
       '生产请用 openai-agents-sdk（见开源框架分类）',
     ],
     howto: '想用最短代码理解「handoff 是什么」时读它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/openai/swarm' }],
+    sources: [{ label: 'GitHub 仓库（★ 22.2k）', url: 'https://github.com/openai/swarm' }],
     origin: 'referenced',
   },
   {
@@ -900,7 +900,7 @@ const AGENT = [
       '产出带来源的深度研究报告',
     ],
     howto: '做「研究型 Agent」、要参考中文团队实现时看它。',
-    sources: [{ label: 'GitHub 仓库', url: 'https://github.com/bytedance/deer-flow' }],
+    sources: [{ label: 'GitHub 仓库（★ 85.8k）', url: 'https://github.com/bytedance/deer-flow' }],
     origin: 'referenced',
   },
 ]
