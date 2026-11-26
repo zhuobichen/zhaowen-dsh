@@ -24,6 +24,11 @@ const METHOD_NAME = /方法|流程|重构|渲染栈|工程|模板库|什么时�
 const CSS_HINT = /\b\d+px\b|#[0-9a-f]{3,8}\b|border-radius|font-size|letter-spacing|line-height|backdrop-filter|oklch|grid-template|flex|box-shadow|padding/i
 
 export function classifyEntry(entry) {
+  // Agent 论文图片层：这是纯视觉参考图（不是方法/素材），强制归 style，
+  // 否则会被默认 scope=style 过滤掉（面板显示「这一页没剪到东西」）。
+  if (entry.layer === 'agent-paper' || (entry.kind === 'image' && Array.isArray(entry.tags) && entry.tags.indexOf('Agent') >= 0)) {
+    return { nature: 'style', score: 99, why: ['Agent论文图片：纯视觉参考图'] }
+  }
   let score = 0
   const why = []
 
