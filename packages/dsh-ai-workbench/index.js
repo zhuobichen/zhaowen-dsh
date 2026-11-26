@@ -199,7 +199,17 @@ export function apply(ctx) {
           else vis[id] = false
           saveVisibility(vis)
           const w = WORKBENCHES.find((x) => x.id === id)
-          return { ok: true, workbench: id, enabled: next, note: `${w.name} 已${next ? '开启' : '关闭'}。刷新页面生效。` }
+          return {
+            ok: true,
+            workbench: id,
+            enabled: next,
+            patchId: 'include:' + (id === 'qq-panel' ? 'dsh-qq-panel' : id),
+            note: next
+              ? `${w.name} 已记录为开启。`
+              : `${w.name} 已记录为关闭（visibility.json）。\n` +
+                '要让 tab 立即消失，请用 plugin_manager 真正禁用：\n' +
+                `  plugin_manager action=set_plugin target=include:${id === 'qq-panel' ? 'dsh-qq-panel' : id} enabled=false`,
+          }
         }
 
         if (op === 'list') {
