@@ -32,9 +32,12 @@ window.__ModuleLoader__.load({
       if (styleDone) return
       styleDone = true
       try {
-        if (document.querySelector('style[data-aiwb]')) return
+        // 旧版浅色样式用的是 data-aiwb="1"，必须先删掉，否则界面停在旧皮肤
+        const old = document.querySelector('style[data-aiwb="1"]')
+        if (old) old.remove()
+        if (document.querySelector('style[data-aiwb="y2k"]')) return
         const tag = document.createElement('style')
-        tag.setAttribute('data-aiwb', '1')
+        tag.setAttribute('data-aiwb', 'y2k')
         const css = `
           /* ── Y2K 铬金属 / Chrome Future Retro ─────────────────────────── */
           .aib-wrap{--aib-ink:#e8f2ff;--aib-sub:#8ba8cc;--aib-line:rgba(120,170,240,.22);--aib-brand:#7dd3ff;--aib-glass:rgba(16,28,56,.78);
@@ -45,7 +48,7 @@ window.__ModuleLoader__.load({
           .aib-hero{position:relative;display:flex;gap:18px;align-items:center;padding:18px 20px;border-radius:14px;overflow:hidden;
             background:linear-gradient(115deg,rgba(20,34,72,.85),rgba(8,16,40,.9));border:1px solid rgba(125,211,255,.28);}
           .aib-hero:after{content:"";position:absolute;right:-60px;top:-90px;width:300px;height:300px;border-radius:50%;border:1px solid rgba(125,211,255,.16);pointer-events:none;}
-          .aib-hero-art{flex:0 0 118px;height:82px;filter:drop-shadow(0 0 6px rgba(125,211,255,.55));}
+          .aib-hero-art{flex:0 0 118px;height:92px;filter:drop-shadow(0 0 6px rgba(125,211,255,.55));}
           .aib-kicker{font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.24em;color:#79b8ff;text-shadow:0 0 8px rgba(80,160,255,.6);}
           .aib-title{font-size:30px;font-weight:900;letter-spacing:.02em;margin:3px 0 5px;
             background:linear-gradient(180deg,#ffffff 0%,#d8eaff 28%,#5b8fd6 47%,#ffffff 54%,#a8d4ff 74%,#4a76bd 100%);
@@ -144,7 +147,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'aib-wrap' },
         h('div', { className: 'aib-hero' },
           h('div', { className: 'aib-hero-art' },
-            h('svg', { viewBox: '0 0 118 82', width: '100%', height: '100%', 'aria-hidden': 'true' },
+            h('svg', { viewBox: '0 0 118 92', width: '100%', height: '100%', 'aria-hidden': 'true' },
               h('defs', null,
                 h('linearGradient', { id: 'aib-chrome', x1: '0', y1: '0', x2: '0', y2: '1' },
                   h('stop', { offset: '0%', 'stop-color': '#ffffff' }),
@@ -158,7 +161,7 @@ window.__ModuleLoader__.load({
               h('ellipse', { cx: 78, cy: 30, rx: 20, ry: 7, fill: 'none', stroke: 'rgba(125,211,255,.22)', 'stroke-width': 1, transform: 'rotate(-22 78 30)' }),
               h('path', { d: 'M26 18 L29 33 L44 36 L29 39 L26 54 L23 39 L8 36 L23 33 Z', fill: 'url(#aib-chrome)' }),
               h('path', { d: 'M96 56 L97.5 62 L103 63.5 L97.5 65 L96 71 L94.5 65 L89 63.5 L94.5 62 Z', fill: 'url(#aib-chrome)', opacity: '.85' }),
-              h('text', { x: 10, y: 76, fill: 'url(#aib-chrome)', 'font-size': 15, 'font-weight': 900, 'font-family': 'Arial, sans-serif', 'letter-spacing': '2' }, 'AI // WB'),
+              h('text', { x: 8, y: 86, fill: 'url(#aib-chrome)', 'font-size': 14, 'font-weight': 900, 'font-family': 'Arial, sans-serif', 'letter-spacing': '2' }, 'AI // WB'),
             ),
           ),
           h('div', null,
