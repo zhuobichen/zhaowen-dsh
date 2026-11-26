@@ -11,7 +11,8 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { extname, join } from 'node:path'
+import { dirname, extname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
@@ -20,6 +21,7 @@ import { classifyEntry } from './classify.js'
 import { scanRoot } from './scan.js'
 import { coverPath, coverUrlsOf, coversDir, fetchCover, warmCovers } from './covers.js'
 
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url))
 const NAME = 'dsh-design-workbench'
 const ROUTE = '/design-workbench'
 const MAX_COVER_BYTES = 12 * 1024 * 1024
@@ -116,10 +118,28 @@ function applyOverride(entry, overrides) {
   return merged
 }
 
+/**
+ * 动态本地化：sources 里有 GitHub URL 的条目（如 Agent论文图片），
+ * 如果本地副本存在就补一条 path —— 实现「没拉就上网看 URL，拉了就多出本地路径」。
+ * 每次请求时实时判断，所以拉取后热重载/刷新就自动更新，不用改 catalog。
+ */
+function localizeEntry(e) {
+  if (e.layer !== 'agent-paper' || !Array.isArray(e.sources)) return e
+  const hasPath = e.sources.some((s) => typeof s.path === 'string' && s.path !== '')
+  if (hasPath) return e
+  // cover 可能是相对路径（covers/...）或绝对路径；相对路径按包目录解析
+  const cover = typeof e.cover === 'string' ? e.cover : ''
+  const abs = cover === '' ? '' : (cover.startsWith('/') || /^[A-Za-z]:[\/]/.test(cover) ? cover : join(MODULE_DIR, cover))
+  if (abs !== '' && existsSync(abs)) {
+    return { ...e, sources: [...e.sources, { label: '本地副本', path: abs }] }
+  }
+  return e
+}
+
 /** 给条目补上 nature（style / method / reference），面板与工具都靠它筛。 */
 function withNature(e) {
   const r = classifyEntry(e)
-  return { ...e, nature: r.nature, natureScore: r.score }
+  return localizeEntry({ ...e, nature: r.nature, natureScore: r.score })
 }
 
 /**
@@ -165,7 +185,7 @@ function findAny(id, opts = {}) {
   const extra = overlay.entries.find((e) => e.id === id)
   const base = builtin ?? extra ?? null
   if (base === null) return null
-  const merged = applyOverride(base, overlay.overrides)
+  const merged = localizeEntry(applyOverride(base, overlay.overrides))
   return opts.includeHidden === true || merged.hidden !== true ? merged : null
 }
 
