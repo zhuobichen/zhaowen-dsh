@@ -193,7 +193,10 @@ const DEV = [
       '版本比对用 diff，补丁必须 expected 字节核验',
     ],
     howto: '分析 Windows PE/驱动、找 license 校验、比对版本差异时用。',
-    sources: [{ label: 'skills', path: 'C:/Users/Administrator/.dsh/skills' }],
+    sources: [
+      { label: 'skills', path: 'C:/Users/Administrator/.dsh/skills' },
+      { label: '可复用脚本', path: 'D:/github_project/ZhaoWen_GitHub维护/dsh/home/skills/zcode-kimi-integration/scripts/' },
+    ],
     origin: 'mine',
   },
   {

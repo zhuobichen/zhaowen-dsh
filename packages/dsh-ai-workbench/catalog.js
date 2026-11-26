@@ -333,7 +333,10 @@ const AGENT = [
       '卸载三件套：导出→脱敏→正规卸载器→手清 %APPDATA%/~/.xx 与更新器缓存',
     ],
     howto: '换工具要带走对话，或给别的工具配同一个模型时用。',
-    sources: [{ label: '本机 skill', path: 'D:/github_project/ZhaoWen_GitHub维护/dsh/home/skills/zcode-kimi-integration/SKILL.md' }],
+    sources: [
+      { label: '本机 skill', path: 'D:/github_project/ZhaoWen_GitHub维护/dsh/home/skills/zcode-kimi-integration/SKILL.md' },
+      { label: '可复用脚本', path: 'D:/github_project/ZhaoWen_GitHub维护/dsh/home/skills/zcode-kimi-integration/scripts/' },
+    ],
     origin: 'mine',
   },
 ]
