@@ -2974,22 +2974,52 @@ export function layerOf(id) {
   return LAYERS.find((l) => l.entries.some((e) => e.id === id)) || null
 }
 
-/** 「引用给 AI」的正文。三类（tokens / image / text）措辞一致，都带出处与约束。 */
-/** 索引式引用：只给「用哪一条」，细节让 AI 自己 design_style op=get。 */
+/**
+ * 按素材类型分组：规范文档（.md / 提示词） vs 样张图（jpg/png/webp）。
+ * 关键：风格 ≠ 一张参考图。引用里必须把「提示词规范」和「样张」分开标，
+ * 否则 AI 会以为照着那张 jpg 抄就行，漏掉真正的规则。
+ */
+function sourcesOf(entry) {
+  const src = Array.isArray(entry.sources) ? entry.sources : []
+  const isImage = (v) => /\.(jpe?g|png|webp|gif|svg)(\?|#|$)/i.test(v)
+  const docs = src.filter((s) => {
+    const v = String(s.url ?? s.path ?? '')
+    return v !== '' && !isImage(v)
+  })
+  const images = src.filter((s) => {
+    const v = String(s.url ?? s.path ?? '')
+    return isImage(v)
+  })
+  return { docs, images }
+}
+
+/** 「引用给 AI」的正文。索引式：只给「用哪一条」，细节让 AI 自己 design_style op=get。 */
 export function refOf(entry) {
   const layer = layerOf(entry.id)
   const src = Array.isArray(entry.sources) ? entry.sources : []
-  const cloud = src.find((s) => typeof s.url === 'string' && s.url !== '')
   const local = src.find((s) => typeof s.path === 'string' && s.path !== '')
+  const { docs, images } = sourcesOf(entry)
   const lines = [
     `用设计工作台里的「${entry.name}」（${layer === null ? '' : layer.name} · ${entry.id}），按这个设计来。`,
   ]
-  if (cloud !== undefined) {
-    lines.push(`原始材料：${cloud.url}`)
-    // 云端之外还有本地副本的（比如漫画层），一并给出——省得 AI 或人再翻一遍目录
-    if (local !== undefined) lines.push(`本地副本：${local.path}`)
-  } else if (local !== undefined) {
+  // 先列提示词/规范（灵魂），再列样张（视觉锚点）
+  for (const d of docs) {
+    const v = d.url ?? d.path
+    const label = String(d.label ?? '').match(/规范|提示词|总表|文档|STYLE|md/i) ? '提示词规范' : '原始材料'
+    lines.push(`${label}：${v}`)
+  }
+  for (const im of images) {
+    const v = im.url ?? im.path
+    const isLocal = typeof im.path === 'string'
+    lines.push(`${isLocal ? '本地样张' : '样张参考图'}：${v}`)
+  }
+  // 兜底：既没文档也没图（只有 source 文本）
+  if (docs.length === 0 && images.length === 0 && local !== undefined) {
     lines.push(`原始材料：${local.path}`)
+  }
+  // 关键提醒：只有图、没规范文档时，明确告诉 AI「这不是完整风格」
+  if (images.length > 0 && docs.length === 0) {
+    lines.push('注意：这条只有参考图、没有文字提示词规范——图是视觉锚点，不要当成完整风格照抄；完整规则（含要点/配色/做法）见下方 op=get。')
   }
   lines.push(`要看完整规格：design_style op=get ${entry.id}`)
   return lines.join('\n')
