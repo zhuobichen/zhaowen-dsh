@@ -1044,6 +1044,100 @@ const CLI = [
   },
 ]
 
+
+/** 工程结构：如何设计目录/文件结构的 skill。 */
+const STRUCT = [
+  {
+    id: 'struct-project-structure', layer: 'struct',
+    name: '项目结构构建（SKILL）',
+    oneLine: '交付一个能接着工作的项目：任务链 → 权威文件 → 产物路径映射，按 workflow/software/hybrid 分类',
+    source: 'linyangqing99/project-structure · SKILL.md',
+    tags: ['目录', '结构', '项目', 'SKILL'], kind: 'text',
+    swatch: { a: '#0b1220', b: '#172554', fg: '#dbeafe', accent: '#38bdf8', pattern: 'grid' },
+    bullets: [
+      '先写最小任务链：输入 → 处理判断 → 交付 → 反馈，每步指定实际产物和存放位置',
+      '分三类：workflow（业务工作台按任务阶段）、software（沿用框架代码结构）、hybrid（分区+稳定ID关联）',
+      '建立「任务/规则 → 权威文件 → 实际产物路径」映射，避免多处真相源',
+      '现有目录能承载就直接用，没有明确目标路径就先问，不替用户做关键决定',
+    ],
+    howto: '要新建项目/重构目录结构、让目录本身能表达任务流时用。',
+    sources: [{ label: 'GitHub 原文', url: 'https://github.com/linyangqing99/project-structure/blob/main/SKILL.md' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'struct-claude-layout', layer: 'struct',
+    name: 'Claude Code 标准目录布局（SKILL）',
+    oneLine: 'CLAUDE.md / .claude/ 全套：rules、skills、commands、agents、hooks 各自放什么、哪些入仓库',
+    source: 'shengdabai/Tony-Claude-Code-Skills · claude-code-project-layout',
+    tags: ['目录', 'Claude', '配置', 'SKILL'], kind: 'text',
+    swatch: { a: '#0b1220', b: '#172554', fg: '#dbeafe', accent: '#38bdf8', pattern: 'grid' },
+    bullets: [
+      'CLAUDE.md ≤200行，超长拆到 .claude/rules/*.md（必须带 paths: 才按需加载）',
+      'CLAUDE.local.md 放本机绝对路径/个人偏好，必须 gitignore 不入仓库',
+      '.mcp.json 必须在项目根目录，.claude/ 内不识别',
+      '.claude/commands（/ship 等）、.claude/skills（复用流程）、.claude/agents（子agent）、.claude/hooks（PreToolUse/PostToolUse 等）',
+      'hooks 退出码 0 放行、2 阻断（stderr 作为拒绝原因）',
+    ],
+    howto: '配 Claude Code 项目、决定哪些配置进仓库哪些本地时用。',
+    sources: [{ label: 'GitHub 原文', url: 'https://github.com/shengdabai/Tony-Claude-Code-Skills/blob/main/skills/claude-code-project-layout/SKILL.md' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'struct-repo-convention', layer: 'struct',
+    name: '仓库结构规范（STRUCTURE.md）',
+    oneLine: '技能仓库的目录布局与准入标准：扁平布局、单技能文件夹、progressive disclosure',
+    source: 'LIGHTYEARS/agent-skills · STRUCTURE.md',
+    tags: ['目录', '规范', '仓库', '准入'], kind: 'text',
+    swatch: { a: '#0b1220', b: '#172554', fg: '#dbeafe', accent: '#38bdf8', pattern: 'grid' },
+    bullets: [
+      '技能采用扁平布局：每个技能是仓库根下的独立文件夹，不挪进 skills/ 子目录',
+      '单技能：SKILL.md 必需；scripts/ / references/ / assets/ 可选',
+      '文件夹名 = frontmatter 的 name；name 小写字母数字连字符，≤64',
+      'Progressive disclosure 三层：元数据(frontmatter) → 正文(SKILL.md) → 深层资源(references/ 按需)',
+      '准入清单：无密钥、无硬编码助手专属ID、README Catalog 加一行',
+    ],
+    howto: '设计自己的 skill 仓库结构、定准入规则时参考。',
+    sources: [{ label: 'GitHub 原文', url: 'https://github.com/LIGHTYEARS/agent-skills/blob/main/STRUCTURE.md' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'struct-agents-architecture', layer: 'struct',
+    name: 'Skills 仓库架构设计（architecture.md）',
+    oneLine: '为什么这样组织：一技能一目录、单一 SKILL.md、references 分模块、无构建步骤',
+    source: 'marwan562/agents-skills · docs/architecture.md',
+    tags: ['目录', '架构', '仓库', '设计决策'], kind: 'text',
+    swatch: { a: '#0b1220', b: '#172554', fg: '#dbeafe', accent: '#38bdf8', pattern: 'grid' },
+    bullets: [
+      'flat file-based registry：无构建、无运行时、无代码生成，全是 Markdown + YAML',
+      '一技能一目录 → 可独立版本化、按技能安装、独立 PR，避免单文件合并冲突',
+      '每个技能只有一个 SKILL.md（规范要求，registry 爬的就是这个路径）',
+      '复杂技能的 references/ 放模板与参考，主文件保持清晰',
+      '顶层 skills/ 目录名是约定（skills.sh / OpenCode），不要改名',
+    ],
+    howto: '理解「为什么这样组织」而不只是抄目录时读。',
+    sources: [{ label: 'GitHub 原文', url: 'https://github.com/marwan562/agents-skills/blob/main/docs/architecture.md' }],
+    origin: 'referenced',
+  },
+  {
+    id: 'struct-skills-agents-md', layer: 'struct',
+    name: 'Skills 目录 Agent 指南（AGENTS.md）',
+    oneLine: '每个 skill 目录的职责边界：触发条件 / 不适用 / 交付物 / 最小可复现流程',
+    source: 'Agentz360/secure-vibe-coding-cn · assets/skills/AGENTS.md',
+    tags: ['目录', '边界', 'Agent', '规范'], kind: 'text',
+    swatch: { a: '#0b1220', b: '#172554', fg: '#dbeafe', accent: '#38bdf8', pattern: 'grid' },
+    bullets: [
+      '每个技能目录以 SKILL.md 为入口，明确四件事：何时用 / 何时不用 / 交付物 / 最小可复现流程',
+      'references/ 放参考资料、scripts/ 放可执行脚本、assets/ 放模板样例、agents/ 放 Agent 元数据',
+      '技能目录之间无隐式耦合：不依赖别的技能目录里的隐式文件路径或脚本副作用',
+      '通用逻辑下沉到仓库通用库，技能目录只保留该领域最薄封装',
+      '外部引用用软链接但必须落在仓库内，优先 submodule 避免个人绝对路径',
+    ],
+    howto: '定技能目录的职责边界、避免技能间隐式耦合时参考。',
+    sources: [{ label: 'GitHub 原文', url: 'https://github.com/Agentz360/secure-vibe-coding-cn/blob/main/assets/skills/AGENTS.md' }],
+    origin: 'referenced',
+  },
+]
+
 export const LAYERS = [
   {
     id: 'dev',
@@ -1072,6 +1166,13 @@ export const LAYERS = [
     hint: 'agent 友好的命令行：规范 + 本机在用的那些 CLI',
     filters: ['规范', '工具', '本机', '管道', '视频'],
     entries: CLI,
+  },
+  {
+    id: 'struct',
+    name: '工程结构',
+    hint: '如何设计目录/文件结构：项目结构、Claude 布局、仓库规范、技能架构',
+    filters: ['目录', '结构', '规范', 'SKILL'],
+    entries: STRUCT,
   },
 ]
 
