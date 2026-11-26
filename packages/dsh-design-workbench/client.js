@@ -728,6 +728,19 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       const useMemo = react.useMemo
       const useRef = react.useRef || null
 
+      // 提示词规范有无：sources 里有非图片 URL（md/SKILL/文档）= With spec；只有图 = Ref only
+      function specBadge(entry) {
+        const src = Array.isArray(entry.sources) ? entry.sources : []
+        const isImg = (v) => /\.(jpe?g|png|webp|gif|svg)(\?|#|$)/i.test(String(v))
+        const hasSpec = src.some((x) => { const v = String(x.url ?? x.path ?? ''); return v !== '' && !isImg(v) })
+        const hasImg = src.some((x) => { const v = String(x.url ?? x.path ?? ''); return isImg(v) })
+        if (!hasImg && !hasSpec) return null
+        return el('span', {
+          className: 'dw-spec ' + (hasSpec ? 'dw-spec-yes' : 'dw-spec-no'),
+          title: hasSpec ? '有提示词/规范文档：可照着做' : '只有参考图，没有文字提示词规范：图仅作视觉锚点，别当完整风格照抄',
+        }, hasSpec ? 'With spec' : 'Ref only')
+      }
+
       let styleDone = false
       function useStyleOnce() {
         if (styleDone) return
@@ -745,6 +758,9 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-origin{font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;border:1px solid transparent;white-space:nowrap;}',
             '.dw-origin-mine{color:#0f766e;background:rgba(15,118,110,.10);border-color:rgba(15,118,110,.25);}',
             '.dw-origin-ref{color:#9a3412;background:rgba(154,52,18,.10);border-color:rgba(154,52,18,.25);}',
+            '.dw-spec{font-family:ui-monospace,Consolas,monospace;font-size:9px;padding:0 6px;border-radius:999px;line-height:16px;border:1px solid;white-space:nowrap;}',
+            '.dw-spec-yes{color:#0f766e;background:rgba(15,118,110,.10);border-color:rgba(15,118,110,.35);}',
+            '.dw-spec-no{color:#b45309;background:rgba(180,83,9,.10);border-color:rgba(180,83,9,.40);}',
             '.dw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
             '.dw-title{font-size:15px;font-weight:600;}',
             '.dw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}',
@@ -1237,6 +1253,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { className: 'dw-card-name' },
                     e.name,
                     el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
+                    specBadge(e),
                     e.nature === 'method' ? el('span', { className: 'dw-nature' }, '方法') : null,
                     e.nature === 'reference' ? el('span', { className: 'dw-nature' }, '素材') : null,
                   ),
@@ -1259,6 +1276,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
                     el('b', { style: { fontSize: 15 } }, open.name),
                     el('span', { className: 'dw-origin ' + (open.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, open.origin === 'referenced' ? '引用' : '自制'),
+                    specBadge(open),
                     el('span', { className: 'dw-tag' }, (layerNameOf(open) || '')),
                   ),
                   el('div', { className: 'dw-muted', style: { fontSize: 12, marginTop: 3 } }, open.oneLine),
