@@ -1,0 +1,5 @@
+# AI 工作台：只挂插件本体，不改宿主任何一行。
+# inject 由 index.js 的 export const inject 声明，client 由 package.json 的 dsh.client 发现。
+- insert:
+    - id: ai-workbench
+      name: '@zhuobichen/dsh-ai-workbench'

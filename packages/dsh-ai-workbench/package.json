@@ -1,0 +1,38 @@
+{
+  "name": "@zhuobichen/dsh-ai-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI 工作台：嵌套小工作台的总入口，目前引入 Agent 设计工作台（架构模式 / Skill 设计 / 上下文工程 / 评估安全 / 本机经验）",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "catalog.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "id": "dsh-ai-workbench",
+    "name": "AI 工作台",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.4"
+  }
+}
