@@ -2113,6 +2113,184 @@ for (const e of COMIC_ENTRIES) {
  * 封面取自各自 README 的截图（已下载到 _design/covers/）；README 没截图的给色卡。
  * 这些是**别人的仓库**，只作参照，别把整套布局照搬。
  */
+/**
+ * ──  WEB_UI_STYLES ───────────────────────────────────────────────────
+ * 通用网页 UI 风格范式：新拟态、玻璃拟态、液态玻璃、拟物、Y2K 铬金属等。
+ * 和「个人主页」的区别：那些是完整站点，这些是可复用到任何页面的视觉语言。
+ */
+const WEB_UI_STYLES = [
+  {
+    id: 'ui-neumorphism',
+    name: '新拟态（Neumorphism / Soft UI）',
+    oneLine: '同一底色上「凸起一块、凹进一块」——只靠高光与阴影的明暗差塑形，几乎没有边框',
+    source: 'https://github.com/adamgiebl/neumorphism',
+    tags: ['网页风格', '新拟态', '浅色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-neumorphism.png',
+    bullets: [
+      '双阴影定生死：亮阴影在左上、暗阴影在右下；反过来就是凹（inset）',
+      '底色和控件色必须是同一个（比如都是 #e0e0e0），换了色就破功',
+      '**可访问性是硬伤**：灰底 + 灰字的对比度通常不到 3:1，必须补深色文字/图标',
+      '别做大面积：整套页面都新拟态会「软」到看不清层级，只用在控件上',
+    ],
+    howto: '设置面板、开关、滑块这类小控件；做整站风格要非常克制。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/adamgiebl/neumorphism' },
+      { label: '在线生成器', url: 'https://neumorphism.io/' },
+      { label: '封面（生成器截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-neumorphism.png' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-glass',
+    name: '玻璃拟态（Glassmorphism）',
+    oneLine: '半透明磨砂卡片浮在彩色背景上，边缘一道亮线、背后隐约透出内容',
+    source: 'https://github.com/miketromba/css.glass',
+    tags: ['网页风格', '玻璃拟态', '浅色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-glass.png',
+    bullets: [
+      '四件套，缺一不可：`backdrop-filter: blur()` + 半透明背景 + 1px 亮边 + 彩色/有图案的底',
+      '背景必须「有东西」：纯色底下毛玻璃等于没有，渐变或图片才看得出',
+      '模糊值常用 8–20px；低于 6px 看不出，高于 30px 卡片会像没对焦',
+      '性能坑：多个 backdrop-filter 叠加在低端机上会掉帧，控制在 3 层以内',
+    ],
+    howto: '悬浮导航、卡片、侧栏；背景平淡时先给它加一层渐变或图片。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/miketromba/css.glass' },
+      { label: '在线生成器', url: 'https://css.glass/' },
+      { label: '封面（生成器截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-glass.png' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-liquid-glass',
+    name: '液态玻璃（Liquid Glass · iOS 26）',
+    oneLine: '玻璃拟态的进化版：不是「磨砂」而是「折射」——边缘像透镜一样把背后画面放大、扭曲',
+    source: 'https://github.com/VII-Cae/hyalite--liquid-glass',
+    tags: ['网页风格', '玻璃拟态', '深色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-liquid-glass.jpg',
+    bullets: [
+      '和玻璃拟态的分界：磨砂 blur 是**扩散**，液态玻璃是**折射**（Snell 定律 → feDisplacementMap）',
+      '关键在边缘：圆角矩形做 SDF 距离场，靠近边界处折射最强，中间几乎透明',
+      '必须有高光描边（specular line），否则看起来只是块扭曲的塑料',
+      '实现重（SVG filter / WebGL），移动端先测性能；纯 CSS 版只能近似',
+    ],
+    howto: '想跟iOS 26 视觉语言同步时用；普通后台系统没必要上这个。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/VII-Cae/hyalite--liquid-glass' },
+      { label: '纯 CSS 复刻', url: 'https://github.com/nikdelvin/liquid-glass' },
+      { label: '封面（hyalite README）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-liquid-glass.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-skeuo',
+    name: '拟物 / 软 UI（Skeuomorphism）',
+    oneLine: '从「这是屏幕上的控件」退回「这是个真实物件」——皮革、木纹、缝线、凸起按钮',
+    source: 'https://github.com/daniruiz/skeuos-css',
+    tags: ['网页风格', '拟物', '浅色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-skeuo.png',
+    bullets: [
+      '新拟态是「单色阴影」，拟物是「材质」：有纹理、有厚度、有接缝',
+      '阴影层更多（内阴影 + 外阴影 + 高光），比新拟态重，但也更好认',
+      '现在多在怀旧/游戏化场景用；企业后台用会被觉得过时',
+      '关键是光影方向要一致——全站统一一个光源，否则像拼贴',
+    ],
+    howto: '复古风产品、游戏化界面、需要「真实感」的展示页。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/daniruiz/skeuos-css' },
+      { label: '封面（README Demo）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-skeuo.png' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-y2k',
+    name: 'Y2K 铬金属（Chrome / Future Retro）',
+    oneLine: '液态金属大字 + 星芒 + 深蓝黑底 + 网格——千禧年对未来的想象，现在又回来了',
+    source: 'https://github.com/bryan-1981/bryan-1981.github.io',
+    tags: ['网页风格', 'Y2K', '暗色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-y2k.png',
+    bullets: [
+      '主角是字：超大号无衬线 + 铬金属渐变（银→蓝→白）+ 外发光，字就是海报',
+      '配角是星芒和光环：四角星、同心圆轨迹，数量要少，一两个足够',
+      '底色深蓝近黑 + 细网格，导航做成胶囊形玻璃条',
+      '适合「酷」不适合「可信」：银行、医疗别用',
+    ],
+    howto: '个人品牌、音乐/潮牌、创意作品集；要有「未来复古」情绪时用。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/bryan-1981/bryan-1981.github.io' },
+      { label: '在线站点', url: 'https://bryan-1981.github.io/' },
+      { label: '封面（站点截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-y2k.png' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-style-lab',
+    name: 'Style Lab（同一内容 84 种皮肤）',
+    oneLine: '把「风格」本身做成可切换的变量：文字不动，只换字体、配色、表面和动效',
+    source: 'https://github.com/TamiloreO/style-labs',
+    tags: ['网页风格', '主题系统', '风格实验'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-style-labs.jpg',
+    bullets: [
+      '核心洞察：内容不变，风格是可替换的一层——把 type/color/surface/motion 抽成变量',
+      '84 种 skin 同页切换，能直接对比「同一段话在不同风格下读起来多不一样」',
+      '做主题系统前先拿它当标尺：你的变量拆得够不够，切换时会不会露出没覆盖的硬编码',
+      '它本身不是一种风格，是**风格的实验台**',
+    ],
+    howto: '做多主题产品、设计系统重构、或者单纯想快速试风格时用。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/TamiloreO/style-labs' },
+      { label: '封面（站点截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-style-labs.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-glasswork',
+    name: 'Glasswork（可拆解的玻璃材质）',
+    oneLine: '把玻璃效果拆成可调参数——不是给你一段 CSS，而是让你理解每一层在干什么',
+    source: 'https://github.com/kubai087/glasswork',
+    tags: ['网页风格', '玻璃拟态', '深色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-glasswork.jpg',
+    bullets: [
+      '把玻璃拆成：底色、模糊、饱和度、边框、内阴影——每层单独开关看差异',
+      '适合「抄了一段 CSS 但不知道为什么好看」的人，边调边看懂',
+      '产出是可复制的 CSS 变量，改主题时只动变量',
+    ],
+    howto: '要真正掌握玻璃拟态、或需要把效果做成主题变量时用。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/kubai087/glasswork' },
+      { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-glasswork.jpg' },
+    ],
+    origin: 'referenced',
+  },
+  {
+    id: 'ui-liquid-ios',
+    name: 'iOS 液态玻璃复刻（纯 CSS）',
+    oneLine: '不用 SVG filter/WebGL，纯 CSS 复刻 iOS 26 的 Liquid Glass——性能更好的近似版',
+    source: 'https://github.com/nikdelvin/liquid-glass',
+    tags: ['网页风格', '玻璃拟态', '浅色'],
+    kind: 'image',
+    cover: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-liquid-ios.jpg',
+    bullets: [
+      '纯 CSS 方案（backdrop-filter + 多层渐变 + 内阴影），移动端掉帧风险小',
+      '是**近似**：折射没有真的按 Snell 定律算，靠渐变模拟边缘扭曲',
+      '和 ui-liquid-glass 的取舍：这个性能高、上手快；那个更真实、实现重',
+    ],
+    howto: '要在实际产品里上液态玻璃、又不想背 WebGL 的包袱时用。',
+    sources: [
+      { label: '云端仓库', url: 'https://github.com/nikdelvin/liquid-glass' },
+      { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-liquid-ios.jpg' },
+    ],
+    origin: 'referenced',
+  },
+]
+
 const PERSONAL_HOME = [
   {
     id: 'fe-ph-simplefolio',
@@ -2532,7 +2710,7 @@ for (const e of MOTION_ENTRIES) e.origin = 'referenced'
 
 export const LAYERS = [
   { id: 'app', name: 'App 设计', hint: '手机 / 桌面应用的界面与产品设计', filters: ['App 风格', '桌面', 'Android', '动效', '产品设计'], entries: [...APP_ENTRIES, ...HUASHU_APP, ...LOCAL_PULLED_APP] },
-  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库、个人主页', filters: ['架构图', '个人主页', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES, ...PERSONAL_HOME] },
+  { id: 'frontend', name: '前端设计', hint: '网页、面板、主题皮肤、风格库、个人主页、网页 UI 风格', filters: ['架构图', '个人主页', '网页风格', '中文版式', '主题', '浅色', '暗色', '极简', '大胆'], entries: [...styleEntries(), ...FRONTEND_EXTRA, ...HUASHU_FRONTEND, ...LOCAL_PULLED_FRONTEND, ...ARCH_ENTRIES, ...PERSONAL_HOME, ...WEB_UI_STYLES] },
   { id: 'video', name: '视频风格', hint: '短片 / 动效 / 片头的视觉风格与复刻方法', filters: ['动效风格'], entries: [...VIDEO_ENTRIES, ...LOCAL_PULLED_VIDEO, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'video')] },
   { id: 'codevideo', name: '代码生视频', hint: '用 HTML/CSS/JS 写视频：工作室 / 模板 / 渲染栈 + 八种可落地的视觉风格', filters: ['风格', '引擎', '开源', '零素材', '解释性'], entries: [...CODEVIDEO, ...CODEVIDEO_STYLES, ...CODEVIDEO_ENGINES.filter((e) => e.layer === 'codevideo')] },
   { id: 'comic', name: '漫画', hint: '动漫 / 漫画 / 动画的视觉语言：赛璐璐、木版画、网点、像素', filters: ['日系', '美式', '东方', '绘本', '漫画', '像素', '复古', '游戏'], entries: COMIC_ENTRIES },
