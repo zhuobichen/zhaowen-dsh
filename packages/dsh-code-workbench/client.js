@@ -717,9 +717,9 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
     }
 
     function apply(ctx) {
-      // 隐式工作台开关（无 UI）：localStorage 里写 dsh-workbench-off 即可关掉某个 tab；默认全开
+      // 隐式工作台开关（无 UI）：localStorage 里写 dsh-wb-off-code-v3 即可关掉某个 tab；默认全开
       try {
-        const _off = JSON.parse(window.localStorage.getItem('dsh-workbench-off') || '{}');
+        const _off = JSON.parse(window.localStorage.getItem('dsh-wb-off-code-v3') || '{}');
         if (_off['code-workbench'] === true) return;
       } catch (e) { /* localStorage 不可用就当全开 */ }
       const el = react.createElement
