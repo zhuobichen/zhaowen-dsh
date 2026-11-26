@@ -728,6 +728,15 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       const useMemo = react.useMemo
       const useRef = react.useRef || null
 
+      // 从 sources 的 label 提取「★ N」用于卡片/详情展示
+      function starOf(entry) {
+        for (const src of (entry.sources || [])) {
+          const m = String(src.label || '').match(/★\s*([\d.]+k?)/)
+          if (m) return '★ ' + m[1]
+        }
+        return ''
+      }
+
       let styleDone = false
       function useStyleOnce() {
         if (styleDone) return
@@ -751,6 +760,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-origin{font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;border:1px solid transparent;white-space:nowrap;}',
             '.dw-origin-mine{color:#0f766e;background:rgba(15,118,110,.10);border-color:rgba(15,118,110,.25);}',
             '.dw-origin-ref{color:#9a3412;background:rgba(154,52,18,.10);border-color:rgba(154,52,18,.25);}',
+            '.dw-stars{font-size:10px;color:#d97706;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.3);border-radius:999px;padding:0 6px;white-space:nowrap;}',
             '.dw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
             '.dw-title{font-size:15px;font-weight:600;}',
             '.dw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}',
@@ -1255,6 +1265,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { className: 'dw-card-name' },
                     e.name,
                     el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
+                    starOf(e) ? el('span', { className: 'dw-stars' }, starOf(e)) : null,
                     e.nature === 'method' ? el('span', { className: 'dw-nature' }, '方法') : null,
                     e.nature === 'reference' ? el('span', { className: 'dw-nature' }, '参考') : null,
                   ),
@@ -1277,6 +1288,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
                     el('b', { style: { fontSize: 15 } }, open.name),
                     el('span', { className: 'dw-origin ' + (open.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, open.origin === 'referenced' ? '引用' : '自制'),
+                    starOf(open) ? el('span', { className: 'dw-stars' }, starOf(open)) : null,
                     el('span', { className: 'dw-tag' }, (layerNameOf(open) || '')),
                   ),
                   el('div', { className: 'dw-muted', style: { fontSize: 12, marginTop: 3 } }, open.oneLine),

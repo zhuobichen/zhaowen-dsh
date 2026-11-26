@@ -31,7 +31,7 @@ const DEV = [
       '装法：作为 skill 目录放进 ~/.claude/skills 或对应工具的技能目录',
     ],
     howto: '想让 agent 有「资深工程师的流程感」时装它；只想省 token 的话 caveman 更直接。',
-    sources: [{ label: '仓库', url: 'https://github.com/obra/superpowers' }],
+    sources: [{ label: '仓库（★ 326k）', url: 'https://github.com/obra/superpowers' }],
     origin: 'referenced',
   },
   {
@@ -49,7 +49,7 @@ const DEV = [
       '和 Playwright/Lighthouse 这类工具能直接串起来',
     ],
     howto: '做要上线的 Web 产品时，用它当「做完之后再过一遍」的标准。',
-    sources: [{ label: '仓库', url: 'https://github.com/addyosmani/agent-skills' }],
+    sources: [{ label: '仓库（★ 120k）', url: 'https://github.com/addyosmani/agent-skills' }],
     origin: 'referenced',
   },
   {
@@ -85,7 +85,7 @@ const DEV = [
       '规则多，按项目挑着用，全开会让 agent 变得啰嗦',
     ],
     howto: '团队要统一评审口径时，拿它当底稿改；单人项目别全装。',
-    sources: [{ label: '仓库', url: 'https://github.com/ciembor/agent-rules-books' }],
+    sources: [{ label: '仓库（★ 3.4k）', url: 'https://github.com/ciembor/agent-rules-books' }],
     origin: 'referenced',
   },
   {
@@ -307,7 +307,7 @@ const DEV = [
       '适合给没有原生文件工具的 agent 用',
     ],
     howto: '换到新宿主、发现 agent 没有文件能力时补装。',
-    sources: [{ label: '仓库', url: 'https://github.com/modelcontextprotocol/servers' }],
+    sources: [{ label: '仓库（★ 92.3k）', url: 'https://github.com/modelcontextprotocol/servers' }],
     origin: 'referenced',
   },
   {
@@ -325,7 +325,7 @@ const DEV = [
       '本机已装 gh CLI 时，很多场景 gh 比 MCP 更省',
     ],
     howto: '要 agent 参与 PR 流程、读 issue 上下文时装。',
-    sources: [{ label: '仓库', url: 'https://github.com/github/github-mcp-server' }],
+    sources: [{ label: '仓库（★ 34.8k）', url: 'https://github.com/github/github-mcp-server' }],
     origin: 'referenced',
   },
   {
@@ -343,7 +343,7 @@ const DEV = [
       '敏感信息别写进去（它通常是明文 JSON）',
     ],
     howto: '长期项目要跨会话记住命名/部署/约定时用。',
-    sources: [{ label: '仓库', url: 'https://github.com/modelcontextprotocol/servers' }],
+    sources: [{ label: '仓库（★ 92.3k）', url: 'https://github.com/modelcontextprotocol/servers' }],
     origin: 'referenced',
   },
   {
@@ -397,7 +397,7 @@ const DEV = [
       'pyproject.toml 里锁 ruff 版本，团队才不会互相格式化打架',
     ],
     howto: '任何新 Python 项目都先上这套，别再从 pip + requirements 开始。',
-    sources: [{ label: 'uv', url: 'https://github.com/astral-sh/uv' }, { label: 'ruff', url: 'https://github.com/astral-sh/ruff' }],
+    sources: [{ label: 'uv（★ 92.7k）', url: 'https://github.com/astral-sh/uv' }, { label: 'ruff（★ 51.5k）', url: 'https://github.com/astral-sh/ruff' }],
     origin: 'referenced',
   },
   {
@@ -415,7 +415,7 @@ const DEV = [
       '接管后要删掉 .eslintrc/.prettierrc，否则两套规则互相打脸',
     ],
     howto: '新项目或想提速的旧项目用它；规则高度定制的别硬换。',
-    sources: [{ label: '仓库', url: 'https://github.com/biomejs/biome' }],
+    sources: [{ label: '仓库（★ 26.2k）', url: 'https://github.com/biomejs/biome' }],
     origin: 'referenced',
   },
   {
@@ -433,7 +433,7 @@ const DEV = [
       '规则要能被检查（「用 pnpm 不用 npm」），否则等于没写',
     ],
     howto: '给自己的项目写 agent 规则时，先抄两份真实例子再删。',
-    sources: [{ label: '合集', url: 'https://github.com/hesreallyhim/awesome-claude-code' }],
+    sources: [{ label: '合集（★ 58.8k）', url: 'https://github.com/hesreallyhim/awesome-claude-code' }],
     origin: 'referenced',
   },
   {
@@ -451,7 +451,7 @@ const DEV = [
       '官方仓里有 pdf/docx/xlsx 等现成 skill，可以直接抄结构',
     ],
     howto: '要写自己的 skill（比如这个工作台）时先对一遍规范。',
-    sources: [{ label: '官方 skills', url: 'https://github.com/anthropics/skills' }, { label: '规范', url: 'https://code.claude.com/docs/en/skills' }],
+    sources: [{ label: '官方 skills（★ 200k）', url: 'https://github.com/anthropics/skills' }, { label: '规范', url: 'https://code.claude.com/docs/en/skills' }],
     origin: 'referenced',
   },
 ]
@@ -491,7 +491,7 @@ const WEB = [
       '跑完要 kill 掉浏览器进程，否则下次端口占用',
     ],
     howto: '做 E2E 回归、或要 agent 自己验证「改完页面能点通」时用。',
-    sources: [{ label: '仓库', url: 'https://github.com/microsoft/playwright-mcp' }],
+    sources: [{ label: '仓库（★ 40.2k）', url: 'https://github.com/microsoft/playwright-mcp' }],
     origin: 'referenced',
   },
   {
@@ -509,7 +509,7 @@ const WEB = [
       'token 权限最小化：只给需要的 zone/account',
     ],
     howto: '要把服务/静态站部署到 Cloudflare 时用。',
-    sources: [{ label: '仓库', url: 'https://github.com/cloudflare/mcp-server-cloudflare' }],
+    sources: [{ label: '仓库（★ 4.5k）', url: 'https://github.com/cloudflare/mcp-server-cloudflare' }],
     origin: 'referenced',
   },
   {
@@ -527,7 +527,7 @@ const WEB = [
       '主题靠 CSS 变量，改 token 就能换皮',
     ],
     howto: '要做后台/工具类界面又要能改样式时，比引组件库更省事。',
-    sources: [{ label: '仓库', url: 'https://github.com/shadcn-ui/ui' }],
+    sources: [{ label: '仓库（★ 129k）', url: 'https://github.com/shadcn-ui/ui' }],
     origin: 'referenced',
   },
   {
@@ -599,7 +599,7 @@ const WEB = [
       'CI 里用 lighthouse-ci 设预算，防止慢慢退化',
     ],
     howto: '页面「感觉慢」或上线前体检时用。',
-    sources: [{ label: '仓库', url: 'https://github.com/GoogleChrome/lighthouse' }],
+    sources: [{ label: '仓库（★ 31.2k）', url: 'https://github.com/GoogleChrome/lighthouse' }],
     origin: 'referenced',
   },
   {
@@ -729,7 +729,7 @@ const DATA = [
       '大表先 EXPLAIN，别让 agent 随手 count(*)',
     ],
     howto: '要回答「库里的数据是什么样」时用；写操作走应用，不要给 agent。',
-    sources: [{ label: '仓库', url: 'https://github.com/modelcontextprotocol/servers' }],
+    sources: [{ label: '仓库（★ 92.3k）', url: 'https://github.com/modelcontextprotocol/servers' }],
     origin: 'referenced',
   },
   {
@@ -747,7 +747,7 @@ const DATA = [
       '查完把关键 SQL 记进笔记，下次不用重想',
     ],
     howto: '数据在单文件里、要反复查不同角度时用。',
-    sources: [{ label: '仓库', url: 'https://github.com/modelcontextprotocol/servers' }],
+    sources: [{ label: '仓库（★ 92.3k）', url: 'https://github.com/modelcontextprotocol/servers' }],
     origin: 'referenced',
   },
   {
@@ -783,7 +783,7 @@ const DATA = [
       '把可复用逻辑抽成 .py，notebook 只留探索',
     ],
     howto: '做数据探索与一次性分析时用；要长期维护就抽成脚本。',
-    sources: [{ label: 'nbconvert', url: 'https://github.com/jupyter/nbconvert' }],
+    sources: [{ label: 'nbconvert（★ 1.9k）', url: 'https://github.com/jupyter/nbconvert' }],
     origin: 'referenced',
   },
   {
@@ -841,7 +841,7 @@ const CLI = [
       'gh api 是万能后门：任何 REST 接口都能调',
     ],
     howto: '要让 agent 参与 PR/CI/发布流程时，gh 比 MCP 更省 token。',
-    sources: [{ label: '仓库', url: 'https://github.com/cli/cli' }],
+    sources: [{ label: '仓库（★ 47.2k）', url: 'https://github.com/cli/cli' }],
     origin: 'referenced',
   },
   {
@@ -877,7 +877,7 @@ const CLI = [
       '搜二进制/大文件时加 -a 或 --max-filesize',
     ],
     howto: '在仓库里找「谁调用了它」「这个字符串在哪」时首选。',
-    sources: [{ label: '仓库', url: 'https://github.com/BurntSushi/ripgrep' }],
+    sources: [{ label: '仓库（★ 70.4k）', url: 'https://github.com/BurntSushi/ripgrep' }],
     origin: 'referenced',
   },
   {
@@ -913,7 +913,7 @@ const CLI = [
       '下载前 --print-json 先看元数据',
     ],
     howto: '要分析/复刻一条参考视频时，先用它把素材拿下来。',
-    sources: [{ label: '仓库', url: 'https://github.com/yt-dlp/yt-dlp' }],
+    sources: [{ label: '仓库（★ 210k）', url: 'https://github.com/yt-dlp/yt-dlp' }],
     origin: 'referenced',
   },
   {
