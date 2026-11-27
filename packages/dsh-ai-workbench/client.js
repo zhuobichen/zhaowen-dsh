@@ -49,7 +49,7 @@ window.__ModuleLoader__.load({
         tag.setAttribute('data-aiwb', 'y2k')
         const css = `
           /* ── Y2K 铬金属 / Chrome Future Retro ─────────────────────────── */
-.aib-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#fbbf24;border:1px solid rgba(251,191,36,.4);border-radius:999px;padding:0 6px;}
+.aib-stars{display:none;font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#fbbf24;border:1px solid rgba(251,191,36,.4);border-radius:999px;padding:0 6px;}
           .aib-wrap{--aib-ink:#e8f2ff;--aib-sub:#8ba8cc;--aib-line:rgba(120,170,240,.22);--aib-brand:#7dd3ff;--aib-glass:rgba(16,28,56,.78);
             display:flex;flex-direction:column;gap:14px;padding:18px 20px 44px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;font-size:13px;color:var(--aib-ink);
             background-color:#060b1c;
@@ -84,7 +84,7 @@ window.__ModuleLoader__.load({
           .aib-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--aib-tone,var(--aib-brand));box-shadow:0 0 10px var(--aib-tone,var(--aib-brand));}
           .aib-card-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#f0f7ff;}
           .aib-origin{font-size:10px;padding:0 6px;border-radius:999px;border:1px solid rgba(125,211,255,.28);color:#8fc6e8;}
-          .aib-stars{font-size:10px;color:#fbbf24;background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:0 6px;white-space:nowrap;}
+          .aib-stars{display:none;font-size:10px;color:#fbbf24;background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);border-radius:999px;padding:0 6px;white-space:nowrap;}
           .aib-line2{font-size:11.5px;color:#9fb6d4;line-height:1.5;}
           .aib-tags{display:flex;gap:5px;flex-wrap:wrap;}
           .aib-tag{font-size:10px;padding:0 6px;border-radius:999px;border:1px solid var(--aib-line);color:#8fb0d4;background:rgba(125,211,255,.05);}

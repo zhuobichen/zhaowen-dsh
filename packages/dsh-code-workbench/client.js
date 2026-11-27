@@ -755,7 +755,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           tag.setAttribute('data-cw-scope', '1')
           tag.textContent = [
             // developerFolio 全深色：在本面板内覆盖宿主 token，下面所有用 var(--dsw-alias-*) 的元素一起变深
-            '.dw-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#d97706;border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:0 6px;line-height:16px;}',
+            '.dw-stars{display:none;font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#d97706;border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:0 6px;line-height:16px;}',
             '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:var(--dsw-alias-label-primary);}',
             '.dw-modal-card{background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);}',
             
@@ -770,7 +770,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.dw-origin{font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;border:1px solid transparent;white-space:nowrap;}',
             '.dw-origin-mine{color:#0f766e;background:rgba(15,118,110,.10);border-color:rgba(15,118,110,.25);}',
             '.dw-origin-ref{color:#9a3412;background:rgba(154,52,18,.10);border-color:rgba(154,52,18,.25);}',
-            '.dw-stars{font-size:10px;color:#d97706;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.3);border-radius:999px;padding:0 6px;white-space:nowrap;}',
+            '.dw-stars{display:none;font-size:10px;color:#d97706;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.3);border-radius:999px;padding:0 6px;white-space:nowrap;}',
             '.dw-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}',
             '.dw-title{font-size:15px;font-weight:600;}',
             '.dw-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--dsw-alias-border-l2);}',

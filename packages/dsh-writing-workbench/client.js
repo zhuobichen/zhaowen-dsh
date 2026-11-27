@@ -77,7 +77,7 @@ window.__ModuleLoader__.load({
         tag.setAttribute('data-wrubber', '1')
         tag.textContent = `
           /* 1930s 橡皮管卡通：严格灰阶、线稿毛边、4:3 胶片门 */
-.wr-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:999px;padding:0 6px;background:#fafafa;}
+.wr-stars{display:none;font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:999px;padding:0 6px;background:#fafafa;}
           .wr-wrap{--ink:#1a1a1a;--paper:#fafafa;--mid:#bdbdbd;--grey:#8a8a8a;--line:rgba(26,26,26,.28);
             display:flex;flex-direction:column;gap:14px;padding:18px 20px 48px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;
             font-family:Georgia,'Times New Roman',serif;color:var(--ink);
