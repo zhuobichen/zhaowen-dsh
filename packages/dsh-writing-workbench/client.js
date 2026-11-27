@@ -251,7 +251,7 @@ window.__ModuleLoader__.load({
       inject: ['slots'],
       apply(ctx) {
         ctx.slots.inject('conversation.view', () => ctx.slots.register({
-          name: 'conversation.view', id: 'writing-workbench', order: 24, label: () => TITLE,
+          name: 'conversation.view', id: 'writing-workbench', order: 26, label: () => TITLE,
         }, Workbench))
       },
     }

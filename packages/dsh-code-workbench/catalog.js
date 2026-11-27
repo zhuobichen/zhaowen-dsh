@@ -361,7 +361,7 @@ const DEV = [
       '修完记得回来确认错误量真的降了',
     ],
     howto: '线上有报错平台、想让 agent 自己看堆栈时装。',
-    sources: [{ label: '仓库', url: 'https://github.com/getsentry/sentry-mcp' }],
+    sources: [{ label: '仓库（★ 975）', url: 'https://github.com/getsentry/sentry-mcp' }],
     origin: 'referenced',
   },
   {
@@ -1062,7 +1062,7 @@ const STRUCT = [
       'deployment/ 单独放 docker-compose 与部署说明，.env.test 独立',
     ],
     howto: '要一个能直接照抄的完整项目目录树、且带「禁止怎么做」的红线时用。',
-    sources: [{ label: '原始材料', url: 'https://github.com/wyn407473978/dmx-multi-agent-engineering/blob/main/references/project-structure.md' }],
+    sources: [{ label: '原始材料（★ 1）', url: 'https://github.com/wyn407473978/dmx-multi-agent-engineering/blob/main/references/project-structure.md' }],
     origin: 'referenced',
   },
   {
@@ -1153,7 +1153,7 @@ const STRUCT = [
       '心智模型一句话：根=入口，bin=运行脚本，includes=核心逻辑，docs=文档归档',
     ],
     howto: '你 weflow-cli 有 9 个 weflow-ro-* 临时目录和 deep-* 堆在根——照这份把临时产物收口。',
-    sources: [{ label: '原始材料', url: 'https://github.com/TonyXiang007/GEOFlow/blob/main/docs/project/STRUCTURE.md' }],
+    sources: [{ label: '原始材料（★ 0）', url: 'https://github.com/TonyXiang007/GEOFlow/blob/main/docs/project/STRUCTURE.md' }],
     origin: 'referenced',
   },
   {
@@ -1171,7 +1171,7 @@ const STRUCT = [
       '每条错误消息都会被 AI 解析来决定下一步：要结构化、可操作、具体，别用裸错误',
     ],
     howto: 'weflow-cli 同样是 AI agent 在调——照这份定 stdout/stderr 契约和错误格式。',
-    sources: [{ label: '原始材料', url: 'https://github.com/luojiyin1987/larkcli/blob/main/AGENTS.md' }],
+    sources: [{ label: '原始材料（★ 0）', url: 'https://github.com/luojiyin1987/larkcli/blob/main/AGENTS.md' }],
     origin: 'referenced',
   },
   {
@@ -1207,7 +1207,7 @@ const STRUCT = [
       '配置走 .env 或环境变量，不硬编码在源码里',
     ],
     howto: 'weflow-cli 已有 src/，照这份把 core/services/utils 的职责和 tests 镜像补齐。',
-    sources: [{ label: '原始材料', url: 'https://github.com/SpillwaveSolutions/code_agent_context_hooks/blob/main/.claude/skills/mastering-python-skill/references/foundations/project-structure.md' }],
+    sources: [{ label: '原始材料（★ 46）', url: 'https://github.com/SpillwaveSolutions/code_agent_context_hooks/blob/main/.claude/skills/mastering-python-skill/references/foundations/project-structure.md' }],
     origin: 'referenced',
   },
 

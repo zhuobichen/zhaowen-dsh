@@ -1394,7 +1394,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
 
       ctx.slots.inject('conversation.view', function () {
         return ctx.slots.register(
-          { name: 'conversation.view', id: PANEL_ID, order: 5, label: function () { return TAB_LABEL } },
+          { name: 'conversation.view', id: PANEL_ID, order: 20, label: function () { return TAB_LABEL } },
           function (props) { return el(Panel, props) },
         )
       })

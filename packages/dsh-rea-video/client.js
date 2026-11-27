@@ -222,7 +222,7 @@ window.__ModuleLoader__.load({
           ctx.slots.inject('conversation.view', () => ctx.slots.register({
             name: 'conversation.view',
             id: 'rea-video',
-            order: 27,
+            order: 25,
             label: () => TITLE,
           }, Workbench))
         } catch (error) { /* slot already taken by a stale instance */ }

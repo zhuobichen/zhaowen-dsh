@@ -20,7 +20,7 @@ const NOVEL = [
       '按平台分：起点/番茄/晋江/知乎盐言；按类型分：全流程/记忆/审稿/短剧',
     ],
     howto: '要写网文/小说、不知道从哪个 skill 起步时，先来这份清单按阶段挑。',
-    sources: [{ label: 'GitHub 清单', url: 'https://github.com/UnderleveledBuilder/awesome-novel-skills' }],
+    sources: [{ label: 'GitHub 清单（★ 118）', url: 'https://github.com/UnderleveledBuilder/awesome-novel-skills' }],
     origin: 'referenced',
   },
   {
@@ -35,7 +35,7 @@ const NOVEL = [
       '识别请求类型（新书/续写/角色/世界观/修订）再走对应流程，别一上来就写',
     ],
     howto: '要搭小说骨架、设计人物弧、规划章节 POV 时用。',
-    sources: [{ label: 'novel-writer SKILL.md', url: 'https://github.com/YangsonHung/awesome-agent-skills/tree/main/skills/en/novel-writer' }],
+    sources: [{ label: 'novel-writer SKILL.md（★ 18）', url: 'https://github.com/YangsonHung/awesome-agent-skills/tree/main/skills/en/novel-writer' }],
     origin: 'referenced',
   },
   {
@@ -64,7 +64,7 @@ const NOVEL = [
       '中文网文专用，比通用 humanizer 更贴平台语感',
     ],
     howto: '正文写完后过一遍，把 AI 味重的地方改成人味。',
-    sources: [{ label: ' awesome-novel-skills', url: 'https://github.com/UnderleveledBuilder/awesome-novel-skills' }],
+    sources: [{ label: ' awesome-novel-skills（★ 118）', url: 'https://github.com/UnderleveledBuilder/awesome-novel-skills' }],
     origin: 'referenced',
   },
 ]
@@ -83,7 +83,7 @@ const NEWS = [
       '每个事实声明都要归属到具名来源或数据集；引语用 said，不改一字',
     ],
     howto: '写新闻稿、突发报道、结构化新闻故事时用。',
-    sources: [{ label: 'write-news-article', url: 'https://github.com/jeffreytse/grimoire-core' }],
+    sources: [{ label: 'write-news-article（★ 8）', url: 'https://github.com/jeffreytse/grimoire-core' }],
     origin: 'referenced',
   },
   {
@@ -98,7 +98,7 @@ const NEWS = [
       '禁止："据悉/据了解"模糊来源、感叹号（结尾除外）、emoji、主观评价',
     ],
     howto: '把多条科技新闻写成一篇聚合文章时用。',
-    sources: [{ label: 'article-tech-write', url: 'https://github.com/hocgin/agent-skills' }],
+    sources: [{ label: 'article-tech-write（★ 0）', url: 'https://github.com/hocgin/agent-skills' }],
     origin: 'referenced',
   },
   {
@@ -131,7 +131,7 @@ const WECHAT = [
       '英文单词/人名/产品名不可断行；AI 出初稿，作者改方向',
     ],
     howto: '要从日常素材写公众号文章、且要有本人风格时用。',
-    sources: [{ label: 'jdy_writer', url: 'https://github.com/ken-zy/jdy_writer' }],
+    sources: [{ label: 'jdy_writer（★ 0）', url: 'https://github.com/ken-zy/jdy_writer' }],
     origin: 'referenced',
   },
   {
@@ -159,7 +159,7 @@ const WECHAT = [
       '配 WRITINGGUIDELINES.md 详细写作原则与范例',
     ],
     howto: '写微信公众号的商业或技术文章时用。',
-    sources: [{ label: 'wechat-business-article-writer', url: 'https://github.com/openlark/skills' }],
+    sources: [{ label: 'wechat-business-article-writer（★ 5）', url: 'https://github.com/openlark/skills' }],
     origin: 'referenced',
   },
 ]
@@ -177,7 +177,7 @@ const POETRY = [
       '进阶：对比李白杜甫"月"意象、分析离骚修辞、找纳兰性德思念句',
     ],
     howto: '写古典诗词、查诗词出处、做意象对比时用。',
-    sources: [{ label: 'poetry-skills', url: 'https://github.com/Wscats/poetry-skills' }],
+    sources: [{ label: 'poetry-skills（★ 14）', url: 'https://github.com/Wscats/poetry-skills' }],
     origin: 'referenced',
   },
   {
@@ -192,7 +192,7 @@ const POETRY = [
       '元曲带 dynasty，emon 曲牌名；平仄格律数据单独放 strains/',
     ],
     howto: '要做自己的诗词检索/生成系统时参考数据结构。',
-    sources: [{ label: 'poetry-skills README', url: 'https://github.com/Wscats/poetry-skills' }],
+    sources: [{ label: 'poetry-skills README（★ 14）', url: 'https://github.com/Wscats/poetry-skills' }],
     origin: 'referenced',
   },
 ]

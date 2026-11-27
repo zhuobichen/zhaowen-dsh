@@ -9,6 +9,23 @@
  *   kind    —— text（工具/方法，无封面）
  *   origin  —— mine（本机自建）/ referenced（社区或内置）
  */
+
+// 按仓库给 GitHub 来源标星数（静态表，GitHub/shields.io 实测 2026-11-28）
+function githubStars(url) {
+  const u = String(url)
+  const map = {
+    'K-Dense-AI/claude-scientific-writer': '2.6k',
+    'K-Dense-AI/scientific-agent-skills': '59k',
+    'cookjohn/cnki-skills': '1.1k',
+    'eze-is/web-access': '9.5k',
+    'microsoft/ResearchStudio': '3.8k',
+  }
+  for (const [repo, n] of Object.entries(map)) {
+    if (u.includes('github.com/' + repo)) return '（★ ' + n + '）'
+  }
+  return ''
+}
+
 import { homedir } from 'node:os'
 import { MARKET_GROUPS, MARKET_URL } from './market.js'
 import { ENVFIG_ENTRIES } from './envfig.js'
@@ -332,7 +349,7 @@ const MCP = [
 const ALL_POOL = [...WRITING, ...IDEA, ...METHOD, ...ZOTERO, ...CNKI, ...SEARCH, ...MCP]
 for (const group of MARKET_GROUPS) {
   for (const e of group.entries) {
-    if (MARKET_URL[e.id] !== undefined) e.sources = [{ label: '原始出处', url: MARKET_URL[e.id] }]
+    if (MARKET_URL[e.id] !== undefined) e.sources = [{ label: '原始出处' + githubStars(MARKET_URL[e.id]), url: MARKET_URL[e.id] }]
     e.tags = [...new Set([...(e.tags || []), '市面精选'])]
   }
   ALL_POOL.push(...group.entries)
@@ -448,7 +465,7 @@ const PLUGINS_HOME = 'E:\\CodeProject\\zhaowen-dsh\\packages'
 
 for (const e of ALL_ENTRIES) {
   const sources = []
-  if (CLOUD_URL[e.id] !== undefined) sources.push({ label: '原始出处', url: CLOUD_URL[e.id] })
+  if (CLOUD_URL[e.id] !== undefined) sources.push({ label: '原始出处' + githubStars(CLOUD_URL[e.id]), url: CLOUD_URL[e.id] })
   if (SKILL_DIR[e.id] !== undefined) {
     sources.push({ label: 'SKILL.md', path: SKILLS_HOME + '\\' + SKILL_DIR[e.id] + '\\SKILL.md' })
   } else if (PLUGIN_DIR[e.id] !== undefined) {

@@ -679,7 +679,7 @@ window.__ModuleLoader__.load({
       ctx.slots.inject('conversation.view', function () {
         diag('view-tab-slot 就绪');
         return ctx.slots.register(
-          { name: 'conversation.view', id: PANEL_ID, order: 60, label: function () { return TAB_LABEL; } },
+          { name: 'conversation.view', id: PANEL_ID, order: 28, label: function () { return TAB_LABEL; } },
           function (props) { return el(Panel, props); },
         );
       });
