@@ -762,8 +762,12 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             // 纯文字卡片（同代码工作台）：一条强调色代替封面，不摆海报
             '.pw-card-flat{display:flex;flex-direction:column;}',
             '.pw-card-flat .pw-card-body{padding-top:10px;}',
-            '.pw-card-pic .pw-card-thumb{height:150px;width:100%;overflow:hidden;background:var(--dsw-alias-bg-layer-2);flex:0 0 auto;}',
+            // 带图卡片：论文工作台是竖排列表（非设计工作台的网格），样品图做成左侧小缩略图，
+            // 不撑成整行横幅；文字在右侧。宽屏下缩略图固定 132×84。
+            '.pw-card-pic{flex-direction:row;align-items:flex-start;gap:12px;}',
+            '.pw-card-pic .pw-card-thumb{width:132px;height:84px;flex:0 0 auto;overflow:hidden;background:var(--dsw-alias-bg-layer-2);border-radius:6px;}',
             '.pw-card-pic .pw-card-thumb img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}',
+            '.pw-card-pic .pw-card-body{flex:1;min-width:0;}',
             '.pw-modal-sample{margin:12px 0;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);}',
             '.pw-modal-sample img{display:block;width:100%;max-height:420px;object-fit:contain;background:#fff;}',
             '.pw-sample-note{padding:6px 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary);}',
@@ -845,6 +849,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.pw-card:hover{background:#eae5da;}',
             '.pw-card .pw-stripe{display:none;}',
             '.pw-card-body{padding:0;display:block;}',
+            // 带图卡片在竖排列表里恢复横向：左缩略图 + 右文字，避免撑成整行横幅
+            '.pw-card-pic{display:flex;flex-direction:row;align-items:flex-start;gap:14px;}',
+            '.pw-card-pic .pw-card-thumb{width:120px;height:78px;flex:0 0 auto;border-radius:0;border:1px solid var(--brut-rule);}',
+            '.pw-card-pic .pw-card-body{flex:1;min-width:0;display:block;}',
             '.pw-card-name{font-size:22px;line-height:1.05;font-weight:900;letter-spacing:-.02em;display:block;margin-bottom:4px;}',
             '.pw-card-name:before{content:counter(pw);color:var(--brut-red);font-family:ui-monospace,Consolas,monospace;font-size:12px;margin-right:8px;vertical-align:2px;}',
             '.pw-grid{counter-reset:pw;}',
