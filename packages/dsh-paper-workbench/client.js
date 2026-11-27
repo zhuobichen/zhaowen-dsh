@@ -767,6 +767,10 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.pw-modal-sample{margin:12px 0;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);}',
             '.pw-modal-sample img{display:block;width:100%;max-height:420px;object-fit:contain;background:#fff;}',
             '.pw-sample-note{padding:6px 10px;font-size:11.5px;color:var(--dsw-alias-label-secondary);}',
+            // 环境科研图独立块：块首的明显分隔线与标题
+            '.pw-block-head{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:22px 0 4px;padding:12px 14px;border-top:3px solid var(--dsw-alias-brand-primary,#4d6bfe);background:var(--dsw-alias-bg-layer-2);}',
+            '.pw-block-title{font-size:15px;font-weight:800;letter-spacing:-.01em;}',
+            '.pw-block-sub{font-size:11.5px;color:var(--dsw-alias-label-secondary);}',
             '.pw-stripe{height:4px;width:100%;flex:0 0 auto;border-radius:6px 6px 0 0;opacity:.9;}',
             '.pw-one{display:block;}',
             '.pw-cover{height:150px;background:var(--dsw-alias-bg-layer-2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;}',
@@ -1165,11 +1169,18 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           ),
 
           el('div', { className: 'pw-grid' },
-            shown.map(function (e) {
+            shown.flatMap(function (e, i) {
               // 用 <button> 而不是 <div>：宿主里按钮的点击最可靠，div 的 onClick 有过不触发的情况
                // 有样品图（sample）：显示缩略图；否则纯文字卡片 + 顶部强调色条。
+              // 环境科研图作为独立块：块首插一条明显分隔线 + 标题
+              const isEnv = (e.tags || []).indexOf("环境科研图") >= 0
+              const prevIsEnv = i > 0 && (shown[i - 1].tags || []).indexOf("环境科研图") >= 0
+              const blockStart = isEnv && !prevIsEnv
+              const head = blockStart ? el("div", { className: "pw-block-head", key: "env-head" },
+                el("span", { className: "pw-block-title" }, "环境科研图 · 摘要 / 框架 / 模拟算法"),
+                el("span", { className: "pw-block-sub" }, "带样品图 · 有提示词规范；看图别当完整规则照抄")) : null
                const hasSample = !!(e.sample || (Array.isArray(e.samples) && e.samples.length))
-              return el('button', {
+              return [head, el('button', {
                 key: e.id,
                 type: 'button',
                 // 纯文字卡片（同代码工作台）：不摆封面海报，顶部一条强调色代替。
@@ -1192,6 +1203,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { className: 'pw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'pw-tag', key: t }, t) })),
                 ),
               )
+              ].filter(Boolean)
             }),
           ),
 
