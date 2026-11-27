@@ -730,6 +730,31 @@ html.dshnp-reading #root { width: calc(100vw - var(--dshnp-w, 440px)); overflow:
 				};
 			}, [reading]);
 
+			// 面板用 position:fixed 贴视口右侧；但它渲染在 conversation.input.dock 里，
+			// 若祖先带 transform/contain，fixed 会相对祖先定位而塌成浮动小窗。
+			// 打开时把 <aside> 原生搬到 document.body，卸载/关闭时搬回，彻底脱离定位上下文。
+			react.useEffect(() => {
+				if (typeof document === "undefined" || !open) return undefined;
+				const dock = document.querySelector(".dshnp_dock");
+				let panel = null;
+				if (dock) {
+					for (const child of dock.children) {
+						if (child.classList && child.classList.contains("dshnp_panel")) { panel = child; break; }
+					}
+				}
+				if (!panel || !document.body) return undefined;
+				const nextSibling = panel.nextSibling;
+				document.body.appendChild(panel);
+				return () => {
+					try {
+						if (dock && dock.isConnected) {
+							if (nextSibling && nextSibling.parentNode === dock) dock.insertBefore(panel, nextSibling);
+							else dock.appendChild(panel);
+						}
+					} catch (e) { /* 卸载中，忽略 */ }
+				};
+			}, [open, view]);
+
 			react.useEffect(() => {
 				if (!open) return undefined;
 				// 灵台阅读器视图是宿主拉起来的独立 app：iframe 自己活着，不用取 /state
