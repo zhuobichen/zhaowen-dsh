@@ -8,6 +8,9 @@
 window.__ModuleLoader__.load({
   id: '@zhuobichen/dsh-writing-workbench',
   factory(require) {
+    var module = { exports: {} }
+    var exports = module.exports
+
     const React = require('react')
     const h = React.createElement
     const TITLE = '写作工作台'
@@ -257,13 +260,16 @@ window.__ModuleLoader__.load({
       )
     }
 
-    return {
-      inject: ['slots'],
-      apply(ctx) {
-        ctx.slots.inject('conversation.view', () => ctx.slots.register({
-          name: 'conversation.view', id: 'writing-workbench', order: 26, label: () => TITLE,
-        }, Workbench))
-      },
+    function apply(ctx) {
+      ctx.slots.inject('conversation.view', () => ctx.slots.register({
+        name: 'conversation.view', id: 'writing-workbench', order: 26, label: () => TITLE,
+      }, Workbench))
     }
+
+    exports.name = '@zhuobichen/dsh-writing-workbench'
+    exports.inject = ['slots']
+    exports.apply = apply
+
+    return module.exports
   },
 })
