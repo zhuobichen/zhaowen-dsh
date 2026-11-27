@@ -266,7 +266,7 @@ window.__ModuleLoader__.load({
       }, Workbench))
     }
 
-    exports.name = '@zhuobichen/dsh-writing-workbench'
+    exports.name = 'dsh-writing-workbench'
     exports.inject = ['slots']
     exports.apply = apply
 
