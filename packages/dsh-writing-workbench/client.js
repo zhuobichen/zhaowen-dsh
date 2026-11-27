@@ -65,7 +65,7 @@ window.__ModuleLoader__.load({
       function wrStarsOf(entry) {
         for (const s of (entry.sources || [])) {
           const m = String(s.label || '').match(/★\s*([\d.]+k?)/)
-          if (m) return el('span', { className: 'wr-stars', title: 'GitHub stars' }, '★ ' + m[1])
+          if (m) return h('span', { className: 'wr-stars', title: 'GitHub stars' }, '★ ' + m[1])
         }
         return null
       }
