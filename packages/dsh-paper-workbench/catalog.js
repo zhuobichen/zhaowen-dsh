@@ -11,6 +11,7 @@
  */
 import { homedir } from 'node:os'
 import { MARKET_GROUPS, MARKET_URL } from './market.js'
+import { ENVFIG_ENTRIES } from './envfig.js'
 
 // 注意：扫描本机后确认这些 skill 全部在 ~/.agents/skills（不在 ~/.dsh/skills），
 // 所以来源统一写「本机 skill（~/.agents/skills）」，不再误称「内置 skill（~/.dsh 技能目录）」。
@@ -335,6 +336,12 @@ for (const group of MARKET_GROUPS) {
     e.tags = [...new Set([...(e.tags || []), '市面精选'])]
   }
   ALL_POOL.push(...group.entries)
+}
+// 环境科研图条目（摘要图/研究区图/模拟算法框架图）：并入「图表与实验」层，
+// 带「环境科研图」标签，与通用市面精选区分。sample 字段驱动样品图显示。
+for (const e of ENVFIG_ENTRIES) {
+  e.tags = [...new Set([...(e.tags || []), '市面精选', '环境科研图'])]
+  ALL_POOL.push(e)
 }
 
 // 旧层 id → 新层 id（合并映射）。市面精选带来的 figure/repro/review/qualitative

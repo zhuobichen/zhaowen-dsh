@@ -5,11 +5,12 @@
  * 浏览器面板读 /paper-workbench/state。面板与工具共享 catalog + 覆盖层。
  * 覆盖层 extra.json 放所有 AI/人的改动（新增/置顶/隐藏/改字段），不动 catalog.js。
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { ALL_ENTRIES, LAYERS, TAGS, findEntry, layerOf, refOf, specOf } from './catalog.js'
+import { coverPath, coverUrlsOf, coversDir, fetchCover, warmCovers } from './covers.js'
 
 const NAME = 'dsh-paper-workbench'
 const ROUTE = '/paper-workbench'
@@ -82,6 +83,13 @@ function pickFields(args) {
   const out = {}
   for (const k of FIELD_WHITELIST) if (args[k] !== undefined) out[k] = args[k]
   return out
+}
+// ── 样品图：缓存到 ~/.dsh/plugins/dsh-paper-workbench/covers/ ──────────
+const MEDIA = { '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.webp':'image/webp', '.gif':'image/gif', '.svg':'image/svg+xml' }
+let warmed = false
+function cachedCover(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null
+  try { const f = coverPath(coversDir(NAME), url); return existsSync(f) ? f : null } catch { return null }
 }
 function snapshot() {
   const layers = mergedLayers()
@@ -326,7 +334,29 @@ export function apply(ctx) {
             const json = (code, body) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)) }
             let path = '/'
             try { path = new URL(String(req.url ?? '/'), 'http://localhost').pathname.replace(ROUTE, '') || '/' } catch { path = '/' }
+            // 首次请求后台预热一次样品图缓存（不阻塞响应）
+            if (!warmed) { warmed = true; try { warmCovers(ALL_ENTRIES, NAME) } catch { /* 忽略 */ } }
             if (path === '/state' || path === '/') return json(200, snapshot())
+            if (path.startsWith('/cover/')) {
+              const id = decodeURIComponent(path.slice('/cover/'.length))
+              const entry = findEntry(id)
+              if (entry === null) return json(404, { ok: false, code: 'NO_COVER', error: `没有这条：${id}` })
+              let file = typeof entry.cover === 'string' && existsSync(entry.cover) ? entry.cover : null
+              if (file === null) {
+                for (const url of coverUrlsOf(entry)) {
+                  file = cachedCover(url) ?? (await fetchCover(url, coversDir(NAME)))
+                  if (file !== null) break
+                }
+              }
+              if (file === null) return json(404, { ok: false, code: 'COVER_MISSING', error: '本地缓存和云端都没有这张图' })
+              try {
+                const stat = statSync(file)
+                if (!stat.isFile() || stat.size > 8 * 1024 * 1024) return json(413, { ok: false, code: 'COVER_TOO_BIG', error: '图片过大' })
+                res.writeHead(200, { 'content-type': MEDIA[extname(file).toLowerCase()] ?? 'application/octet-stream', 'cache-control': 'public, max-age=3600' })
+                res.end(readFileSync(file))
+                return undefined
+              } catch (e) { return json(500, { ok: false, code: 'COVER_READ_FAILED', error: String(e && e.message ? e.message : e) }) }
+            }
             return json(404, { ok: false, code: 'NOT_FOUND', error: `没有这个路由：${path}` })
           },
         })
