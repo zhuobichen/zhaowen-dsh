@@ -867,6 +867,19 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             '.pw-modal-head b{font-size:32px;line-height:1;font-weight:900;letter-spacing:-.03em;text-transform:uppercase;}',
             '.pw-modal .pw-src{color:var(--brut-blue);}',
             '.pw-bullets li:before{content:"— ";color:var(--brut-red);}',
+            // ── 图表与实验层：仿设计工作台的网格卡片（封面在上、文字在下）──────
+            // 只作用于这一层，其它层保持粗野竖排列表。配色/方角仍走粗野令牌。
+            '.pw-grid-figures{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:14px;padding:0 18px;}',
+            '.pw-grid-figures .pw-block-head{grid-column:1/-1;margin:20px 0 2px;}',
+            '.pw-card-figures{display:flex;flex-direction:column;align-items:stretch;border:1px solid var(--brut-rule);border-radius:0;background:var(--brut-paper);padding:0;text-align:left;}',
+            '.pw-card-figures:hover{background:var(--brut-paper);border-color:var(--brut-blue);}',
+            '.pw-card-figures .pw-stripe{display:none;}',
+            '.pw-card-figures .pw-card-thumb{width:100%;height:150px;flex:0 0 auto;border:0;border-bottom:1px solid var(--brut-rule);border-radius:0;}',
+            '.pw-card-figures .pw-card-thumb img{width:100%;height:100%;object-fit:cover;object-position:top center;}',
+            '.pw-card-figures .pw-card-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;}',
+            '.pw-card-figures .pw-card-name{display:flex;font-size:19px;line-height:1.15;margin-bottom:0;}',
+            '.pw-card-figures .pw-card-line{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;margin-bottom:0;}',
+            '.pw-card-figures .pw-card-name:before{content:none;}',
           ].join('\n')
           document.head.appendChild(tag)
         } catch {
@@ -1176,7 +1189,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
             el('span', { className: 'pw-muted', style: { marginLeft: 'auto', fontSize: 11.5 } }, '点卡片看细节 · 复制引用粘给 AI · AI 用 paper_style op=get 读规格'),
           ),
 
-          el('div', { className: 'pw-grid' },
+          el('div', { className: 'pw-grid' + (activeLayer === 'figure' ? ' pw-grid-figures' : '') },
             shown.flatMap(function (e, i) {
               // 用 <button> 而不是 <div>：宿主里按钮的点击最可靠，div 的 onClick 有过不触发的情况
                // 有样品图（sample）：显示缩略图；否则纯文字卡片 + 顶部强调色条。
@@ -1192,7 +1205,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                 key: e.id,
                 type: 'button',
                 // 纯文字卡片（同代码工作台）：不摆封面海报，顶部一条强调色代替。
-                 className: 'pw-card' + (hasSample ? ' pw-card-pic' : ' pw-card-flat'),
+                 className: 'pw-card' + (activeLayer === 'figure' ? ' pw-card-figures' : '') + (hasSample ? ' pw-card-pic' : ' pw-card-flat'),
                 onClick: function () { setOpenId(e.id) },
               },
                  hasSample
