@@ -1,0 +1,28 @@
+{
+  "name": "@zhuobichen/dsh-writing-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "写作工作台：按题材分标签页（小说/新闻/公众号/古诗/通用技法），收录别人的写法；1930s 橡皮管卡通风格",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": ["index.js", "client.js", "catalog.js", "cordis.patch.yml", "README.md"],
+  "license": "MIT",
+  "dsh": {
+    "id": "dsh-writing-workbench",
+    "name": "写作工作台",
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.4"
+  }
+}

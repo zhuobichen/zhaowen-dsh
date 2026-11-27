@@ -1,0 +1,4 @@
+# 写作工作台：只挂插件本体，不改宿主任何一行。
+- insert:
+    - id: writing-workbench
+      name: '@zhuobichen/dsh-writing-workbench'
