@@ -741,11 +741,66 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         }, hasSpec ? 'With spec' : 'Ref only')
       }
 
-      // 卡片星数徽章：从 sources label 的「★ N」提取，GitHub 来源才显示
+      // 卡片星数徽章：先读 label 的「★ N」，兜底从 URL 查仓库星数（常量拼的 URL 没标 label 时用）
+      const DW_STARS = {
+        'Cocoon-AI/architecture-diagram-generator': '7.7k',
+        'Evavic44/portfolio-ideas': '6.4k',
+        'Jenqyang/Awesome-AI-Agents': '1.3k',
+        'Ladvace/astro-bento-portfolio': '400',
+        'LottieFiles/motion-design-skill': '3.8k',
+        'ManimCommunity/manim': '43k',
+        'Mor-Li/Agent-Memory-Paper-List': '0',
+        'RUC-NLPIR/Awesome-Long-Horizon-Agents': '880',
+        'RyanFitzgerald/devportfolio': '5k',
+        'TamiloreO/style-labs': '1',
+        'VII-Cae/hyalite--liquid-glass': '278',
+        'Vincentwei1021/mg-styles-15': '4k',
+        'academicpages/academicpageshub.io': 'repo not found',
+        'adamgiebl/neumorphism': '6.2k',
+        'adrianhajdin/project_3D_developer_portfolio': '7.1k',
+        'ai/easings.net': '8.7k',
+        'alchaincyf/huashu-design': '31k',
+        'alyssaxuu/motionity': '4.2k',
+        'arifszn/gitprofile': '2.3k',
+        'barbajs/barba': '13k',
+        'bryan-1981/bryan-1981hub.io': 'repo not found',
+        'cobiwave/simplefolio': '14k',
+        'codewithsadee/vcard-personal-portfolio': '8.2k',
+        'daniruiz/skeuos-css': '76',
+        'ddoemonn/interior': '1.3k',
+        'emmabostian/developer-portfolios': '28k',
+        'excalidraw/excalidraw': '136k',
+        'heygen-com/hyperframes': '91k',
+        'himanshuk-dev-code/Automation-to-Agents': '0',
+        'juliangarnier/anime': '75k',
+        'kubai087/glasswork': '112',
+        'kylezantos/design-motion-principles': '1.7k',
+        'lemomo-ai/lemo-opuscar': '22k',
+        'maxwellito/vivus': '15k',
+        'miketromba/css.glass': '459',
+        'mingrammer/diagrams': '43k',
+        'mojs/mojs': '19k',
+        'nexu-io/openmotion': '17k',
+        'nikdelvin/liquid-glass': '119',
+        'remotion-dev/remotion': '76k',
+        'saadpasta/developerFolio': '6.7k',
+        'satnaing/terminal-portfolio': '831',
+        'setrakian362/ppt-master': '0',
+        'syxanash/awesome-web-desktops': '2.2k',
+        'terrastruct/d2': '26k',
+        'thedevelobear/react-rewards': '',
+        'threerocks/sweety-handdraw-video': '1.3k',
+      }
       function dwStarsOf(entry) {
         for (const s of (entry.sources || [])) {
           const m = String(s.label || '').match(/★\s*([\d.]+k?)/)
           if (m) return el('span', { className: 'dw-stars', title: 'GitHub stars' }, '★ ' + m[1])
+        }
+        for (const s of (entry.sources || [])) {
+          const mm = String(s.url || '').match(/github\.com\/([^/]+)\/([^/#?]+)/)
+          if (!mm) continue
+          const n = DW_STARS[mm[1] + '/' + mm[2].replace(/\.git$/, '')]
+          if (n) return el('span', { className: 'dw-stars', title: 'GitHub stars' }, '★ ' + n)
         }
         return null
       }

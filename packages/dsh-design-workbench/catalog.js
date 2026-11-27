@@ -308,7 +308,7 @@ const VIDEO_ENTRIES = [
     ],
     howto: '做知识科普、故事讲述、文章转视频；它是 Skill 形态（不是库），需要 Claude Code / Codex 宿主，官方只承诺 macOS / Linux。',
     sources: [
-      { label: '云端仓库', url: 'https://github.com/threerocks/sweety-handdraw-video' },
+      { label: '云端仓库（★ 1.3k）', url: 'https://github.com/threerocks/sweety-handdraw-video' },
       { label: '本地副本', path: 'D:/github_project/ZhaoWen_GitHub维护/code-to-film/sweety-handdraw-video' },
       { label: '封面（README 样片）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/vid-sweety-handdraw.jpg' },
     ],
@@ -1207,7 +1207,7 @@ const CODEVIDEO_ENGINES = [
     ],
     howto: '要做「代码写视频」的产品片/解释片时，先用它跑通最小闭环：一个 index.html + 时间轴属性 + 本地渲染 MP4。',
     sources: [
-      { label: '仓库', url: 'https://github.com/heygen-com/hyperframes' },
+      { label: '仓库（★ 91k）', url: 'https://github.com/heygen-com/hyperframes' },
       { label: '文档（llms.txt 入口）', url: 'https://hyperframes.heygen.com/llms.txt' },
       { label: '本机笔记', path: 'D:/github_project/ZhaoWen_GitHub维护/weflow-cli/output/_wiki-backup-20261109-202714/Hyperframes.md' },
     ],
@@ -1228,7 +1228,7 @@ const CODEVIDEO_ENGINES = [
       '授权：公司规模超阈值要付费——自用没问题，商用前先看许可',
     ],
     howto: '团队已经在写 React、又要长期维护视频工程时选它；纯 HTML 场景 HyperFrames 更轻。',
-    sources: [{ label: '仓库', url: 'https://github.com/remotion-dev/remotion' }, { label: '许可说明', url: 'https://www.remotion.dev/license' }],
+    sources: [{ label: '仓库（★ 76k）', url: 'https://github.com/remotion-dev/remotion' }, { label: '许可说明', url: 'https://www.remotion.dev/license' }],
     origin: 'referenced',
   },
   {
@@ -1442,7 +1442,7 @@ const ARCH_ENTRIES = [
     ],
     howto: '方案预审、架构脑暴、给非技术同事讲结构时用；要正式交付就别用这套。',
     sources: [
-      { label: 'Excalidraw', url: 'https://github.com/excalidraw/excalidraw' },
+      { label: 'Excalidraw（★ 136k）', url: 'https://github.com/excalidraw/excalidraw' },
       { label: 'rough.js', url: 'https://roughjs.com/' },
     ],
     origin: 'referenced',
@@ -1463,7 +1463,7 @@ const ARCH_ENTRIES = [
     howto: '写进 README/设计文档的正式架构图，首选用 D2 生成这套。',
     sources: [
       { label: 'D2 官网与主题', url: 'https://d2lang.com/' },
-      { label: '仓库', url: 'https://github.com/terrastruct/d2' },
+      { label: '仓库（★ 26k）', url: 'https://github.com/terrastruct/d2' },
     ],
     origin: 'referenced',
   },
@@ -1519,7 +1519,7 @@ const ARCH_ENTRIES = [
     ],
     howto: '画部署拓扑、给运维/客户讲环境时用；比手绘图更可信。',
     sources: [
-      { label: 'diagrams（Python）', url: 'https://github.com/mingrammer/diagrams' },
+      { label: 'diagrams（Python）（★ 43k）', url: 'https://github.com/mingrammer/diagrams' },
       { label: 'AWS 架构图标', url: 'https://aws.amazon.com/architecture/icons/' },
     ],
     origin: 'referenced',
@@ -2135,7 +2135,7 @@ const WEB_UI_STYLES = [
     ],
     howto: '设置面板、开关、滑块这类小控件；做整站风格要非常克制。',
     sources: [
-      { label: '云端仓库', url: 'https://github.com/adamgiebl/neumorphism' },
+      { label: '云端仓库（★ 6.2k）', url: 'https://github.com/adamgiebl/neumorphism' },
       { label: '在线生成器', url: 'https://neumorphism.io/' },
       { label: '封面（生成器截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-neumorphism.png' },
     ],
@@ -2157,7 +2157,7 @@ const WEB_UI_STYLES = [
     ],
     howto: '悬浮导航、卡片、侧栏；背景平淡时先给它加一层渐变或图片。',
     sources: [
-      { label: '云端仓库', url: 'https://github.com/miketromba/css.glass' },
+      { label: '云端仓库（★ 459）', url: 'https://github.com/miketromba/css.glass' },
       { label: '在线生成器', url: 'https://css.glass/' },
       { label: '封面（生成器截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-glass.png' },
     ],
@@ -2222,7 +2222,7 @@ const WEB_UI_STYLES = [
     ],
     howto: '个人品牌、音乐/潮牌、创意作品集；要有「未来复古」情绪时用。',
     sources: [
-      { label: '云端仓库', url: 'https://github.com/bryan-1981/bryan-1981.github.io' },
+      { label: '云端仓库（★ repo not found）', url: 'https://github.com/bryan-1981/bryan-1981.github.io' },
       { label: '在线站点', url: 'https://bryan-1981.github.io/' },
       { label: '封面（站点截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/ui-y2k.png' },
     ],
@@ -2306,7 +2306,7 @@ const PERSONAL_HOME = [
       '圆角 8px、几乎无阴影，靠 80px 的段落间距撑开呼吸',
     ],
     howto: '要一个一天能改完、又不显廉价的个人站时首选；14.2k star，改法最多。',
-    sources: [{ label: '仓库', url: 'https://github.com/cobiwave/simplefolio' }],
+    sources: [{ label: '仓库（★ 14k）', url: 'https://github.com/cobiwave/simplefolio' }],
   },
   {
     id: 'fe-ph-devportfolio',
@@ -2339,7 +2339,7 @@ const PERSONAL_HOME = [
     ],
     howto: '做科研/学术个人主页的首选骨架；换成你的论文即可，别改两栏结构。',
     sources: [
-      { label: '仓库', url: 'https://github.com/academicpages/academicpages.github.io' },
+      { label: '仓库（★ repo not found）', url: 'https://github.com/academicpages/academicpages.github.io' },
       { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-ph-academicpages.png' },
     ],
   },
@@ -2358,7 +2358,7 @@ const PERSONAL_HOME = [
     ],
     howto: '前端/3D 方向、想用作品集本身证明技术能力时用；代价是首屏重、要兜底。',
     sources: [
-      { label: '仓库', url: 'https://github.com/adrianhajdin/project_3D_developer_portfolio' },
+      { label: '仓库（★ 7.1k）', url: 'https://github.com/adrianhajdin/project_3D_developer_portfolio' },
       { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-ph-3d-portfolio.png' },
     ],
   },
@@ -2415,7 +2415,7 @@ const PERSONAL_HOME = [
     ],
     howto: '内容少、想快速有个像样门面时用；也适合当简历的可视化载体。',
     sources: [
-      { label: '仓库', url: 'https://github.com/codewithsadee/vcard-personal-portfolio' },
+      { label: '仓库（★ 8.2k）', url: 'https://github.com/codewithsadee/vcard-personal-portfolio' },
       { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-ph-vcard.png' },
     ],
   },
@@ -2433,7 +2433,7 @@ const PERSONAL_HOME = [
       '所有文案集中在一个配置文件，改内容不用碰组件',
     ],
     howto: '想快速上线、能接受模板感时用；6.6k star，配套教程最多。',
-    sources: [{ label: '仓库', url: 'https://github.com/saadpasta/developerFolio' }],
+    sources: [{ label: '仓库（★ 6.7k）', url: 'https://github.com/saadpasta/developerFolio' }],
   },
   {
     id: 'fe-ph-gitprofile',
@@ -2450,7 +2450,7 @@ const PERSONAL_HOME = [
     ],
     howto: '不想维护内容、主要靠 GitHub 说话时用；想讲故事的场合别用。',
     sources: [
-      { label: '仓库', url: 'https://github.com/arifszn/gitprofile' },
+      { label: '仓库（★ 2.3k）', url: 'https://github.com/arifszn/gitprofile' },
       { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-ph-gitprofile.png' },
     ],
   },
@@ -2470,7 +2470,7 @@ const PERSONAL_HOME = [
       '适合「作品多、需要分类」的人：文件夹即分类',
     ],
     howto: '想让人记住、且愿意为交互买单时用；做之前先想清楚移动端怎么办。',
-    sources: [{ label: '合集仓库', url: 'https://github.com/syxanash/awesome-web-desktops' }],
+    sources: [{ label: '合集仓库（★ 2.2k）', url: 'https://github.com/syxanash/awesome-web-desktops' }],
   },
   {
     id: 'fe-ph-portfolio-list',
@@ -2487,7 +2487,7 @@ const PERSONAL_HOME = [
     ],
     howto: '动手前先在这里翻 10 个同类站，比看 100 条设计原则有用。',
     sources: [
-      { label: '合集仓库', url: 'https://github.com/emmabostian/developer-portfolios' },
+      { label: '合集仓库（★ 28k）', url: 'https://github.com/emmabostian/developer-portfolios' },
       { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/fe-ph-portfolio-list.png' },
     ],
   },
@@ -2552,7 +2552,7 @@ const MOTION_ENTRIES = [
       '同屏同时动的不超过 3 组；组间位移差 40px 以上才看得出层次，否则挤成一团',
     ],
     howto: '做交互评审时当 checklist 用；也能挡住「这个能不能加个动效」这类需求。',
-    sources: [{ label: '仓库', url: 'https://github.com/kylezantos/design-motion-principles' }],
+    sources: [{ label: '仓库（★ 1.7k）', url: 'https://github.com/kylezantos/design-motion-principles' }],
   },
   {
     id: 'mo-easing',
@@ -2569,7 +2569,7 @@ const MOTION_ENTRIES = [
     ],
     howto: '写 CSS transition 前先在这里挑一条；它是动效里最容易做对、也最容易做砸的一项。',
     sources: [
-      { label: '仓库', url: 'https://github.com/ai/easings.net' },
+      { label: '仓库（★ 8.7k）', url: 'https://github.com/ai/easings.net' },
       { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-easing.png' },
     ],
   },
@@ -2588,7 +2588,7 @@ const MOTION_ENTRIES = [
     ],
     howto: '多页站（文档、作品集）想做出 App 手感时用；单页站不需要。',
     sources: [
-      { label: '仓库', url: 'https://github.com/barbajs/barba' },
+      { label: '仓库（★ 13k）', url: 'https://github.com/barbajs/barba' },
       { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-barba.png' },
     ],
   },
@@ -2607,7 +2607,7 @@ const MOTION_ENTRIES = [
     ],
     howto: 'logo 入场、手绘感插画、流程逐段出现；和「一笔画」那类视觉风格很搭。',
     sources: [
-      { label: '仓库', url: 'https://github.com/maxwellito/vivus' },
+      { label: '仓库（★ 15k）', url: 'https://github.com/maxwellito/vivus' },
       { label: '封面（demo 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-vivus.png' },
     ],
   },
@@ -2625,7 +2625,7 @@ const MOTION_ENTRIES = [
       '微交互不该阻塞主流程，动画期间仍可继续操作',
     ],
     howto: '按钮、开关、表单提交这些高频操作；这是用户感知「流畅」最直接的地方。',
-    sources: [{ label: '仓库', url: 'https://github.com/ddoemonn/interior' }],
+    sources: [{ label: '仓库（★ 1.3k）', url: 'https://github.com/ddoemonn/interior' }],
   },
   {
     id: 'mo-rewards',
@@ -2661,7 +2661,7 @@ const MOTION_ENTRIES = [
     ],
     howto: '需要编排多个元素、或做可暂停的演示时用；简单 hover 用 CSS 就够。',
     sources: [
-      { label: '仓库', url: 'https://github.com/juliangarnier/anime' },
+      { label: '仓库（★ 75k）', url: 'https://github.com/juliangarnier/anime' },
       { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-animejs.png' },
     ],
   },
@@ -2680,7 +2680,7 @@ const MOTION_ENTRIES = [
     ],
     howto: '做视觉冲击强的开场/过渡，而不是日常交互；和「代码生视频」那层的动效风格互补。',
     sources: [
-      { label: '仓库', url: 'https://github.com/mojs/mojs' },
+      { label: '仓库（★ 19k）', url: 'https://github.com/mojs/mojs' },
       { label: '封面（官网截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-mojs.png' },
     ],
   },
@@ -2699,7 +2699,7 @@ const MOTION_ENTRIES = [
     ],
     howto: '做提案、演示、短视频动效；要落地成代码还得重写一遍。',
     sources: [
-      { label: '仓库', url: 'https://github.com/alyssaxuu/motionity' },
+      { label: '仓库（★ 4.2k）', url: 'https://github.com/alyssaxuu/motionity' },
       { label: '封面（README 截图）', path: 'D:/github_project/ZhaoWen_GitHub维护/_design/covers/mo-motionity.png' },
     ],
   },
