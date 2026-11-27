@@ -721,6 +721,15 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
       const useMemo = react.useMemo
       const useRef = react.useRef || null
 
+      // 卡片星数徽章：从 sources label 的「★ N」提取，GitHub 来源才显示
+      function pwStarsOf(entry) {
+        for (const s of (entry.sources || [])) {
+          const m = String(s.label || '').match(/★\s*([\d.]+k?)/)
+          if (m) return el('span', { className: 'pw-stars', title: 'GitHub stars' }, '★ ' + m[1])
+        }
+        return null
+      }
+
       let styleDone = false
       function useStyleOnce() {
         if (styleDone) return
@@ -729,6 +738,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           const tag = document.createElement('style')
           tag.setAttribute('data-paper-workbench', '1')
           tag.textContent = [
+            '.pw-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#d97706;border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:0 6px;line-height:16px;}',
             '.pw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:var(--dsw-alias-label-primary);}',
             '.pw-modal{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px;}',
             '.pw-modal-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.35);width:min(1040px,100%);max-height:88vh;overflow:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;}',
@@ -1219,6 +1229,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { className: 'pw-card-name' },
                     e.name,
                     el('span', { className: 'pw-origin ' + (e.origin === 'referenced' ? 'pw-origin-ref' : 'pw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
+                    pwStarsOf(e),
                   ),
                   el('div', { className: 'pw-card-line' }, e.oneLine),
                   el('div', { className: 'pw-tags' }, (e.tags || []).map(function (t) { return el('span', { className: 'pw-tag', key: t }, t) })),

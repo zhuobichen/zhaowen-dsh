@@ -737,6 +737,15 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
         return ''
       }
 
+      // 卡片星数徽章：从 sources label 的「★ N」提取，GitHub 来源才显示
+      function dwStarsOf(entry) {
+        for (const s of (entry.sources || [])) {
+          const m = String(s.label || '').match(/★\s*([\d.]+k?)/)
+          if (m) return el('span', { className: 'dw-stars', title: 'GitHub stars' }, '★ ' + m[1])
+        }
+        return null
+      }
+
       let styleDone = false
       function useStyleOnce() {
         if (styleDone) return
@@ -746,6 +755,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
           tag.setAttribute('data-cw-scope', '1')
           tag.textContent = [
             // developerFolio 全深色：在本面板内覆盖宿主 token，下面所有用 var(--dsw-alias-*) 的元素一起变深
+            '.dw-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#d97706;border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:0 6px;line-height:16px;}',
             '.dw-wrap{display:flex;flex-direction:column;gap:12px;padding:16px 18px 40px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;max-width:100%;font-size:13px;color:var(--dsw-alias-label-primary);}',
             '.dw-modal-card{background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);}',
             
@@ -1265,7 +1275,7 @@ rect{animation-delay:.15s} line{animation-delay:.9s} path.a{animation-delay:1.2s
                   el('div', { className: 'dw-card-name' },
                     e.name,
                     el('span', { className: 'dw-origin ' + (e.origin === 'referenced' ? 'dw-origin-ref' : 'dw-origin-mine') }, e.origin === 'referenced' ? '引用' : '自制'),
-                    starOf(e) ? el('span', { className: 'dw-stars' }, starOf(e)) : null,
+                    dwStarsOf(e),
                     e.nature === 'method' ? el('span', { className: 'dw-nature' }, '方法') : null,
                     e.nature === 'reference' ? el('span', { className: 'dw-nature' }, '参考') : null,
                   ),

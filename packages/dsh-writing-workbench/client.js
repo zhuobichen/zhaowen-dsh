@@ -58,6 +58,15 @@ window.__ModuleLoader__.load({
       )
     }
 
+      // 卡片星数徽章：从 sources label 的「★ N」提取，GitHub 来源才显示
+      function wrStarsOf(entry) {
+        for (const s of (entry.sources || [])) {
+          const m = String(s.label || '').match(/★\s*([\d.]+k?)/)
+          if (m) return el('span', { className: 'wr-stars', title: 'GitHub stars' }, '★ ' + m[1])
+        }
+        return null
+      }
+
     let styleDone = false
     function useStyleOnce() {
       if (styleDone) return
@@ -68,6 +77,7 @@ window.__ModuleLoader__.load({
         tag.setAttribute('data-wrubber', '1')
         tag.textContent = `
           /* 1930s 橡皮管卡通：严格灰阶、线稿毛边、4:3 胶片门 */
+.wr-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#1a1a1a;border:2px solid #1a1a1a;border-radius:999px;padding:0 6px;background:#fafafa;}
           .wr-wrap{--ink:#1a1a1a;--paper:#fafafa;--mid:#bdbdbd;--grey:#8a8a8a;--line:rgba(26,26,26,.28);
             display:flex;flex-direction:column;gap:14px;padding:18px 20px 48px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;
             font-family:Georgia,'Times New Roman',serif;color:var(--ink);
@@ -213,7 +223,7 @@ window.__ModuleLoader__.load({
             onKeyDown: (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOpenId(e.id) } },
           },
             h('div', { className: 'wr-card-name' }, e.name,
-              h('span', { className: 'wr-origin' }, e.origin === 'mine' ? '自制' : '引用')),
+              h('span', { className: 'wr-origin' }, e.origin === 'mine' ? '自制' : '引用')),wrStarsOf(e),
             h('div', { className: 'wr-line2' }, e.oneLine),
             h('div', { className: 'wr-tags' }, (e.tags || []).map((t) => h('span', { key: t, className: 'wr-tag' }, t))),
           )),

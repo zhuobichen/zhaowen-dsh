@@ -27,6 +27,15 @@ window.__ModuleLoader__.load({
 
     const LAYER_ICON = { pattern: '◇', skill: '◈', context: '◎', eval: '⊕', local: '⌂' }
 
+      // 卡片星数徽章：从 sources label 的「★ N」提取，GitHub 来源才显示
+      function aibStarsOf(entry) {
+        for (const s of (entry.sources || [])) {
+          const m = String(s.label || '').match(/★\s*([\d.]+k?)/)
+          if (m) return el('span', { className: 'aib-stars', title: 'GitHub stars' }, '★ ' + m[1])
+        }
+        return null
+      }
+
     let styleDone = false
     function useStyleOnce() {
       if (styleDone) return
@@ -40,6 +49,7 @@ window.__ModuleLoader__.load({
         tag.setAttribute('data-aiwb', 'y2k')
         const css = `
           /* ── Y2K 铬金属 / Chrome Future Retro ─────────────────────────── */
+.aib-stars{font-family:ui-monospace,Consolas,monospace;font-size:10px;color:#fbbf24;border:1px solid rgba(251,191,36,.4);border-radius:999px;padding:0 6px;}
           .aib-wrap{--aib-ink:#e8f2ff;--aib-sub:#8ba8cc;--aib-line:rgba(120,170,240,.22);--aib-brand:#7dd3ff;--aib-glass:rgba(16,28,56,.78);
             display:flex;flex-direction:column;gap:14px;padding:18px 20px 44px;height:100%;overflow:auto;overflow-x:hidden;box-sizing:border-box;font-size:13px;color:var(--aib-ink);
             background-color:#060b1c;
@@ -221,7 +231,8 @@ window.__ModuleLoader__.load({
           },
             h('div', { className: 'aib-card-name' }, e.name,
               h('span', { className: 'aib-origin' }, e.origin === 'referenced' ? '引用' : '自制'),
-              starOf(e) ? h('span', { className: 'aib-stars' }, starOf(e)) : null),
+              aibStarsOf(e),
+            ),
             h('div', { className: 'aib-line2' }, e.oneLine),
             h('div', { className: 'aib-tags' }, (e.tags || []).map((t) => h('span', { key: t, className: 'aib-tag' }, t))),
           )),
