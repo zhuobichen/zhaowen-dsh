@@ -63,6 +63,12 @@ function toApi(url) {
   if (m) return `https://api.github.com/repos/${m[1]}/contents/${m[3]}?ref=${m[2]}`
   return null
 }
+/** raw URL → jsdelivr CDN（大图兜底：GitHub API 对 >1MB 文件不给 content，raw 又常超时）。 */
+function toCdn(url) {
+  const m = /^https?:\/\/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/([^/]+)\/(.+)$/i.exec(url)
+  if (m) return `https://cdn.jsdelivr.net/gh/${m[1]}@${m[2]}/${m[3]}`
+  return null
+}
 
 async function getBuffer(url) {
   // 通道 1：raw
@@ -91,7 +97,21 @@ async function getBuffer(url) {
         }
       }
     } catch {
-      /* 两条都失败 —— 返回 null */
+      /* API 也失败 —— 继续试 CDN */
+    }
+  }
+  // 通道 3：jsdelivr CDN。raw 在国内常超时、GitHub API 对 >1MB 图不给 content，
+  // CDN 能代理任意大小的 GitHub 文件，实测稳定。
+  const cdn = toCdn(url)
+  if (cdn) {
+    try {
+      const res = await fetch(cdn, { headers: { 'User-Agent': 'dsh-design-workbench' }, signal: AbortSignal.timeout(30000) })
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer())
+        if (buf.length > 0 && buf.length <= MAX_BYTES) return buf
+      }
+    } catch {
+      /* 三条都失败 —— 返回 null */
     }
   }
   return null
@@ -132,6 +152,12 @@ export function coverUrlsOf(entry) {
   for (const m of (Array.isArray(entry.members) ? entry.members : [])) {
     add(m.raw)
     if (typeof m.cover === 'string' && /^https?:\/\//i.test(m.cover)) add(m.cover)
+  }
+  // 通用：sources[].url 里指向图片（blob 或 raw，扩展名 .jpg/png/webp…）的一并收集。
+  // agent-paper 层的图源就是这种 GitHub blob URL（cover 是失效的 D 盘路径、coverUrl 为空）。
+  for (const s of (Array.isArray(entry.sources) ? entry.sources : [])) {
+    const u = typeof s.url === 'string' ? s.url : ''
+    if (/\.(jpe?g|png|webp|gif|svg)(\?|#|$)/i.test(u)) add(u)
   }
   // 漫画层：cover 是失效的本地 D 盘路径，coverUrl 为空。云端海报按仓库分两种：
   //   lemo-opuscar  : .../styles/<style>/poster.jpg
