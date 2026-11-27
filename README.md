@@ -137,3 +137,11 @@ exports.inject = ['slots', 'locale']   // 按实际用到的服务列，参考 d
 - `zhuobichen/dsh-team` → `packages/dsh-team`
 - `zhuobichen/dsh-tui` → `packages/dsh-cc-tui`
 - `zhuobichen/dsh-term` → `packages/dsh-term`
+
+## 许可证
+
+**MIT**，见 [`LICENSE`](LICENSE)（Copyright (c) 2026 zhuobichen）。可以自由使用、修改、再分发，保留版权声明与许可文本即可。
+
+`packages/` 下每个包的 `package.json` 都写了 `"license": "MIT"`；已发布到 npm 的（`@zhuobichen/dsh-team`、`dsh-cc-tui`、`dsh-term` 等）还各自带一份 `LICENSE`。
+
+别人做的插件与素材不在本仓库 MIT 范围内，出处、版本与许可证记在 [`THIRD-PARTY.md`](THIRD-PARTY.md)。
